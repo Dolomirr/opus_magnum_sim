@@ -24,7 +24,7 @@ def main():
 
     for _ in range(10):
         ic(sim.step)
-
+        sim.next_step()
         ic(sim.board.base_obj, sim.board.objects)
 
 
