@@ -26,7 +26,7 @@ class Manipulator(Component):
     @property
     def get_hand_pos(self) -> Hex:
         return (
-            Direction().from_rotation(self.hand_length)
+            Direction().from_rotation(self.rotation)
             .apply(self.pos, self.hand_length)
         )  # fmt: skip
 
