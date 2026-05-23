@@ -11,18 +11,24 @@ def main():
     sim = Simulator((10, 10))
 
     sim.add_component(Hex(2, 3), ComponentType.ENTRANCE, object_type=ObjectType.ATOM)
-    sim.add_component(Hex(3, 4), ComponentType.EXIT, object_type=ObjectType.ATOM)
+    sim.add_component(Hex(3, 2), ComponentType.EXIT, object_type=ObjectType.ATOM)
     sim.add_component(Hex(3, 3), ComponentType.ARM)
 
-    ic(sim.board.base_obj, sim.board.objects)
+    # ic(sim.board.base_obj, sim.board.objects)
+    # ic(sim.components, sim.entrypoints)
 
-    ic(sim.components, sim.entrypoints)
+    sim.assign_step_action(2, 1, StepActionType.ROTATE_CCLW)
+    sim.assign_step_action(2, 2, StepActionType.GRAB)
+    sim.assign_step_action(2, 3, StepActionType.ROTATE_CCLW)
+    sim.assign_step_action(2, 4, StepActionType.RELEASE)
+    sim.assign_step_action(2, 5, StepActionType.ROTATE_CLW)
 
-    sim.assign_step_action(2, 1, StepActionType.GRAB)
-    sim.assign_step_action(2, 2, StepActionType.ROTATE_CLW)
-    sim.assign_step_action(2, 2, StepActionType.RELEASE)
+    sim.assign_step_action(2, 6, StepActionType.GRAB)
+    sim.assign_step_action(2, 7, StepActionType.ROTATE_CCLW)
+    sim.assign_step_action(2, 8, StepActionType.RELEASE)
+    sim.assign_step_action(2, 9, StepActionType.ROTATE_CLW)
 
-    for _ in range(10):
+    for _ in range(12):
         ic(sim.step)
         sim.next_step()
         ic(sim.board.base_obj, sim.board.objects)
