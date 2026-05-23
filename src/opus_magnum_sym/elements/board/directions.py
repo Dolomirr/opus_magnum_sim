@@ -9,19 +9,19 @@ class Direction:
     Static class defining hexagonal direction corresponding to standard grid.
     Neared neigbouts of each hexagons defined nearest neigbour on grid + right upper and right down cells.
 
-     -------┌───────┬───────┐
-    |       │       │       │
-    |       │ -1,0  │ -1,1  │
-    |       │       │       │
-    ┌───────┼───────┼───────│
-    │       │       │       │
-    │  0,-1 │  0,0  │  0,1  │
-    │       │       │       │
-    └───────┼───────┼───────│
-    |       │       │       │
-    |       │  1,0  │  1,1  │
-    |       │       │       │
-     -------└───────┴───────┘
+     -------┌───────┬───────┐  |   -------┌───────┬───────┐
+    |       │       │       │  |  |       │       │       │
+    |       │ -1,0  │ -1,1  │  |  |       │  H11  │   H1  │
+    |       │       │       │  |  |       │       │       │
+    ┌───────┼───────┼───────│  |  ┌───────┼───────┼───────│
+    │       │       │       │  |  │       │       │       │
+    │  0,-1 │  0,0  │  0,1  │  |  │   H9  │  NONE │   H3  │
+    │       │       │       │  |  │       │       │       │
+    └───────┼───────┼───────│  |  └───────┼───────┼───────│
+    |       │       │       │  |  |       │       │       │
+    |       │  1,0  │  1,1  │  |  |       │   H7  │   H5  │
+    |       │       │       │  |  |       │       │       │
+     -------└───────┴───────┘  |   -------└───────┴───────┘
                                |  Directions:
            / \     / \         |         / \     / \
          /     \ /     \       |       /     \ /     \
@@ -106,15 +106,11 @@ class Direction:
 
     def from_rotation(self, rotation: int = 0) -> _Dir:
         rotations = (
+            self.H1,
             self.H3,
             self.H5,
             self.H7,
             self.H9,
             self.H11,
-            self.H1,
         )
-        # rot = rotations[rotation % 6]
-        # return rot
-        ic(rotation, rotations)
-        ic(rotations[rotation % 6])
-        return rotations[rotation % 6]  # additional check to prevent overflow
+        return ic(rotations[rotation % 6])  # additional check to prevent overflow
