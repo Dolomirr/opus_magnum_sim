@@ -28,13 +28,3 @@ class StepActionType(IntEnum):
     RETRACT = auto()
     MOVE_POS = auto()
     MOVE_NEG = auto()
-
-
-@dataclass(slots=True)
-class Action:
-    type: ActionType
-    component_id: int | None = None
-    slot: int | None = None
-    step_action: StepActionType | None = None
-    instruction_type: int | None = None
-    params: dict[str, Any] = field(default_factory=dict)  # TODO: rething this part for static types
