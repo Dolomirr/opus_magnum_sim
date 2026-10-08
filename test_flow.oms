@@ -1,0 +1,16 @@
+# comp <x> <y> <type> [optional_object_type]
+comp 2 3 entrance atom
+comp 3 2 exit atom
+comp 3 3 arm
+
+# action <comp_id> <step> <action_type>
+# action 2 1 rotate_cclw
+# action 2 2 grab
+# action 2 3 rotate_cclw
+# action 2 4 release
+# action 2 5 rotate_clw
+
+# action 2 6 grab
+# action 2 7 rotate_cclw
+# action 2 8 release
+# action 2 9 rotate_clw
