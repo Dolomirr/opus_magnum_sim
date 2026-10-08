@@ -1,8 +1,6 @@
 import shlex
 from pathlib import Path
 
-from icecream import ic
-
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.board import Hex
 from opus_magnum_sym.elements.components import ComponentType
@@ -44,22 +42,24 @@ class SimInterpreter:
             print(f"Unknown command '{cmd}' on line {line_num}")
 
     def _handle_comp(self, args):
-        # x, y, comp_type, [object_type]
+        # x, y, comp_type, [key=value ...]
         x, y = int(args[0]), int(args[1])
+        comp_type = getattr(ComponentType, args[2].upper())
 
-        comp_type_str = args[2].upper()
-        ic(comp_type_str)
-        comp_type = getattr(ComponentType, comp_type_str)
-
-        obj_type = None
-        if len(args) > 3:
-            obj_type_str = args[3].upper()
-            obj_type = getattr(ObjectType, obj_type_str)
+        kwargs = {}
+        for arg in args[3:]:
+            key, value = arg.split("=", 1)
+            if key == "object_type":
+                kwargs[key] = getattr(ObjectType, value.upper())
+            elif key in ("rotation", "length"):
+                kwargs[key] = int(value)
+            else:
+                kwargs[key] = value
 
         self.sim.add_component(
             cell=Hex(x, y),
             comp_type=comp_type,
-            object_type=obj_type,
+            **kwargs,
         )
 
     def _handle_action(self, args):
