@@ -35,18 +35,24 @@ class BoardRenderer:
         self.clock = pygame.time.Clock()
 
         self.font = pygame.font.SysFont("consolas", 12)
+        if self.font is None:
+            self.font = pygame.font.Font(None, 12)
 
         self.offset_x = 80
         self.offset_y = 80
 
     def draw(self):
+        pygame.event.pump()
         self.screen.fill(BACKGROUND)
 
-        self._draw_grid()
-        self._draw_components()
-        self._draw_objects()
-        self._draw_manipulator_hands()
-        self._draw_ui_overlay()
+        try:
+            self._draw_grid()
+            self._draw_components()
+            self._draw_objects()
+            self._draw_manipulator_hands()
+            self._draw_ui_overlay()
+        except Exception as e:
+            print(f"Render error: {e}")
 
         pygame.display.flip()
 
@@ -70,7 +76,7 @@ class BoardRenderer:
     def _draw_components(self):
         for r in range(self.board.rows):
             for s in range(self.board.cols):
-                comp = self.board.base_obj[r, s]
+                comp = int(self.board.base_obj[r, s])
 
                 if comp == ComponentType.EMPTY:
                     continue
@@ -149,7 +155,7 @@ class BoardRenderer:
     def _draw_objects(self):
         for r in range(self.board.rows):
             for s in range(self.board.cols):
-                obj = self.board.objects[r, s]
+                obj = int(self.board.objects[r, s])
 
                 if obj == ObjectType.NONE:
                     continue

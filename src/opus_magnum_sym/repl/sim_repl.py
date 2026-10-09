@@ -126,4 +126,3 @@ class SimREPL:
             self.running = False
             return
         self.renderer.draw()
-        self.renderer.tick(60)
