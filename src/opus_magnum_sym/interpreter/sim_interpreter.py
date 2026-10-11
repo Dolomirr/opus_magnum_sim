@@ -26,11 +26,13 @@ class SimInterpreter:
                 self.evaluate_line(line.strip(), line_num)
 
     def evaluate_line(self, line, line_num=0):
-        # line comments
+        # full-line and inline comments
         if not line or line.startswith("#"):
             return
 
-        tokens = shlex.split(line)
+        tokens = shlex.split(line, comments=True)
+        if not tokens:
+            return
         cmd = tokens[0].lower()
 
         if cmd in self.dispatch:
