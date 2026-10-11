@@ -43,14 +43,17 @@ class SimREPL:
             self.evaluate(line)
 
     def evaluate(self, line: str) -> None:
-        line = line.strip()
-        if not line or line.startswith("#"):
+        # splitting strings containing multi lines commands
+        entries = [entry.strip() for entry in line.splitlines()]
+        entries = [entry for entry in entries if entry and not entry.startswith("#")]
+        if not entries:
             return
 
-        if line[0] in "!:":
-            self._meta(line[1:])
-        else:
-            self.interpreter.evaluate_line(line)
+        for entry in entries:
+            if entry[0] in "!:":
+                self._meta(entry[1:])
+            else:
+                self.interpreter.evaluate_line(entry)
 
         self._refresh()
 
@@ -99,9 +102,7 @@ class SimREPL:
         for comp_id, comp in sorted(components.items()):
             print(f"{comp_id}: {comp.type.name} at {comp.pos}")
             if comp.programm:
-                actions = ", ".join(
-                    f"{step}:{action.name.lower()}" for step, action in sorted(comp.programm.items())
-                )
+                actions = ", ".join(f"{step}:{action.name.lower()}" for step, action in sorted(comp.programm.items()))
                 print(f"    actions: {actions}")
 
     def _save(self, args: list[str]) -> None:
