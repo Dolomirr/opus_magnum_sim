@@ -7,7 +7,7 @@ from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.board import Board, Hex
 from opus_magnum_sym.elements.components import ComponentType
 from opus_magnum_sym.elements.components.components_index import get_component_type
-from opus_magnum_sym.elements.env.level_counter import CORRECT_FINISHED
+from opus_magnum_sym.elements.env import level_counter
 
 if TYPE_CHECKING:
     from opus_magnum_sym.elements.components.base_component import Component
@@ -82,3 +82,19 @@ class Simulator:
         action: StepActionType,
     ):
         self.components[comp_id].assign_step_action(step=step, action=action)
+
+    def remove_component(self, comp_id: int) -> None:
+        comp = self.components.pop(comp_id, None) or self.entrypoints.pop(comp_id, None)
+        if comp is None:
+            msg = f"Component with id {comp_id} does not exist."
+            raise SimulationRuntimeError(msg, step=self.step)
+        self.board.remove_component(comp.pos)
+        self.im.free(comp_id)
+
+    def reset(self) -> None:
+        self.board.clear()
+        self.components.clear()
+        self.entrypoints.clear()
+        self.step = 0
+        self.im.reset()
+        level_counter.CORRECT_FINISHED = 0

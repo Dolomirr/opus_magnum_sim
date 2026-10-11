@@ -138,6 +138,14 @@ class Board:
             axis=0,
         )
 
+    def clear(self) -> None:
+        """
+        Reset all board layers without changing dimensions.
+        """
+        self.base_obj[:] = ComponentType.EMPTY
+        self.objects[:] = ObjectType.NONE
+        self.components_ids[:] = -1
+
     def clone(self) -> Self:
         new = self.__class__(self.rows, self.cols)  # typing.Self support
         new.base_obj = self.base_obj.copy()

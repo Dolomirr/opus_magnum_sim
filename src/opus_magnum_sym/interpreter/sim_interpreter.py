@@ -17,6 +17,8 @@ class SimInterpreter:
             "c": self._handle_comp,
             "action": self._handle_action,
             "a": self._handle_action,
+            "remove": self._handle_remove,
+            "rm": self._handle_remove,
             "connection": self._handle_connection,
         }
 
@@ -77,6 +79,11 @@ class SimInterpreter:
             step=step,
             action=action_type,
         )
+
+    def _handle_remove(self, args):
+        # comp_id
+        comp_id = int(args[0])
+        self.sim.remove_component(comp_id)
 
     def _handle_connection(self, args):
         # TODO: not yet implemented

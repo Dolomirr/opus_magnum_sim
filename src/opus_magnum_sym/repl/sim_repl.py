@@ -31,6 +31,8 @@ class SimREPL:
             "exit": self._quit,
             "save": self._save,
             "w": self._save,
+            "reset": self._reset,
+            "clear": self._reset,
         }
         self.running = True
 
@@ -105,6 +107,10 @@ class SimREPL:
                 actions = ", ".join(f"{step}:{action.name.lower()}" for step, action in sorted(comp.programm.items()))
                 print(f"    actions: {actions}")
 
+    def _reset(self, args: list[str]) -> None:
+        self.sim.reset()
+        print("Board cleared")
+
     def _save(self, args: list[str]) -> None:
         path = Path(args[0]) if args else Path("solution.oms")
 
@@ -139,13 +145,15 @@ class SimREPL:
                 [
                     "DSL commands:",
                     "  comp <x> <y> <type> [key=value ...]",
-                    "  action <comp_id> <step> <action_type>",
+                    "  action <comp_id> <step> <action_type>  (use 'none' to clear)",
+                    "  remove <comp_id>                       (alias: rm)",
                     "Meta commands:",
-                    "  !run [steps]   run simulation",
-                    "  !load <path>   load level file",
-                    "  !list          list placed components",
-                    "  !help          show this message",
-                    "  !save [path]   save level to file",
+                    "  !run [steps]      run simulation",
+                    "  !load <path>      load level file",
+                    "  !list             list placed components",
+                    "  !reset / !clear   clear board and reset counters",
+                    "  !help             show this message",
+                    "  !save [path]      save level to file",
                 ],
             ),
         )

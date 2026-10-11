@@ -46,8 +46,12 @@ class Component(ABC):
         """
         Adds step action to program of current component.
         If action already assigned to provided step will overwrite previous action.
+        Assigning NONE removes the action from the step.
         """
-        self._programm[step] = action
+        if action == StepActionType.NONE:
+            self._programm.pop(step, None)
+        else:
+            self._programm[step] = action
 
     @property
     def programm(self) -> dict[int, StepActionType]:
