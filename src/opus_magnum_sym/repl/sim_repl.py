@@ -98,8 +98,33 @@ class SimREPL:
         components = {**self.sim.entrypoints, **self.sim.components}
         for comp_id, comp in sorted(components.items()):
             print(f"{comp_id}: {comp.type.name} at {comp.pos}")
+    def _save(self, args: list[str]) -> None:
+        path = Path(args[0]) if args else Path("solution.oms")
 
-    def _save(self, args: list[str]): ...
+        components = sorted(
+            {**self.sim.entrypoints, **self.sim.components}.values(),
+            key=lambda comp: comp.idx,
+        )
+
+        lines: list[str] = []
+        for comp in components:
+            parts = [f"comp {comp.pos.r} {comp.pos.s} {comp.type.name.lower()}"]
+            if hasattr(comp, "object_type"):
+                parts.append(f"object_type={comp.object_type.name.lower()}")
+            if getattr(comp, "rotation", 0):
+                parts.append(f"rotation={comp.rotation}")
+            if getattr(comp, "hand_length", 1) != 1:
+                parts.append(f"length={comp.hand_length}")
+            lines.append(" ".join(parts))
+
+        lines.append("")
+
+        for comp in components:
+            for step, action in sorted(comp.programm.items()):
+                lines.append(f"action {comp.idx} {step} {action.name.lower()}")
+
+        path.write_text("\n".join(lines) + "\n")
+        print(f"Saved to {path}")
 
     def _help(self, args: list[str]) -> None:
         print(
@@ -113,7 +138,7 @@ class SimREPL:
                     "  !load <path>   load level file",
                     "  !list          list placed components",
                     "  !help          show this message",
-                    "  !save          save level to file",
+                    "  !save [path]   save level to file",
                 ],
             ),
         )
