@@ -8,7 +8,7 @@ from opus_magnum_sym.repl import SimREPL
 from opus_magnum_sym.simulation.simulator import Simulator
 
 
-def main() -> None:
+def start_repl() -> None:
     sim = Simulator((10, 10))
     renderer = BoardRenderer(sim)
     interpreter = SimInterpreter(sim)
@@ -25,4 +25,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    start_repl()
