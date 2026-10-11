@@ -2,12 +2,18 @@ from typing import cast
 
 import pygame
 
+from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.components import Manipulator
 from opus_magnum_sym.elements.components.base_component import ComponentType
 from opus_magnum_sym.elements.objects.base_object import ObjectType
 from opus_magnum_sym.render.colors import (
     ATOM,
     BACKGROUND,
+    CELL_BORDER,
+    CELL_CURRENT,
+    CELL_EMPTY,
+    CELL_FILLED,
+    CELL_TEXT,
     ENTRANCE,
     EXIT,
     HAND,
@@ -15,10 +21,26 @@ from opus_magnum_sym.render.colors import (
     HEX_BORDER,
     HEX_EMPTY,
     MANIPULATOR,
+    PROGRAM_BG,
+    PROGRAM_LABEL,
 )
 from opus_magnum_sym.render.geometry import hex_vertices
 from opus_magnum_sym.render.layout import HexLayout
 from opus_magnum_sym.simulation.simulator import Simulator
+
+_ACTION_ABBR: dict[StepActionType, str] = {
+    StepActionType.NONE: "",
+    StepActionType.GRAB: "G",
+    StepActionType.RELEASE: "R",
+    StepActionType.ROTATE_CLW: "CW",
+    StepActionType.ROTATE_CCLW: "CCW",
+    StepActionType.EXTEND: "EX",
+    StepActionType.RETRACT: "RT",
+    StepActionType.MOVE_POS: "M+",
+    StepActionType.MOVE_NEG: "M-",
+}
+
+_PROGRAM_MIN_STEPS = 12
 
 
 class BoardRenderer:
@@ -50,6 +72,7 @@ class BoardRenderer:
             self._draw_components()
             self._draw_objects()
             self._draw_manipulator_hands()
+            self._draw_programs()
             self._draw_ui_overlay()
         except Exception as e:
             print(f"Render error: {e}")
@@ -252,6 +275,58 @@ class BoardRenderer:
                     (int(hx), int(hy)),
                     self.hex_size // 10,
                 )
+
+    # per-component program bars pinned to the bottom of the window
+    def _draw_programs(self):
+        width, height = self.screen.get_size()
+        components = {**self.sim.entrypoints, **self.sim.components}
+        if not components:
+            return
+
+        ordered = sorted(components.values(), key=lambda comp: comp.idx)
+
+        max_step = -1
+        for comp in ordered:
+            if comp._programm:
+                max_step = max(max_step, max(comp._programm))
+        n_steps = max(_PROGRAM_MIN_STEPS, max_step + 1)
+
+        margin = 10
+        label_w = 132
+        cell_h = 18
+        row_h = cell_h + 6
+        panel_h = margin + len(ordered) * row_h + margin
+        panel_top = height - panel_h
+
+        pygame.draw.rect(self.screen, PROGRAM_BG, (0, panel_top, width, panel_h))
+        pygame.draw.line(self.screen, CELL_BORDER, (0, panel_top), (width, panel_top), 2)
+
+        avail = width - label_w - 2 * margin
+        cell_w = max(12.0, min(38.0, avail / n_steps))
+
+        for i, comp in enumerate(ordered):
+            y = panel_top + margin + i * row_h
+
+            label = self.font.render(f"#{comp.idx} {comp.type.name.lower()}", True, PROGRAM_LABEL)
+            self.screen.blit(label, (margin, y + 2))
+
+            for step in range(n_steps):
+                x = label_w + margin + step * cell_w
+                action = comp.get_step_action(step)
+                filled = action != StepActionType.NONE
+
+                cell = pygame.Rect(int(x), int(y), int(cell_w) - 2, cell_h)
+                pygame.draw.rect(self.screen, CELL_FILLED if filled else CELL_EMPTY, cell)
+                border = CELL_CURRENT if step == self.sim.step else CELL_BORDER
+                pygame.draw.rect(self.screen, border, cell, 1)
+
+                abbr = _ACTION_ABBR.get(action, "?")
+                if abbr:
+                    text = self.font.render(abbr, True, CELL_TEXT)
+                    self.screen.blit(
+                        text,
+                        (cell.centerx - text.get_width() // 2, cell.centery - text.get_height() // 2),
+                    )
 
     def _draw_ui_overlay(self):
         text = self.font.render(
