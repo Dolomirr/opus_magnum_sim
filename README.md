@@ -48,6 +48,35 @@ action 2 4 release
 
 Program bars update as soon as an `action` is entered; the cell for the current step is highlighted while running. Use `!list` to print component ids at any time.
 
+### Meta commands
+
+Lines starting with `!` (or `:`) are REPL commands; any other line is treated as DSL input. 
+Arguments are space-separated.
+
+| Command        | Alias         | Description                                                                |
+|----------------|---------------|----------------------------------------------------------------------------|
+| `!load <path>` | `!r`          | Read a `.oms` file and apply its components and actions to the simulation. |
+| `!save [path]` | `!w`          | Save the current level as `.oms` to `path` (defaults to `solution.oms`).   |
+| `!run [steps]` |               | Run the simulation for `n` steps (default `30`), redrawing on every step.  |
+| `!list`        |               | List placed components with their ids and positions.                       |
+| `!help`        |               | Show the available commands.                                               |
+| `!quit`        | `!q`, `!exit` | Exit the REPL.                                                             |
+
+Reading from and saving to a file:
+
+```text
+# read a saved solution from disk
+!load test_flow.oms
+
+# run it for 30 steps
+!run 30
+
+# save the current level back to a file
+!save level.oms
+```
+
+`!load` merges the file contents into the running simulation; it does not reset the board first, so load into a fresh REPL session if you want a clean state.
+
 ## File Format
 
 `.oms` files contain Opus Magnum solutions in a custom text format. See `test_flow.oms` for an example.
