@@ -46,21 +46,32 @@ action 2 4 release
 !run 30
 ```
 
-Program bars update as soon as an `action` is entered; the cell for the current step is highlighted while running. Use `!list` to print component ids at any time.
+Program bars update as soon as an `action` is entered; the cell for the current step is highlighted while running. Use `!list` to print component ids and assigned actions at any time.
+
+### DSL commands
+
+Everything that does not start with `!` (or `:`) is treated as DSL input.
+
+| Command                               | Alias | Description                                                 |
+|---------------------------------------|-------|-------------------------------------------------------------|
+| `comp <x> <y> <type> [key=value ...]` | `c`   | Place a component on the board.                             |
+| `action <id> <step> <type>`           | `a`   | Assign action to component at a step. `none` type to clear. |
+| `remove <id>`                         | `rm`  | Remove a component from the board.                          |
 
 ### Meta commands
 
-Lines starting with `!` (or `:`) are REPL commands; any other line is treated as DSL input. 
+Lines starting with `!` (or `:`) are REPL commands; any other line is treated as DSL input.
 Arguments are space-separated.
 
-| Command        | Alias         | Description                                                                |
-|----------------|---------------|----------------------------------------------------------------------------|
-| `!load <path>` | `!r`          | Read a `.oms` file and apply its components and actions to the simulation. |
-| `!save [path]` | `!w`          | Save the current level as `.oms` to `path` (defaults to `solution.oms`).   |
-| `!run [steps]` |               | Run the simulation for `n` steps (default `30`), redrawing on every step.  |
-| `!list`        |               | List placed components with their ids and positions.                       |
-| `!help`        |               | Show the available commands.                                               |
-| `!quit`        | `!q`, `!exit` | Exit the REPL.                                                             |
+| Command        | Alias         | Description                                                                                  |
+|----------------|---------------|----------------------------------------------------------------------------------------------|
+| `!load <path>` | `!r`          | Read a `.oms` file and apply its components and actions to the simulation.                   |
+| `!save [path]` | `!w`          | Save the current level as `.oms` to `path` (defaults to `solution.oms`).                     |
+| `!run [steps]` |               | Run the simulation for `n` steps (default `30`), redrawing on every step.                    |
+| `!reset`       | `!clear`      | Clear the board, remove all components, reset ids, the step counter, and `CORRECT_FINISHED`. |
+| `!list`        |               | List placed components with their ids and assigned actions.                                  |
+| `!help`        |               | Show the available commands.                                                                 |
+| `!quit`        | `!q`, `!exit` | Exit the REPL.                                                                               |
 
 Reading from and saving to a file:
 
