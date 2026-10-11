@@ -98,6 +98,12 @@ class SimREPL:
         components = {**self.sim.entrypoints, **self.sim.components}
         for comp_id, comp in sorted(components.items()):
             print(f"{comp_id}: {comp.type.name} at {comp.pos}")
+            if comp.programm:
+                actions = ", ".join(
+                    f"{step}:{action.name.lower()}" for step, action in sorted(comp.programm.items())
+                )
+                print(f"    actions: {actions}")
+
     def _save(self, args: list[str]) -> None:
         path = Path(args[0]) if args else Path("solution.oms")
 

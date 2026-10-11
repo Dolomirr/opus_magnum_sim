@@ -49,6 +49,15 @@ class Component(ABC):
         """
         self._programm[step] = action
 
+    @property
+    def programm(self) -> dict[int, StepActionType]:
+        """Assigned step actions (step -> action), excluding empty slots."""
+        return {
+            step: action
+            for step, action in self._programm.items()
+            if action != StepActionType.NONE
+        }
+
     def get_step_action(self, step) -> StepActionType:
         """
         Provides action assigned to given step.
