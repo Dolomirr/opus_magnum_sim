@@ -26,6 +26,28 @@ uv run src/opus_magnum_sym/repl
 
 The REPL accepts commands to load `.oms` files and adding components and program on-by-one.
 
+Each placed component gets an auto-incrementing id (starting at `0`) in placement order. The id is shown at the left of every program bar at the bottom of the window (`#<id> <type>`), and is the value you pass to the `action` command.
+
+### Example: building a program from scratch
+
+```text
+# place components: entrance -> id 0, exit -> id 1, arm -> id 2
+comp 2 3 entrance object_type=atom
+comp 3 2 exit object_type=atom
+comp 3 3 arm
+
+# program for the arm (id 2) step by step
+action 2 1 rotate_cclw
+action 2 2 grab
+action 2 3 rotate_cclw
+action 2 4 release
+
+# run the simulation
+!run 30
+```
+
+Program bars update as soon as an `action` is entered; the cell for the current step is highlighted while running. Use `!list` to print component ids at any time.
+
 ## File Format
 
 `.oms` files contain Opus Magnum solutions in a custom text format. See `test_flow.oms` for an example.
