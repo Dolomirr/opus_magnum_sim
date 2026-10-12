@@ -282,6 +282,7 @@ dependencies = [
     { name = "numpy" },
     { name = "prompt-toolkit" },
     { name = "pygame-ce" },
+    { name = "pytest" },
 ]
 
 [package.dev-dependencies]
@@ -298,6 +299,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.4.3" },
     { name = "prompt-toolkit", specifier = ">=3.0.52" },
     { name = "pygame-ce", specifier = ">=2.5.7" },
+    { name = "pytest", specifier = ">=9.0.3" },
 ]
 
 [package.metadata.requires-dev]
