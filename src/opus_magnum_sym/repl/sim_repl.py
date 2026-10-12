@@ -85,6 +85,8 @@ class SimREPL:
                 self.sim.next_step()
                 self.renderer.draw()
                 self.renderer.tick(5)
+        except KeyboardInterrupt:
+            print("Simulation interrupted. Use !clear to reset or !run to continue.")
         except Exception as e:
             print(f"Simulation error: {e}")
 
