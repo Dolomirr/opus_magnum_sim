@@ -9,6 +9,8 @@
     - [ ] Moving molecules.
         - Correct rotations (cutout matrices with molecules and dot products?)
     - [ ] Actual components to glue/un-glue molecules.
+- [ ] ! Collision
+    - [ ] ???
 - [ ] Exporting board state on steps via python structure.
 - [ ] Optimization.
     - [ ] Headless simulation.
