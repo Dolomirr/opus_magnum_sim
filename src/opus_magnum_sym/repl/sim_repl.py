@@ -85,6 +85,8 @@ class SimREPL:
                 self.sim.next_step()
                 self.renderer.draw()
                 self.renderer.tick(5)
+        except KeyboardInterrupt:
+            print("Simulation interrupted. Use !clear to reset or !run to continue.")
         except Exception as e:
             print(f"Simulation error: {e}")
 
@@ -122,8 +124,8 @@ class SimREPL:
         lines: list[str] = []
         for comp in components:
             parts = [f"comp {comp.pos.r} {comp.pos.s} {comp.type.name.lower()}"]
-            if hasattr(comp, "object_type"):
-                parts.append(f"object_type={comp.object_type.name.lower()}")
+            if hasattr(comp, "atom_type"):
+                parts.append(f"atom_type={comp.atom_type.name.lower()}")
             if getattr(comp, "rotation", 0):
                 parts.append(f"rotation={comp.rotation}")
             if getattr(comp, "hand_length", 1) != 1:

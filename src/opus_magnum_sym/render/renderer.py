@@ -5,7 +5,6 @@ import pygame
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.components import Manipulator
 from opus_magnum_sym.elements.components.base_component import ComponentType
-from opus_magnum_sym.elements.objects.base_object import ObjectType
 from opus_magnum_sym.render.colors import (
     ATOM,
     BACKGROUND,
@@ -176,40 +175,34 @@ class BoardRenderer:
 
     # objects (atoms)
     def _draw_objects(self):
-        for r in range(self.board.rows):
-            for s in range(self.board.cols):
-                obj = int(self.board.objects[r, s])
+        for cell in self.board.atoms:
+            cx, cy = self.layout.hex_to_pixel(cell.r, cell.s)
+            cx += self.offset_x
+            cy += self.offset_y
 
-                if obj == ObjectType.NONE:
-                    continue
+            # outer glow
+            pygame.draw.circle(
+                self.screen,
+                (220, 240, 255),
+                (cx, cy),
+                self.hex_size // 3,
+            )
 
-                cx, cy = self.layout.hex_to_pixel(r, s)
-                cx += self.offset_x
-                cy += self.offset_y
+            # inner core
+            pygame.draw.circle(
+                self.screen,
+                ATOM,
+                (cx, cy),
+                self.hex_size // 4,
+            )
 
-                # outer glow
-                pygame.draw.circle(
-                    self.screen,
-                    (220, 240, 255),
-                    (cx, cy),
-                    self.hex_size // 3,
-                )
-
-                # inner core
-                pygame.draw.circle(
-                    self.screen,
-                    ATOM,
-                    (cx, cy),
-                    self.hex_size // 4,
-                )
-
-                # atom highlight
-                pygame.draw.circle(
-                    self.screen,
-                    (255, 255, 255),
-                    (cx - 3, cy - 3),
-                    2,
-                )
+            # atom highlight
+            pygame.draw.circle(
+                self.screen,
+                (255, 255, 255),
+                (cx - 3, cy - 3),
+                2,
+            )
 
     # manipulator
     def _draw_manipulator_hands(self):
@@ -260,7 +253,7 @@ class BoardRenderer:
                 3,
             )
 
-            if comp.holding != ObjectType.NONE:
+            if comp.holding is not None:
                 pygame.draw.circle(
                     self.screen,
                     HAND_HOLDING,

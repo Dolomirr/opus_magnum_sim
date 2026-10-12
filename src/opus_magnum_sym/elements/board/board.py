@@ -1,10 +1,11 @@
 # pyright: reportUnusedFunction = false
+import copy
 from typing import TYPE_CHECKING, Self
 
 import numpy as np
 
+from opus_magnum_sym.elements.atoms.atom import Atom, AtomType
 from opus_magnum_sym.elements.components.base_component import ComponentType
-from opus_magnum_sym.elements.objects.base_object import ObjectType
 
 if TYPE_CHECKING:
     from opus_magnum_sym.elements.board.hex import Hex
@@ -54,8 +55,8 @@ class Board:
     """Semi-static elements on board (manipulator bases, etc.)"""
     # transport: np.ndarray[tuple[int, int], np.dtype[np.int32]]
     """Direction of transporters, -1 == no transport line, can be remotely coincided vector filed"""
-    objects: np.ndarray[tuple[int, int], np.dtype[np.int32]]
-    """Dynamic objects, atoms, particles"""
+    atoms: dict[Hex, Atom]
+    """Dynamic atom instances keyed by board cell"""
     components_ids: np.ndarray[tuple[int, int], np.dtype[np.int32]]
 
     def __init__(
@@ -68,7 +69,7 @@ class Board:
 
         self.base_obj = np.full((rows, cols), ComponentType.EMPTY, dtype=np.int32)
         # self.transport = np.full((rows, cols), Direction.NONE.id, dtype=np.int32)
-        self.objects = np.full((rows, cols), ObjectType.NONE, dtype=np.int32)
+        self.atoms = {}
         self.components_ids = np.full((rows, cols), -1, dtype=np.int32)
 
     def in_bounds(self, cell: Hex) -> bool:
@@ -79,7 +80,7 @@ class Board:
     def free_to_place(self, cell: Hex) -> bool:
         return (
             self.base_obj[cell] == ComponentType.EMPTY
-            and self.objects[cell] == ObjectType.NONE
+            and cell not in self.atoms
         )  # fmt:skip
 
     # TODO: treat as internal methods, add top-level env.add_component
@@ -107,33 +108,48 @@ class Board:
     def place_transporter(self) -> None: ...
     def remove_transporter(self) -> None: ...
 
-    def place_object(
+    def place_atom(
         self,
         hex_cell: Hex,
-        obj_type: int,
+        atom: Atom,
     ) -> bool:
-        if not self.in_bounds(hex_cell) or self.objects[hex_cell] != ObjectType.NONE:
+        if not self.in_bounds(hex_cell) or hex_cell in self.atoms:
             return False
-        self.objects[hex_cell] = obj_type
+        self.atoms[hex_cell] = atom
         return True
 
-    def get_object(self, hex_cell) -> ObjectType:
-        return ObjectType(self.objects[hex_cell])
+    def get_atom(self, hex_cell: Hex) -> Atom | None:
+        return self.atoms.get(hex_cell)
 
-    def remove_object(self, hex_cell: Hex) -> bool:
+    def remove_atom(self, hex_cell: Hex) -> Atom | None:
+        """Removes atom from cell, returning the removed instance if present."""
         if not self.in_bounds(hex_cell):
+            return None
+        return self.atoms.pop(hex_cell, None)
+
+    def move_atom(self, src: Hex, dst: Hex) -> bool:
+        """
+        Relocates atom from src to dst as a single validated operation.
+        On any failure the board is left untouched.
+        """
+        atom = self.atoms.get(src)
+        if atom is None or not self.in_bounds(dst) or dst in self.atoms:
             return False
-        self.objects[hex_cell] = ObjectType.NONE
+        self.atoms[dst] = atom
+        del self.atoms[src]
         return True
 
     def step_transporter(self, component, direction) -> None: ...  # pyright: ignore[reportUnusedParameter]
 
     def get_state(self) -> np.ndarray[tuple[int, int, int], np.dtype[np.int32]]:
+        objects = np.full((self.rows, self.cols), AtomType.NONE, dtype=np.int32)
+        for (r, s), atom in self.atoms.items():
+            objects[r, s] = atom.type
         return np.stack(
             (
                 self.base_obj,
                 # self.transport,
-                self.objects,
+                objects,
             ),
             axis=0,
         )
@@ -143,13 +159,13 @@ class Board:
         Reset all board layers without changing dimensions.
         """
         self.base_obj[:] = ComponentType.EMPTY
-        self.objects[:] = ObjectType.NONE
+        self.atoms.clear()
         self.components_ids[:] = -1
 
     def clone(self) -> Self:
         new = self.__class__(self.rows, self.cols)  # typing.Self support
         new.base_obj = self.base_obj.copy()
         # new.transport = self.transport.copy()
-        new.objects = self.objects.copy()
+        new.atoms = copy.deepcopy(self.atoms)
         new.components_ids = self.components_ids.copy()
         return new

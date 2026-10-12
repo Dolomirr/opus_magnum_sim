@@ -1,6 +1,6 @@
 # comp <x> <y> <type> [key=value ...]
-comp 2 3 entrance object_type=atom
-comp 3 2 exit object_type=atom
+comp 2 3 entrance atom_type=basic
+comp 3 2 exit atom_type=basic
 comp 3 3 arm
 
 # action <comp_id> <step> <action_type>

@@ -4,7 +4,7 @@ from pathlib import Path
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.board import Hex
 from opus_magnum_sym.elements.components import ComponentType
-from opus_magnum_sym.elements.objects.base_object import ObjectType
+from opus_magnum_sym.elements.atoms.atom import AtomType
 
 
 class SimInterpreter:
@@ -53,8 +53,8 @@ class SimInterpreter:
         kwargs = {}
         for arg in args[3:]:
             key, value = arg.split("=", 1)
-            if key == "object_type":
-                kwargs[key] = getattr(ObjectType, value.upper())
+            if key == "atom_type":
+                kwargs[key] = getattr(AtomType, value.upper())
             elif key in ("rotation", "length"):
                 kwargs[key] = int(value)
             else:
