@@ -19,7 +19,7 @@ class Direction:
     │       │       │       │  |  │       │       │       │
     └───────┼───────┼───────│  |  └───────┼───────┼───────│
     |       │       │       │  |  |       │       │       │
-    |       │  1,0  │  1,1  │  |  |       │   H7  │   H5  │
+    |       │  1,-1 │  1,0  │  |  |       │   H7  │   H5  │
     |       │       │       │  |  |       │       │       │
      -------└───────┴───────┘  |   -------└───────┴───────┘
                                |  Directions:
@@ -33,7 +33,7 @@ class Direction:
     |       |       |       |  |  |       |       |       |
      \     / \     / \     /   |   \     / \     / \     /
        \ /     \ /     \ /     |     \ /     \ /     \ /
-        |  1,0  |  1,1  |      |      |  H7   |  H5   |
+        |  1,-1 |  1,0  |      |      |  H7   |  H5   |
         |       |       |      |      |       |       |
          \     / \     /       |       \     / \     /
            \ /     \ /         |         \ /     \ /
@@ -61,7 +61,7 @@ class Direction:
         name: str
         _offset: tuple[int, int]
         __slots__ = (
-            "offset",
+            "_offset",
             "id",
             "name",
         )
@@ -74,8 +74,12 @@ class Direction:
         ) -> None:
             self.id = iden
             self.name = name
-            self.offset: tuple[int, int] = (0, 0)
-            "Base offset of length 1."
+            self._offset = offset
+
+        @property
+        def offset(self) -> tuple[int, int]:
+            """Base offset of length 1."""
+            return self._offset
 
         def offset_at(self, length: int) -> tuple[int, int]:
             """Offset scaled by length."""
@@ -95,8 +99,8 @@ class Direction:
     NONE: _Dir = _Dir(0, "NONE", (0, 0))
     H1: _Dir = _Dir(1, "H1", (-1, 1))
     H3: _Dir = _Dir(3, "H3", (0, 1))
-    H5: _Dir = _Dir(5, "H5", (1, 1))
-    H7: _Dir = _Dir(7, "H7", (1, 0))
+    H5: _Dir = _Dir(5, "H5", (1, 0))
+    H7: _Dir = _Dir(7, "H7", (1, -1))
     H9: _Dir = _Dir(9, "H9", (0, -1))
     H11: _Dir = _Dir(11, "H11", (-1, 0))
 

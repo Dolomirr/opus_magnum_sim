@@ -12,7 +12,7 @@ class HexLayout:
         r: int,
         s: int,
     ) -> tuple[float, float]:
-        x = self.hex_size * self.SQRT_3 * (s + 0.5 * (r & 1))
+        x = self.hex_size * self.SQRT_3 * (s + 0.5 * r)
         y = self.hex_size * 1.5 * r
 
         return x, y
