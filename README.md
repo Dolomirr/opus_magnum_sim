@@ -11,7 +11,7 @@ src/opus_magnum_sym/
 │   ├── board/      # Grid/board representation
 │   ├── components/ # Game components
 │   ├── env/        # Environment state management
-│   └── objects/    # Atoms, molecules.
+│   └── atoms/      # Atoms (with future bonding slots).
 ├── interpreter     # Parses .oms solution/state files
 ├── render          # Visualization (pygame-based)
 ├── repl            # Interactive REPL interface
@@ -32,8 +32,8 @@ Each placed component gets an auto-incrementing id (starting at `0`) in placemen
 
 ```text
 # place components: entrance -> id 0, exit -> id 1, arm -> id 2
-comp 2 3 entrance object_type=atom
-comp 3 2 exit object_type=atom
+comp 2 3 entrance atom_type=basic
+comp 3 2 exit atom_type=basic
 comp 3 3 arm
 
 # program for the arm (id 2) step by step

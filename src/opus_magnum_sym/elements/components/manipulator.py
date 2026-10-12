@@ -6,7 +6,7 @@ from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.actions.base_action import ActionAssignmentError
 from opus_magnum_sym.elements.board.directions import Direction
 from opus_magnum_sym.elements.components.base_component import Component, ComponentType
-from opus_magnum_sym.elements.objects.base_object import ObjectType
+from opus_magnum_sym.elements.atoms.atom import Atom
 
 if TYPE_CHECKING:
     from opus_magnum_sym.elements.board import Board, Hex
@@ -21,7 +21,7 @@ class Manipulator(Component):
             rotation=rotation,
         )
         self.hand_length: int = length  # TODO: check correct length
-        self.holding: ObjectType = ObjectType.NONE
+        self.holding: Atom | None = None
 
     @property
     def get_hand_pos(self) -> Hex:
@@ -41,19 +41,14 @@ class Manipulator(Component):
         msg = "Assigned RETRACT action to component that does not support this action."
         raise ActionAssignmentError(msg, self.type, self.idx)
 
-    # TODO: for now just blindly removing/placing from/on board
     def _grab(self, board: Board) -> None:
-        pos = self.get_hand_pos
-        obj = board.get_object(pos)
-        if obj != ObjectType.NONE:
-            self.holding = obj
-            board.remove_object(pos)
+        if self.holding is None:
+            self.holding = board.remove_atom(self.get_hand_pos)
 
     def _release(self, board: Board) -> None:
-        pos = self.get_hand_pos
-        if self.holding != ObjectType.NONE:
-            board.place_object(pos, self.holding)
-            self.holding = ObjectType.NONE
+        # held atom stays in hand when target cell is occupied or out of bounds
+        if self.holding is not None and board.place_atom(self.get_hand_pos, self.holding):
+            self.holding = None
 
     def _execute(self, board: Board, action_type: StepActionType) -> None:
         match action_type:

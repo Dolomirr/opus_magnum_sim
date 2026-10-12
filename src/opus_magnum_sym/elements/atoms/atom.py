@@ -1,0 +1,53 @@
+from enum import IntEnum, auto
+
+
+# TODO: define glue logic
+class AtomType(IntEnum):
+    NONE = 0
+    BASIC = auto()
+
+
+class Atom:
+    """
+    Single atom instance placed on the board.
+
+    Slots are indexed by rotation index 0..5 matching
+    `Direction().from_rotation(rotation)`; the neighbor opposite to slot i
+    is reached via slot (i + 3) % 6.
+    """
+
+    __slots__ = (
+        "connections",
+        "type",
+    )
+
+    def __init__(self, type: AtomType = AtomType.BASIC) -> None:
+        self.type = type
+        self.connections: list[Atom | None] = [None] * 6
+
+    def connection_at(self, rotation: int) -> Atom | None:
+        """
+        Atom connected in the direction of given rotation index, if any.
+        """
+        return self.connections[rotation % 6]
+
+    def connect(self, rotation: int, other: Atom) -> None:
+        """
+        Connect `other` at given rotation index, mirroring its opposite slot.
+        """
+        rotation %= 6
+        self.connections[rotation] = other
+        other.connections[(rotation + 3) % 6] = self
+
+    def disconnect(self, rotation: int) -> None:
+        """
+        Remove the connection at given rotation index from both atoms.
+        """
+        rotation %= 6
+        other = self.connections[rotation]
+        self.connections[rotation] = None
+        if other is not None:
+            other.connections[(rotation + 3) % 6] = None
+
+
+# TODO: simplier interface function for connecting just by id/location
