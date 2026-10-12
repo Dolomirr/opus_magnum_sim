@@ -8,6 +8,7 @@ from opus_magnum_sym.elements.board import Board, Hex
 from opus_magnum_sym.elements.components import ComponentType
 from opus_magnum_sym.elements.components.components_index import get_component_type
 from opus_magnum_sym.elements.env import level_counter
+from opus_magnum_sym.logging import logger
 
 if TYPE_CHECKING:
     from opus_magnum_sym.elements.components.base_component import Component
@@ -34,7 +35,6 @@ class Simulator:
 
     def _verify_init_state(self):
         # TODO: create more granular verification if needed
-        ic(self.entrypoints.values())
         entrypoints = {comp.type for comp in self.entrypoints.values()}
         if not all(
             (
@@ -74,6 +74,8 @@ class Simulator:
             self.entrypoints[new_id] = get_component_type(comp_type)(idx=new_id, pos=cell, **kwargs)
         else:
             self.components[new_id] = get_component_type(comp_type)(idx=new_id, pos=cell, **kwargs)
+
+        logger.info("placed %s @ (%d, %d)", comp_type.name.lower(), cell.r, cell.s)
 
     def assign_step_action(
         self,

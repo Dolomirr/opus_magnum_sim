@@ -7,6 +7,7 @@ from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.components import ComponentType
 from opus_magnum_sym.elements.components.base_component import Component
 from opus_magnum_sym.elements.atoms.atom import Atom, AtomType
+from opus_magnum_sym.logging import logger
 
 if TYPE_CHECKING:
     from opus_magnum_sym.elements.board import Board, Hex
@@ -32,6 +33,7 @@ class Enter(Component):
         # action_type is stale here since spawning new atoms depends on state of board
         if board.get_atom(self.pos) is None:
             board.place_atom(self.pos, Atom(self.atom_type))
+            logger.info("spawned %s @ (%d, %d)", self.atom_type.name.lower(), self.pos.r, self.pos.s)
 
 
 class Exit(Component):
@@ -56,4 +58,4 @@ class Exit(Component):
         if atom is not None and atom.type == self.atom_type:
             board.remove_atom(self.pos)
             level_counter.CORRECT_FINISHED += 1
-        ic(level_counter.CORRECT_FINISHED)
+            logger.info("consumed %s @ (%d, %d)", self.atom_type.name.lower(), self.pos.r, self.pos.s)
