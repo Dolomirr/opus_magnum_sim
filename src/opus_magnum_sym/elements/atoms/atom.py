@@ -34,10 +34,14 @@ class Atom:
     def connect(self, rotation: int, other: Atom) -> None:
         """
         Connect `other` at given rotation index, mirroring its opposite slot.
+        No-op when either side already has a connection.
         """
         rotation %= 6
+        opposite = (rotation + 3) % 6
+        if self.connections[rotation] is not None or other.connections[opposite] is not None:
+            return
         self.connections[rotation] = other
-        other.connections[(rotation + 3) % 6] = self
+        other.connections[opposite] = self
 
     def disconnect(self, rotation: int) -> None:
         """
