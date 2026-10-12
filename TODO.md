@@ -1,5 +1,7 @@
 # TODOs
 
+## Long Term targets
+
 - [ ] Correct steps handling.
     - [ ] Ensure enter/exit apply change on atom above only within correct step.
         - How to handle removal on movement?
@@ -36,5 +38,8 @@
   - [ ] Interactive adding.
   - [ ] Ctrl+C handling
 
+## Short Term (Reminders)
 
+- ...
+- add to logging source of action (what grabbed etc.)
 
