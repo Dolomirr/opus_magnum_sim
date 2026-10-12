@@ -44,23 +44,24 @@ class Direction:
     grid = np.zeros((10, 10), dtype=int)
     origin = Hex(10, 10)
 
-    offset = Direction.H3.offset(origin.r)  # offset of length 1 on the right
+    offset = Direction.H3.offset                # offset of length 1 on the right
+    offset_2 = Direction.H11.offset_at(2)       # offset of length 2 on upper left
 
-    neigbour = Direction.H3.apply(origin)  # get coordinate of hex on the right of origin
+    neigbour = Direction.H3.apply(origin)       # get coordinate of hex on the right of origin
     far = Direction.H11.apply(origin, length=3) # get coordinate of hex on the upper left of origin
     ```
     """
 
     class _Dir:
-        """Direction object for each possible individual firection from central hexagon."""
+        """
+        Direction object for each possible individual direction from central hexagon.
+        """
 
         id: int
         name: str
-        _offset_even: tuple[int, int]
-        _offset_odd: tuple[int, int]
+        _offset: tuple[int, int]
         __slots__ = (
-            "_offset_even",
-            "_offset_odd",
+            "offset",
             "id",
             "name",
         )
@@ -69,38 +70,35 @@ class Direction:
             self,
             iden: int,
             name: str,
-            offset_even: tuple[int, int],
-            offset_odd: tuple[int, int],
+            offset: tuple[int, int],
         ) -> None:
             self.id = iden
             self.name = name
-            self._offset_even = offset_even
-            self._offset_odd = offset_odd
+            self.offset: tuple[int, int] = (0, 0)
+            "Base offset of length 1."
 
-        def offset(self, row: int) -> tuple[int, int]:
-            """Base offset of length 1 for a hexagon on `row` (odd-r: parity changes diagonals)."""
-            return self._offset_odd if row & 1 else self._offset_even
+        def offset_at(self, length: int) -> tuple[int, int]:
+            """Offset scaled by length."""
+            if length == 0:
+                return (0, 0)
+            dr, ds = self._offset
+            return (dr * length, ds * length)
 
         def apply(self, curr_hex: Hex, length: int = 1) -> Hex:
-            """Apply direction to coordinate, stepping `length` hexagons in the odd-r layout."""
-            cell = curr_hex
-            for _ in range(length):
-                dr, ds = self.offset(cell.r)
-                cell = Hex(cell.r + dr, cell.s + ds)
-            return cell
+            """Apply direction to coordinate."""
+            dr, ds = self.offset_at(length)
+            return Hex(curr_hex.r + dr, curr_hex.s + ds)
 
         def __repr__(self) -> str:
             return f"Direction.{self.name}"
 
-    # Offsets are (even_row, odd_row); axis directions are parity independent,
-    # diagonals differ because odd rows are shifted right in the odd-r layout.
-    NONE: _Dir = _Dir(0, "NONE", (0, 0), (0, 0))
-    H1: _Dir = _Dir(1, "H1", (-1, 0), (-1, 1))
-    H3: _Dir = _Dir(3, "H3", (0, 1), (0, 1))
-    H5: _Dir = _Dir(5, "H5", (1, 0), (1, 1))
-    H7: _Dir = _Dir(7, "H7", (1, -1), (1, 0))
-    H9: _Dir = _Dir(9, "H9", (0, -1), (0, -1))
-    H11: _Dir = _Dir(11, "H11", (-1, -1), (-1, 0))
+    NONE: _Dir = _Dir(0, "NONE", (0, 0))
+    H1: _Dir = _Dir(1, "H1", (-1, 1))
+    H3: _Dir = _Dir(3, "H3", (0, 1))
+    H5: _Dir = _Dir(5, "H5", (1, 1))
+    H7: _Dir = _Dir(7, "H7", (1, 0))
+    H9: _Dir = _Dir(9, "H9", (0, -1))
+    H11: _Dir = _Dir(11, "H11", (-1, 0))
 
     BY_ID: dict[int, _Dir] = {d.id: d for d in (NONE, H1, H3, H5, H7, H9, H11)}  # noqa: RUF012
 
