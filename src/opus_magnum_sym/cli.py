@@ -5,14 +5,14 @@ from collections.abc import Sequence
 import pygame
 
 from opus_magnum_sym.interpreter import SimInterpreter
-from opus_magnum_sym.logging import conf_logger
+from opus_magnum_sym.logging import configure_logging
 from opus_magnum_sym.render.renderer import BoardRenderer
 from opus_magnum_sym.repl import SimREPL
 from opus_magnum_sym.simulation.simulator import Simulator
 
 
 def start_repl(file: str | None = None) -> None:
-    conf_logger()
+    configure_logging()
     sim = Simulator((10, 10))
     renderer = BoardRenderer(sim)
     interpreter = SimInterpreter(sim)
