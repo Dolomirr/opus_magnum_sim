@@ -24,7 +24,7 @@ src/opus_magnum_sym/
 uv run src/opus_magnum_sym/repl
 ```
 
-The REPL accepts commands to load `.oms` files and adding components and program on-by-one.
+The REPL accepts commands to load `.oms` files and adding components and program on-by-one. It provides persistent command history (stored in `~/.cache/opus_magnum_sym/repl_history`), history-based auto-suggestions, and Tab completion for commands, component/action names, component ids, and file paths.
 
 Each placed component gets an auto-incrementing id (starting at `0`) in placement order. The id is shown at the left of every program bar at the bottom of the window (`#<id> <type>`), and is the value you pass to the `action` command.
 
@@ -70,6 +70,8 @@ Arguments are space-separated.
 | `!run [steps]` |               | Run the simulation for `n` steps (default `30`), redrawing on every step.                    |
 | `!reset`       | `!clear`      | Clear the board, remove all components, reset ids, the step counter, and `CORRECT_FINISHED`. |
 | `!list`        |               | List placed components with their ids and assigned actions.                                  |
+| `!history [n]` |               | Show the last `n` entered commands (default `20`); history persists across sessions.         |
+| `!edit`        | `!e`          | Open the current solution in `$EDITOR` (default `vi`); on exit the board is reset and the edited file is reloaded. |
 | `!help`        |               | Show the available commands.                                                                 |
 | `!quit`        | `!q`, `!exit` | Exit the REPL.                                                                               |
 
