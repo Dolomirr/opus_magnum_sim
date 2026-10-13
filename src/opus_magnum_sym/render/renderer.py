@@ -91,8 +91,24 @@ class BoardRenderer:
                 pygame.draw.polygon(self.screen, HEX_EMPTY, poly)
                 pygame.draw.polygon(self.screen, HEX_BORDER, poly, 2)
 
-                label = self.font.render(f"{r},{s}", True, (160, 160, 160))
-                self.screen.blit(label, (cx - 10, cy - 8))
+                self._draw_cell_labels(cx, cy, r, s)
+
+    def _draw_cell_labels(self, cx: float, cy: float, r: int, s: int):
+        pad = 3
+        half_sqrt3 = self.layout.SQRT_3 / 2
+
+        r_label = self.font.render(str(r), True, (160, 160, 160))
+        s_label = self.font.render(str(s), True, (160, 160, 160))
+
+        # r label next to left edge
+        left_x = cx - half_sqrt3 * self.hex_size + pad + r_label.get_width() / 2
+        left_y = cy - r_label.get_height() / 2
+        self.screen.blit(r_label, (left_x - r_label.get_width() / 2, left_y))
+
+        # s next to top left
+        top_left_x = cx - half_sqrt3 * self.hex_size / 2 + 0.5 * pad
+        top_left_y = cy - 0.75 * self.hex_size + pad + s_label.get_height() / 2
+        self.screen.blit(s_label, (top_left_x - s_label.get_width() / 2, top_left_y - s_label.get_height() / 2))
 
     # static components (arm bases, etc)
     def _draw_components(self):
@@ -138,40 +154,21 @@ class BoardRenderer:
                     )
 
                 elif comp == ComponentType.ENTRANCE:
-                    pygame.draw.circle(
-                        self.screen,
-                        ENTRANCE,
-                        (cx, cy),
-                        self.hex_size // 2,
-                    )
-
-                    pygame.draw.polygon(
-                        self.screen,
-                        (240, 255, 240),
-                        [
-                            (cx - 8, cy),
-                            (cx + 6, cy - 8),
-                            (cx + 6, cy + 8),
-                        ],
-                    )
+                    half = int(self.hex_size * 0.35)
+                    rect = pygame.Rect(cx - half, cy - half, 2 * half, 2 * half)
+                    pygame.draw.rect(self.screen, ENTRANCE, rect)
+                    pygame.draw.rect(self.screen, (240, 255, 240), rect, 1)
 
                 elif comp == ComponentType.EXIT:
-                    pygame.draw.circle(
-                        self.screen,
-                        EXIT,
-                        (cx, cy),
-                        self.hex_size // 2,
-                    )
-
-                    pygame.draw.polygon(
-                        self.screen,
-                        (255, 240, 240),
-                        [
-                            (cx + 8, cy),
-                            (cx - 6, cy - 8),
-                            (cx - 6, cy + 8),
-                        ],
-                    )
+                    radius = int(self.hex_size * 0.47)
+                    diamond = [
+                        (cx, cy - radius),
+                        (cx + radius, cy),
+                        (cx, cy + radius),
+                        (cx - radius, cy),
+                    ]
+                    pygame.draw.polygon(self.screen, EXIT, diamond)
+                    pygame.draw.polygon(self.screen, (255, 240, 240), diamond, 1)
 
     # objects (atoms)
     def _draw_objects(self):
@@ -185,7 +182,7 @@ class BoardRenderer:
                 self.screen,
                 (220, 240, 255),
                 (cx, cy),
-                self.hex_size // 3,
+                int(self.hex_size * 0.4),
             )
 
             # inner core
@@ -193,15 +190,16 @@ class BoardRenderer:
                 self.screen,
                 ATOM,
                 (cx, cy),
-                self.hex_size // 4,
+                int(self.hex_size * 0.3),
             )
 
             # atom highlight
+            highlight_offset = max(2, self.hex_size // 12)
             pygame.draw.circle(
                 self.screen,
                 (255, 255, 255),
-                (cx - 3, cy - 3),
-                2,
+                (int(cx - highlight_offset), int(cy - highlight_offset)),
+                max(2, self.hex_size // 16),
             )
 
     # manipulator
@@ -272,7 +270,11 @@ class BoardRenderer:
     # per-component program bars pinned to the bottom of the window
     def _draw_programs(self):
         width, height = self.screen.get_size()
-        components = {**self.sim.entrypoints, **self.sim.components}
+        components = {
+            cid: comp
+            for cid, comp in {**self.sim.entrypoints, **self.sim.components}.items()
+            if comp.type not in (ComponentType.ENTRANCE, ComponentType.EXIT)
+        }
         if not components:
             return
 
