@@ -1,6 +1,6 @@
 # TODOs
 
-## Long Term targets
+## Long Term Targets
 
 - [ ] Correct steps handling.
     - [ ] Ensure enter/exit apply change on atom above only within correct step.
@@ -15,13 +15,13 @@
     - [ ] Slots for direction, each holding value if connection in that direction exists.
     - [ ] Grabbing logic should be moved to atoms (?).
     - [ ] Moving molecules.
-        - Correct rotations (cutout matrices with molecules and dot products?)
+        - Correct rotations (cut-out matrices with molecules and dot products?)
         - [ ] Graph traversal with "bounded" atoms.
     - [ ] Actual components to glue/un-glue molecules.
 - [ ] ! Collision
     - For start molecules and atoms can go throe each other ig, so only multi arm grab problem is to solve.
     - [ ] For Atoms define "holded_by" or smth similar
-    - [ ] Define "movement root" to validate conflicts before moving atom (multi arm grab etc).
+    - [ ] Define "movement root" to validate conflicts before moving atom (multi arm grab etc.).
 - [ ] Program Flow.
     - [ ] Programs cycle (optional, or just the simplest, without epicycles)
 - [ ] Exporting board state on steps via python structure.
@@ -41,5 +41,6 @@
 ## Short Term (Reminders)
 
 - ...
-- add to logging source of action (what grabbed etc.)
+- Add to logging source of action (what grabbed etc.)
+- improve repl to be easier to use
 
