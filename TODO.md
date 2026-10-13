@@ -41,6 +41,5 @@
 ## Short Term (Reminders)
 
 - ...
-- Add to logging source of action (what grabbed etc.)
-- improve repl to be easier to use
+- ruff
 
