@@ -8,7 +8,7 @@ from opus_magnum_sym.elements.env import level_counter
 from opus_magnum_sym.simulation.simulator import SimulationRuntimeError, Simulator
 
 
-def _flow_sim(exit_pos=Hex(3, 2)):
+def _flow_sim(exit_pos=Hex(3, 2)):  # noqa: B008
     """Entrance (2,3), exit, arm (3,3). Arm id is 2."""
     sim = Simulator((6, 6))
     sim.add_component(Hex(2, 3), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)
@@ -55,7 +55,9 @@ def test_exit_consumes_matching_atom():
 def test_arm_moves_atom_to_exit():
     sim = _flow_sim()
     arm_id = 2
-    sim.assign_step_action(arm_id, 1, StepActionType.ROTATE_CCLW)  # hand -> entrance (2,3)
+    sim.assign_step_action(
+        arm_id, 1, StepActionType.ROTATE_CCLW
+    )  # hand -> entrance (2,3)
     sim.assign_step_action(arm_id, 2, StepActionType.GRAB)
     sim.assign_step_action(arm_id, 3, StepActionType.ROTATE_CCLW)  # hand -> exit (3,2)
     sim.assign_step_action(arm_id, 4, StepActionType.RELEASE)
@@ -72,7 +74,7 @@ def test_arm_moves_atom_between_cells():
     arm_id = 2
     sim.assign_step_action(arm_id, 1, StepActionType.ROTATE_CCLW)  # hand -> (2,3)
     sim.assign_step_action(arm_id, 2, StepActionType.GRAB)
-    sim.assign_step_action(arm_id, 3, StepActionType.ROTATE_CLW)   # hand -> (2,4)
+    sim.assign_step_action(arm_id, 3, StepActionType.ROTATE_CLW)  # hand -> (2,4)
     sim.assign_step_action(arm_id, 4, StepActionType.RELEASE)
 
     for _ in range(5):

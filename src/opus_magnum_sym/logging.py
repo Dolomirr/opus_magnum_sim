@@ -4,7 +4,6 @@ Minimal stdout-only logging for simulation and REPL.
 
 import logging
 
-
 _SOURCE_WIDTH = 11
 _POS_WIDTH = 8
 _VERB_WIDTH = 10

@@ -20,7 +20,7 @@ class EventBuffer:
                 r=r,
                 s=s,
                 value=value,
-            )
+            ),
         )
 
     def clear(self) -> None:

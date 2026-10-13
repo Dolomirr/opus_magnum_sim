@@ -4,9 +4,9 @@ from icecream import ic
 
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.actions.base_action import ActionAssignmentError
+from opus_magnum_sym.elements.atoms.atom import Atom
 from opus_magnum_sym.elements.board.directions import Direction
 from opus_magnum_sym.elements.components.base_component import Component, ComponentType
-from opus_magnum_sym.elements.atoms.atom import Atom
 
 if TYPE_CHECKING:
     from opus_magnum_sym.elements.board import Board, Hex

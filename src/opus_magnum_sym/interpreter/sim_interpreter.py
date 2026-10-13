@@ -2,9 +2,9 @@ import shlex
 from pathlib import Path
 
 from opus_magnum_sym.elements.actions.actions import StepActionType
+from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board import Hex
 from opus_magnum_sym.elements.components import ComponentType
-from opus_magnum_sym.elements.atoms.atom import AtomType
 
 
 class SimInterpreter:

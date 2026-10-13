@@ -108,7 +108,13 @@ class BoardRenderer:
         # s next to top left
         top_left_x = cx - half_sqrt3 * self.hex_size / 2 + 0.5 * pad
         top_left_y = cy - 0.75 * self.hex_size + pad + s_label.get_height() / 2
-        self.screen.blit(s_label, (top_left_x - s_label.get_width() / 2, top_left_y - s_label.get_height() / 2))
+        self.screen.blit(
+            s_label,
+            (
+                top_left_x - s_label.get_width() / 2,
+                top_left_y - s_label.get_height() / 2,
+            ),
+        )
 
     # static components (arm bases, etc)
     def _draw_components(self):
@@ -283,7 +289,7 @@ class BoardRenderer:
         max_step = -1
         for comp in ordered:
             if comp._programm:
-                max_step = max(max_step, max(comp._programm))
+                max_step = max(max_step, *comp._programm)
         n_steps = max(_PROGRAM_MIN_STEPS, max_step + 1)
 
         margin = 10
@@ -294,7 +300,9 @@ class BoardRenderer:
         panel_top = height - panel_h
 
         pygame.draw.rect(self.screen, PROGRAM_BG, (0, panel_top, width, panel_h))
-        pygame.draw.line(self.screen, CELL_BORDER, (0, panel_top), (width, panel_top), 2)
+        pygame.draw.line(
+            self.screen, CELL_BORDER, (0, panel_top), (width, panel_top), 2
+        )
 
         avail = width - label_w - 2 * margin
         cell_w = max(12.0, min(38.0, avail / n_steps))
@@ -302,7 +310,9 @@ class BoardRenderer:
         for i, comp in enumerate(ordered):
             y = panel_top + margin + i * row_h
 
-            label = self.font.render(f"#{comp.idx} {comp.type.name.lower()}", True, PROGRAM_LABEL)
+            label = self.font.render(
+                f"#{comp.idx} {comp.type.name.lower()}", True, PROGRAM_LABEL
+            )
             self.screen.blit(label, (margin, y + 2))
 
             for step in range(n_steps):
@@ -311,7 +321,9 @@ class BoardRenderer:
                 filled = action != StepActionType.NONE
 
                 cell = pygame.Rect(int(x), int(y), int(cell_w) - 2, cell_h)
-                pygame.draw.rect(self.screen, CELL_FILLED if filled else CELL_EMPTY, cell)
+                pygame.draw.rect(
+                    self.screen, CELL_FILLED if filled else CELL_EMPTY, cell
+                )
                 border = CELL_CURRENT if step == self.sim.step else CELL_BORDER
                 pygame.draw.rect(self.screen, border, cell, 1)
 
@@ -320,7 +332,10 @@ class BoardRenderer:
                     text = self.font.render(abbr, True, CELL_TEXT)
                     self.screen.blit(
                         text,
-                        (cell.centerx - text.get_width() // 2, cell.centery - text.get_height() // 2),
+                        (
+                            cell.centerx - text.get_width() // 2,
+                            cell.centery - text.get_height() // 2,
+                        ),
                     )
 
     def _draw_ui_overlay(self):
