@@ -7,7 +7,6 @@ from opus_magnum_sym.elements.actions.base_action import ActionAssignmentError
 from opus_magnum_sym.elements.board.directions import Direction
 from opus_magnum_sym.elements.components.base_component import Component, ComponentType
 from opus_magnum_sym.elements.atoms.atom import Atom
-from opus_magnum_sym.logging import logger
 
 if TYPE_CHECKING:
     from opus_magnum_sym.elements.board import Board, Hex
@@ -47,14 +46,14 @@ class Manipulator(Component):
             hand = self.get_hand_pos
             self.holding = board.remove_atom(hand)
             if self.holding is not None:
-                logger.info("grabbed atom @ (%d, %d)", hand.r, hand.s)
+                self.log_action("grabbed", self.holding.type.name.lower(), hand)
 
     def _release(self, board: Board) -> None:
         # held atom stays in hand when target cell is occupied or out of bounds
         if self.holding is not None:
             hand = self.get_hand_pos
             if board.place_atom(hand, self.holding):
-                logger.info("released atom @ (%d, %d)", hand.r, hand.s)
+                self.log_action("released", self.holding.type.name.lower(), hand)
                 self.holding = None
 
     def _execute(self, board: Board, action_type: StepActionType) -> None:
