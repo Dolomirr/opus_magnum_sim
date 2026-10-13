@@ -75,7 +75,14 @@ class Simulator:
         else:
             self.components[new_id] = get_component_type(comp_type)(idx=new_id, pos=cell, **kwargs)
 
-        logger.info("placed %s @ (%d, %d)", comp_type.name.lower(), cell.r, cell.s)
+        logger.info(
+            "placed %s @ (%d, %d)",
+            comp_type.name.lower(),
+            cell.r,
+            cell.s,
+            source="simulator",
+            source_pos=f"({cell.r}, {cell.s})",
+        )
 
     def assign_step_action(
         self,
