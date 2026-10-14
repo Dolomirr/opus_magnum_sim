@@ -3,6 +3,7 @@ import pytest
 
 from opus_magnum_sym.elements.atoms.atom import Atom, AtomType
 from opus_magnum_sym.elements.board import Board, Direction, Hex
+from opus_magnum_sym.elements.components import ComponentType
 
 
 def test_place_and_get_atom():
@@ -171,3 +172,58 @@ def test_disconnect_atoms_unbonded_or_missing_returns_false():
 
     assert board.disconnect_atoms(Hex(0, 0), Hex(0, 1)) is False  # unbonded pair
     assert board.disconnect_atoms(Hex(0, 0), Hex(1, 1)) is False  # dst empty
+
+
+def test_place_component_cells_places_all_cells():
+    board = Board(3, 3)
+
+    assert board.place_component_cells([Hex(1, 1), Hex(2, 2)], ComponentType.ARM, 7) is True
+
+    assert board.base_obj[Hex(1, 1)] == ComponentType.ARM
+    assert board.base_obj[Hex(2, 2)] == ComponentType.ARM
+    assert board.components_ids[Hex(1, 1)] == 7
+    assert board.components_ids[Hex(2, 2)] == 7
+
+
+def test_place_component_cells_atomic_on_failure():
+    board = Board(3, 3)
+    board.place_componet(Hex(1, 1), ComponentType.ARM)
+
+    assert board.place_component_cells([Hex(1, 1), Hex(2, 2)], ComponentType.ARM, 5) is False
+
+    # blocked origin means the whole placement is rejected, (2,2) untouched
+    assert board.base_obj[Hex(2, 2)] == ComponentType.EMPTY
+    assert board.components_ids[Hex(2, 2)] == -1
+
+
+def test_remove_component_cells_clears_all_cells():
+    board = Board(3, 3)
+    board.place_component_cells([Hex(1, 1), Hex(2, 2)], ComponentType.ARM, 7)
+
+    board.remove_component_cells([Hex(1, 1), Hex(2, 2)])
+
+    assert board.base_obj[Hex(1, 1)] == ComponentType.EMPTY
+    assert board.base_obj[Hex(2, 2)] == ComponentType.EMPTY
+    assert board.components_ids[Hex(1, 1)] == -1
+    assert board.components_ids[Hex(2, 2)] == -1
+
+
+def test_get_molecule_returns_positions_and_leaves_board():
+    board = Board(3, 3)
+    a = Atom(AtomType.BASIC)
+    b = Atom(AtomType.BASIC)
+    board.place_atom(Hex(0, 0), a)
+    board.place_atom(Hex(0, 1), b)
+    board.connect_atoms(Hex(0, 0), Hex(0, 1))
+
+    molecule = board.get_molecule(Hex(0, 0))
+
+    assert molecule == {Hex(0, 0): a, Hex(0, 1): b}
+    assert board.get_atom(Hex(0, 0)) is a
+    assert board.get_atom(Hex(0, 1)) is b
+
+
+def test_get_molecule_empty_cell_returns_empty():
+    board = Board(3, 3)
+
+    assert board.get_molecule(Hex(0, 0)) == {}
