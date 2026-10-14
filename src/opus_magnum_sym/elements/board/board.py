@@ -86,24 +86,43 @@ class Board:
         )  # fmt:skip
 
     # TODO: treat as internal methods, add top-level env.add_component
+    def place_component_cells(
+        self,
+        cells: list[Hex],
+        comp_type: ComponentType,
+        comp_id: int = -1,
+    ) -> bool:
+        """
+        Validate every cell in `cells` (in bounds + free), then place the component
+        across all of them. The board is left untouched on any failure.
+        """
+        if not all(self.in_bounds(cell) and self.free_to_place(cell) for cell in cells):
+            return False
+        for cell in cells:
+            self.base_obj[cell] = comp_type
+            self.components_ids[cell] = comp_id
+        return True
+
     def place_componet(
         self,
         cell: Hex,
         comp_type: ComponentType,
         comp_id=-1,
     ) -> bool:
-        if not self.in_bounds(cell) or not self.free_to_place(cell):
-            return False
-        self.base_obj[cell] = comp_type
-        self.components_ids[cell] = comp_id
-        return True
+        return self.place_component_cells([cell], comp_type, comp_id)
 
     # TODO: remove by id
+    def remove_component_cells(self, cells: list[Hex]) -> None:
+        """Clear the base object and component id for every in-bounds cell."""
+        for cell in cells:
+            if self.in_bounds(cell):
+                self.base_obj[cell] = ComponentType.EMPTY
+                self.components_ids[cell] = -1
+
     def remove_component(self, hex_cell: Hex) -> bool:
         if not self.in_bounds(hex_cell):
             return False
-        self.base_obj[hex_cell] = ComponentType.EMPTY
-        self.components_ids[hex_cell] = -1
+        self.remove_component_cells([hex_cell])
         return True
 
     # TODO: plan transporter placing logic
@@ -174,17 +193,24 @@ class Board:
         atom_a.disconnect(rotation)
         return True
 
+    def get_molecule(self, cell: Hex) -> dict[Hex, Atom]:
+        """
+        All atoms connected to the atom at `cell` with their positions,
+        empty dict if the cell is empty. Board untouched.
+        """
+        root = self.atoms.get(cell)
+        if root is None:
+            return {}
+        molecule = collect_molecule(root)
+        return {pos: atom for pos, atom in self.atoms.items() if atom in molecule}
+
     def pop_molecule(self, cell: Hex) -> dict[Hex, Atom]:
         """
         Remove and return all atoms connected to the atom at `cell` (`{cell: atom}`),
         empty dict if the cell is empty.
         Bonds kept intact.
         """
-        root = self.atoms.get(cell)
-        if root is None:
-            return {}
-        molecule = collect_molecule(root)
-        popped = {pos: atom for pos, atom in self.atoms.items() if atom in molecule}
+        popped = self.get_molecule(cell)
         for pos in popped:
             del self.atoms[pos]
         return popped

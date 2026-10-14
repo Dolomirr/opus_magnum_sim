@@ -126,3 +126,6 @@ class Direction:
             if self.from_rotation(rotation).offset == offset:
                 return rotation
         return None
+
+    def are_adjacent(self, a: Hex, b: Hex) -> bool:
+        return self.rotation_between(a, b) is not None

@@ -43,6 +43,10 @@ class Atom:
         """
         Connect `other` at given rotation index, mirroring its opposite slot.
         No-op when either side already has a connection.
+
+        Performs no positional validation;
+        this is low-level primitive.
+        Board-level callers should prefer `Board.connect_atoms`.
         """
         rotation %= 6
         opposite = (rotation + 3) % 6
