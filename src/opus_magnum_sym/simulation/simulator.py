@@ -4,9 +4,10 @@ from icecream import ic
 
 import opus_magnum_sym.elements.env.index_manager as im
 from opus_magnum_sym.elements.actions.actions import StepActionType
-from opus_magnum_sym.elements.board import Board, Hex
+from opus_magnum_sym.elements.board import Board, Direction, Hex
 from opus_magnum_sym.elements.components import ComponentType
 from opus_magnum_sym.elements.components.components_index import get_component_type
+from opus_magnum_sym.elements.components.connections import ConnectionGraph
 from opus_magnum_sym.elements.env import level_counter
 from opus_magnum_sym.logging import logger
 
@@ -31,6 +32,7 @@ class Simulator:
         self.im = im
         self.components: dict[int, Component] = {}
         self.entrypoints: dict[int, Component] = {}
+        self.connections = ConnectionGraph()
         self.step = 0
 
     def _verify_init_state(self):
@@ -67,13 +69,16 @@ class Simulator:
         **kwargs,
     ):
         new_id = im.allocate()
-        self.board.place_componet(cell, comp_type, new_id)
+        comp = get_component_type(comp_type)(idx=new_id, pos=cell, **kwargs)
+        if not self.board.place_component_cells(comp.footprint(), comp_type, new_id):
+            im.free(new_id)
+            msg = f"Cannot place {comp_type.name.lower()} at ({cell.r}, {cell.s})."
+            raise SimulationRuntimeError(msg, step=self.step)
 
-        # TODO: make that normal
         if comp_type in {ComponentType.ENTRANCE, ComponentType.EXIT}:
-            self.entrypoints[new_id] = get_component_type(comp_type)(idx=new_id, pos=cell, **kwargs)
+            self.entrypoints[new_id] = comp
         else:
-            self.components[new_id] = get_component_type(comp_type)(idx=new_id, pos=cell, **kwargs)
+            self.components[new_id] = comp
 
         logger.info(
             "placed %s @ (%d, %d)",
@@ -83,6 +88,42 @@ class Simulator:
             source="simulator",
             source_pos=f"({cell.r}, {cell.s})",
         )
+
+    def _lookup(self, idx: int) -> Component | None:
+        if idx in self.components:
+            return self.components[idx]
+        return self.entrypoints.get(idx)
+
+    def _refresh_groups(self) -> None:
+        for comp in self.entrypoints.values():
+            group = [self._lookup(i) for i in self.connections.group_of(comp.idx)]
+            comp.group = [c for c in group if c is not None and c.idx != comp.idx]
+
+    def connect_components(self, id_a: int, id_b: int) -> bool:
+        comp_a = self._lookup(id_a)
+        comp_b = self._lookup(id_b)
+        if comp_a is None or comp_b is None:
+            return False
+        if id_a == id_b or id_b in self.connections.links_of(id_a):
+            return False
+        if comp_a.type != comp_b.type or comp_a.type not in {
+            ComponentType.ENTRANCE,
+            ComponentType.EXIT,
+        }:
+            return False
+        # Multi-cell entrypoints: switch to any-footprint-cell neighborhood when they appear.
+        if not Direction().are_adjacent(comp_a.pos, comp_b.pos):
+            return False
+        self.connections.add(id_a, id_b)
+        self._refresh_groups()
+        return True
+
+    def disconnect_components(self, id_a: int, id_b: int) -> bool:
+        if id_b not in self.connections.links_of(id_a):
+            return False
+        self.connections.remove(id_a, id_b)
+        self._refresh_groups()
+        return True
 
     def assign_step_action(
         self,
@@ -97,13 +138,16 @@ class Simulator:
         if comp is None:
             msg = f"Component with id {comp_id} does not exist."
             raise SimulationRuntimeError(msg, step=self.step)
-        self.board.remove_component(comp.pos)
+        self.board.remove_component_cells(comp.footprint())
+        self.connections.remove_component(comp_id)
         self.im.free(comp_id)
+        self._refresh_groups()
 
     def reset(self) -> None:
         self.board.clear()
         self.components.clear()
         self.entrypoints.clear()
+        self.connections = ConnectionGraph()
         self.step = 0
         self.im.reset()
         level_counter.CORRECT_FINISHED = 0

@@ -54,10 +54,25 @@ class Component(ABC):
         else:
             self._programm[step] = action
 
+    def footprint(self) -> list[Hex]:
+        """
+        Cells taken by this component's base.
+
+        Default: just `pos`.
+        Multi-cell components override this, deriving rotated cells from `self.rotation`.
+        `pos` (the origin cell) must always be included;
+        overrides must be pure functions of `pos` + `rotation`.
+        """
+        return [self.pos]
+
     @property
     def programm(self) -> dict[int, StepActionType]:
         """Assigned step actions (step -> action), excluding empty slots."""
-        return {step: action for step, action in self._programm.items() if action != StepActionType.NONE}
+        return {
+            step: action
+            for step, action in self._programm.items()
+            if action != StepActionType.NONE
+        }
 
     def get_step_action(self, step) -> StepActionType:
         """

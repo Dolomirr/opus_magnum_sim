@@ -1,7 +1,7 @@
+from collections.abc import Iterator
 from enum import IntEnum, auto
 
 
-# TODO: define glue logic
 class AtomType(IntEnum):
     NONE = 0
     BASIC = auto()
@@ -25,6 +25,14 @@ class Atom:
         self.type = type
         self.connections: list[Atom | None] = [None] * 6
 
+    def iter_connections(self) -> Iterator[tuple[int, Atom]]:
+        """
+        Yield (rotation, atom) for each nonempty connection slot.
+        """
+        for rotation, atom in enumerate(self.connections):
+            if atom is not None:
+                yield rotation, atom
+
     def connection_at(self, rotation: int) -> Atom | None:
         """
         Atom connected in the direction of given rotation index, if any.
@@ -35,10 +43,17 @@ class Atom:
         """
         Connect `other` at given rotation index, mirroring its opposite slot.
         No-op when either side already has a connection.
+
+        Performs no positional validation;
+        this is low-level primitive.
+        Board-level callers should prefer `Board.connect_atoms`.
         """
         rotation %= 6
         opposite = (rotation + 3) % 6
-        if self.connections[rotation] is not None or other.connections[opposite] is not None:
+        if (
+            self.connections[rotation] is not None
+            or other.connections[opposite] is not None
+        ):
             return
         self.connections[rotation] = other
         other.connections[opposite] = self
@@ -53,5 +68,11 @@ class Atom:
         if other is not None:
             other.connections[(rotation + 3) % 6] = None
 
-
-# TODO: simplier interface function for connecting just by id/location
+    def rotate_connections(self, steps: int) -> None:
+        """
+        Rotate connection slots by `steps`.
+        Every atom of a molecule must be rotated by the same `steps`;
+        reciprocity is preserved because opposite slots shift together.
+        """
+        steps %= 6
+        self.connections = self.connections[-steps:] + self.connections[:-steps]

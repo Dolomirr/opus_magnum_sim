@@ -116,3 +116,16 @@ class Direction:
             self.H11,
         )
         return rotations[rotation % 6]  # additional check to prevent overflow
+
+    def rotation_between(self, src: Hex, dst: Hex) -> int | None:
+        """
+        Rotation index of the direction from `src` to adjacent `dst`, or None if not adjacent.
+        """
+        offset = (dst.r - src.r, dst.s - src.s)
+        for rotation in range(6):
+            if self.from_rotation(rotation).offset == offset:
+                return rotation
+        return None
+
+    def are_adjacent(self, a: Hex, b: Hex) -> bool:
+        return self.rotation_between(a, b) is not None

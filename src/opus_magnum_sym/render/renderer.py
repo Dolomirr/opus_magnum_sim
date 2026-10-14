@@ -301,7 +301,11 @@ class BoardRenderer:
 
         pygame.draw.rect(self.screen, PROGRAM_BG, (0, panel_top, width, panel_h))
         pygame.draw.line(
-            self.screen, CELL_BORDER, (0, panel_top), (width, panel_top), 2
+            self.screen,
+            CELL_BORDER,
+            (0, panel_top),
+            (width, panel_top),
+            2,
         )
 
         avail = width - label_w - 2 * margin
@@ -311,7 +315,9 @@ class BoardRenderer:
             y = panel_top + margin + i * row_h
 
             label = self.font.render(
-                f"#{comp.idx} {comp.type.name.lower()}", True, PROGRAM_LABEL
+                f"#{comp.idx} {comp.type.name.lower()}",
+                True,
+                PROGRAM_LABEL,
             )
             self.screen.blit(label, (margin, y + 2))
 
@@ -322,7 +328,9 @@ class BoardRenderer:
 
                 cell = pygame.Rect(int(x), int(y), int(cell_w) - 2, cell_h)
                 pygame.draw.rect(
-                    self.screen, CELL_FILLED if filled else CELL_EMPTY, cell
+                    self.screen,
+                    CELL_FILLED if filled else CELL_EMPTY,
+                    cell,
                 )
                 border = CELL_CURRENT if step == self.sim.step else CELL_BORDER
                 pygame.draw.rect(self.screen, border, cell, 1)

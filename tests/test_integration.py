@@ -27,9 +27,7 @@ def _flow_sim() -> Simulator:
 
 
 def _arm_id(sim: Simulator) -> int:
-    return next(
-        cid for cid, comp in sim.components.items() if comp.type == ComponentType.ARM
-    )
+    return next(cid for cid, comp in sim.components.items() if comp.type == ComponentType.ARM)
 
 
 def test_full_flow_step_by_step_trace():
@@ -277,7 +275,7 @@ def test_release_out_of_bounds_keeps_holding():
     for _ in range(4):
         sim.next_step()
 
-    assert arm.holding is atom
+    assert arm.holding == {Hex(1, -1): atom}
 
 
 def test_rotation_wraparound():
