@@ -4,17 +4,19 @@ from collections.abc import Sequence
 
 import pygame
 
+from opus_magnum_sym.elements.components.base_component import ComponentType
+from opus_magnum_sym.elements.env import level_counter
 from opus_magnum_sym.interpreter import SimInterpreter
 from opus_magnum_sym.logging import configure_logging
-from opus_magnum_sym.render.renderer import BoardRenderer
+from opus_magnum_sym.render.factory import create_renderer
 from opus_magnum_sym.repl import SimREPL
 from opus_magnum_sym.simulation.simulator import Simulator
 
 
-def start_repl(file: str | None = None) -> None:
+def start_repl(file: str | None = None, headless: bool = False) -> None:
     configure_logging()
     sim = Simulator((10, 10))
-    renderer = BoardRenderer(sim)
+    renderer = create_renderer(sim, headless=headless)
     interpreter = SimInterpreter(sim)
 
     if file is not None:
@@ -28,20 +30,62 @@ def start_repl(file: str | None = None) -> None:
         pygame.quit()
 
 
-# TODO: not forget cli
+def _run_headless(file: str, steps: int) -> None:
+    configure_logging()
+    sim = Simulator((10, 10))
+    interpreter = SimInterpreter(sim)
+    interpreter.load_file(file)
+
+    for _ in range(steps):
+        sim.next_step()
+
+    print(f"Ran {steps} steps. Correct finished: {level_counter.CORRECT_FINISHED}")
+
+
+def _validate(file: str) -> None:
+    configure_logging()
+    sim = Simulator((10, 10))
+    interpreter = SimInterpreter(sim)
+
+    try:
+        interpreter.load_file(file)
+    except Exception as e:
+        print(f"Validation failed: {e}")
+        sys.exit(1)
+
+    components = {**sim.entrypoints, **sim.components}
+
+    has_entrance = any(c.type == ComponentType.ENTRANCE for c in components.values())
+    has_exit = any(c.type == ComponentType.EXIT for c in components.values())
+
+    if not has_entrance:
+        print("Validation failed: no entrance component found")
+        sys.exit(1)
+    if not has_exit:
+        print("Validation failed: no exit component found")
+        sys.exit(1)
+
+    print(f"Validation passed: {len(components)} components loaded successfully")
+
+
 def main(argv: Sequence[str] | None = None) -> None:
     argv = list(sys.argv[1:] if argv is None else argv)
 
     parser = argparse.ArgumentParser(prog="opus-magnum", description="Opus Magnum puzzle simulator.")
     subparsers = parser.add_subparsers(dest="command")
 
-    repl_parser = subparsers.add_parser("repl", help="interactive REPL with visualization (default)")
+    repl_parser = subparsers.add_parser("repl", help="interactive REPL session")
     repl_parser.add_argument("file", nargs="?", help="solution file to load on start")
+    repl_parser.add_argument(
+        "--headless", "-H",
+        action="store_true",
+        help="run without pygame visualization",
+    )
 
-    validate_parser = subparsers.add_parser("validate", help="validate a solution file (not implemented yet)")
+    validate_parser = subparsers.add_parser("validate", help="validate a solution file")
     validate_parser.add_argument("file")
 
-    run_parser = subparsers.add_parser("run", help="run a solution headlessly (not implemented yet)")
+    run_parser = subparsers.add_parser("run", help="run a solution headlessly")
     run_parser.add_argument("file")
     run_parser.add_argument("--steps", type=int, default=30)
 
@@ -51,10 +95,12 @@ def main(argv: Sequence[str] | None = None) -> None:
     args = parser.parse_args(argv)
 
     match args.command:
-        case "validate" | "run":
-            parser.error(f"'{args.command}' is not implemented yet")
+        case "validate":
+            _validate(args.file)
+        case "run":
+            _run_headless(args.file, args.steps)
         case _:
-            start_repl(args.file)
+            start_repl(args.file, headless=args.headless)
 
 
 if __name__ == "__main__":
