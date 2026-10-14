@@ -1,7 +1,7 @@
+from collections.abc import Iterator
 from enum import IntEnum, auto
 
 
-# TODO: define glue logic
 class AtomType(IntEnum):
     NONE = 0
     BASIC = auto()
@@ -25,6 +25,14 @@ class Atom:
         self.type = type
         self.connections: list[Atom | None] = [None] * 6
 
+    def iter_connections(self) -> Iterator[tuple[int, Atom]]:
+        """
+        Yield (rotation, atom) for each nonempty connection slot.
+        """
+        for rotation, atom in enumerate(self.connections):
+            if atom is not None:
+                yield rotation, atom
+
     def connection_at(self, rotation: int) -> Atom | None:
         """
         Atom connected in the direction of given rotation index, if any.
@@ -38,7 +46,10 @@ class Atom:
         """
         rotation %= 6
         opposite = (rotation + 3) % 6
-        if self.connections[rotation] is not None or other.connections[opposite] is not None:
+        if (
+            self.connections[rotation] is not None
+            or other.connections[opposite] is not None
+        ):
             return
         self.connections[rotation] = other
         other.connections[opposite] = self
