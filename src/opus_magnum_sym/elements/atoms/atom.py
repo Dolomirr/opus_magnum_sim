@@ -63,6 +63,3 @@ class Atom:
         self.connections[rotation] = None
         if other is not None:
             other.connections[(rotation + 3) % 6] = None
-
-
-# TODO: simplier interface function for connecting just by id/location

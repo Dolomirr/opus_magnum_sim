@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Self
 import numpy as np
 
 from opus_magnum_sym.elements.atoms.atom import Atom, AtomType
+from opus_magnum_sym.elements.board.directions import Direction
 from opus_magnum_sym.elements.components.base_component import ComponentType
 
 if TYPE_CHECKING:
@@ -137,6 +138,39 @@ class Board:
             return False
         self.atoms[dst] = atom
         del self.atoms[src]
+        return True
+
+    def connect_atoms(self, a: Hex, b: Hex) -> bool:
+        """
+        Bond atoms at cells `a` and `b`.
+
+        No-op (False) if either cell is empty/out of bounds or the cells are not
+        adjacent. Slot conflicts are a no-op per `Atom.connect`.
+        """
+        atom_a = self.atoms.get(a)
+        atom_b = self.atoms.get(b)
+        if atom_a is None or atom_b is None:
+            return False
+        rotation = Direction().rotation_between(a, b)
+        if rotation is None:
+            return False
+        atom_a.connect(rotation, atom_b)
+        return True
+
+    def disconnect_atoms(self, a: Hex, b: Hex) -> bool:
+        """
+        Remove the bond between the atoms at `a` and `b`.
+
+        False if either cell is empty, cells are not adjacent, or no bond exists.
+        """
+        atom_a = self.atoms.get(a)
+        atom_b = self.atoms.get(b)
+        if atom_a is None or atom_b is None:
+            return False
+        rotation = Direction().rotation_between(a, b)
+        if rotation is None or atom_a.connection_at(rotation) is not atom_b:
+            return False
+        atom_a.disconnect(rotation)
         return True
 
     def step_transporter(self, component, direction) -> None: ...  # pyright: ignore[reportUnusedParameter]
