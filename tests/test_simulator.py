@@ -56,7 +56,9 @@ def test_arm_moves_atom_to_exit():
     sim = _flow_sim()
     arm_id = 2
     sim.assign_step_action(
-        arm_id, 1, StepActionType.ROTATE_CCLW
+        arm_id,
+        1,
+        StepActionType.ROTATE_CCLW,
     )  # hand -> entrance (2,3)
     sim.assign_step_action(arm_id, 2, StepActionType.GRAB)
     sim.assign_step_action(arm_id, 3, StepActionType.ROTATE_CCLW)  # hand -> exit (3,2)
