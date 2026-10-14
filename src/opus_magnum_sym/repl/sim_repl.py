@@ -5,6 +5,7 @@ import tempfile
 from collections.abc import Iterable
 from pathlib import Path
 
+import pygame
 from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import CompleteEvent, Completer, Completion, PathCompleter
@@ -14,6 +15,7 @@ from prompt_toolkit.history import FileHistory
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.components import ComponentType
 from opus_magnum_sym.interpreter import SimInterpreter
+from opus_magnum_sym.render.null_renderer import NullRenderer
 from opus_magnum_sym.render.renderer import BoardRenderer
 from opus_magnum_sym.simulation.simulator import Simulator
 
@@ -22,7 +24,7 @@ class SimREPL:
     def __init__(
         self,
         sim: Simulator,
-        renderer: BoardRenderer,
+        renderer: BoardRenderer | NullRenderer,
         interpreter: SimInterpreter,
     ) -> None:
         self.sim = sim
@@ -54,6 +56,7 @@ class SimREPL:
             "h": self._history,
             "edit": self._edit,
             "e": self._edit,
+            "viz": self._viz,
         }
         self.running = True
 
@@ -199,6 +202,34 @@ class SimREPL:
         finally:
             path.unlink(missing_ok=True)
 
+    def _viz(self, args: list[str]) -> None:
+        if not args:
+            state = "on" if isinstance(self.renderer, BoardRenderer) else "off"
+            print(f"Visualization is currently {state}")
+            return
+
+        cmd = args[0].lower()
+        if cmd == "off":
+            if isinstance(self.renderer, NullRenderer):
+                print("Visualization is already off")
+                return
+            pygame.quit()
+            self.renderer = NullRenderer()
+            print("Visualization disabled")
+        elif cmd == "on":
+            if isinstance(self.renderer, BoardRenderer):
+                print("Visualization is already on")
+                return
+            try:
+                self.renderer = BoardRenderer(self.sim)
+                self.renderer.draw()
+                print("Visualization enabled")
+            except Exception as e:
+                print(f"Failed to enable visualization: {e}")
+                self.renderer = NullRenderer()
+        else:
+            print("Usage: !viz [on|off]")
+
     def _help(self, args: list[str]) -> None:
         print(
             "\n".join(
@@ -214,6 +245,7 @@ class SimREPL:
                     "  !reset / !clear   clear board and reset counters",
                     "  !history [n]      show last n commands (default 20)",
                     "  !edit             edit current solution in $EDITOR and reload",
+                    "  !viz [on|off]     enable/disable visualization",
                     "  !help             show this message",
                     "  !save [path]      save level to file",
                 ],
