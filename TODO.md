@@ -21,6 +21,7 @@
     - For start molecules and atoms can go throe each other ig, so only multi arm grab problem is to solve.
     - [ ] For Atoms define "holded_by" or smth similar
     - [ ] Define "movement root" to validate conflicts before moving atom (multi arm grab etc.).
+    - ...
 - [ ] Program Flow.
     - [ ] Programs cycle (optional, or just the simplest, without epicycles)
 - [ ] Exporting board state on steps via python structure.
@@ -28,9 +29,11 @@
     - [ ] Prepare test suit.
     - [x] Headless simulation.
         - [ ] Parallel?
-    - [ ] Prepare for static structures.
-        - [ ] Atoms store as limited pre-allocated array (since board is not infinite) with ids.
-        - Classify what cannot be handled statically.
+    - [ ] Numba (most probably).
+        - [ ] Prepare for static structures.
+            - [ ] Atoms store as limited pre-allocated array (since board is not infinite) with ids.
+            - Classify what cannot be handled statically.
+            - ...
 - [x] Proper logging.
 - [ ] Interactive simulation control via keyboard (is it really needed?).
   - [ ] Keyboard control.
@@ -41,4 +44,8 @@
 
 - ...
 - Component signature (.holding is defined only for arm etc.)
+- Make/Just-file
+- Visualization for connections
+- Move demos/scratches from root
+- Rotating alongside head (not base).
 
