@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Self
 import numpy as np
 
 from opus_magnum_sym.elements.atoms.atom import Atom, AtomType
+from opus_magnum_sym.elements.atoms.molecule import collect_molecule
 from opus_magnum_sym.elements.board.directions import Direction
 from opus_magnum_sym.elements.components.base_component import ComponentType
 
@@ -172,6 +173,21 @@ class Board:
             return False
         atom_a.disconnect(rotation)
         return True
+
+    def pop_molecule(self, cell: Hex) -> dict[Hex, Atom]:
+        """
+        Remove and return all atoms connected to the atom at `cell` (`{cell: atom}`),
+        empty dict if the cell is empty.
+        Bonds kept intact.
+        """
+        root = self.atoms.get(cell)
+        if root is None:
+            return {}
+        molecule = collect_molecule(root)
+        popped = {pos: atom for pos, atom in self.atoms.items() if atom in molecule}
+        for pos in popped:
+            del self.atoms[pos]
+        return popped
 
     def step_transporter(self, component, direction) -> None: ...  # pyright: ignore[reportUnusedParameter]
 

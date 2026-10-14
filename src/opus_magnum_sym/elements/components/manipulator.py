@@ -21,7 +21,8 @@ class Manipulator(Component):
             rotation=rotation,
         )
         self.hand_length: int = length  # TODO: check correct length
-        self.holding: Atom | None = None
+        # absolute cells of the currently held molecule
+        self.holding: dict[Hex, Atom] | None = None
 
     @property
     def get_hand_pos(self) -> Hex:
@@ -32,6 +33,13 @@ class Manipulator(Component):
 
     def _rotate(self, rotation: int = 1) -> None:
         self.rotation = (self.rotation + rotation) % 6
+        if self.holding:
+            self.holding = {
+                pos.rotate_around(self.pos, rotation): atom
+                for pos, atom in self.holding.items()
+            }
+            for atom in self.holding.values():
+                atom.rotate_connections(rotation)
 
     def _extend(self) -> None:
         msg = "Assigned EXTEND action to component that does not support this action."
@@ -44,17 +52,23 @@ class Manipulator(Component):
     def _grab(self, board: Board) -> None:
         if self.holding is None:
             hand = self.get_hand_pos
-            self.holding = board.remove_atom(hand)
-            if self.holding is not None:
-                self.log_action("grabbed", self.holding.type.name.lower(), hand)
+            grabbed = board.pop_molecule(hand)
+            if grabbed:
+                self.holding = grabbed
+                self.log_action("grabbed", f"{len(grabbed)} atom(s)", hand)
 
     def _release(self, board: Board) -> None:
-        # held atom stays in hand when target cell is occupied or out of bounds
-        if self.holding is not None:
-            hand = self.get_hand_pos
-            if board.place_atom(hand, self.holding):
-                self.log_action("released", self.holding.type.name.lower(), hand)
-                self.holding = None
+        if self.holding is None:
+            return
+        if not all(
+            board.in_bounds(pos) and pos not in board.atoms for pos in self.holding
+        ):
+            return
+        hand = self.get_hand_pos
+        for pos, atom in self.holding.items():
+            board.place_atom(pos, atom)
+        self.log_action("released", f"{len(self.holding)} atom(s)", hand)
+        self.holding = None
 
     def _execute(self, board: Board, action_type: StepActionType) -> None:
         match action_type:
