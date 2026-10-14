@@ -13,7 +13,7 @@ from opus_magnum_sym.repl import SimREPL
 from opus_magnum_sym.simulation.simulator import Simulator
 
 
-def start_repl(file: str | None = None, headless: bool = False) -> None:
+def start_repl(file: str | None = None, headless: bool = False, commands: list[str] | None = None) -> None:
     configure_logging()
     sim = Simulator((10, 10))
     renderer = create_renderer(sim, headless=headless)
@@ -21,6 +21,9 @@ def start_repl(file: str | None = None, headless: bool = False) -> None:
 
     if file is not None:
         interpreter.load_file(file)
+
+    for command in commands or []:
+        interpreter.evaluate_line(command)
 
     renderer.draw()
 
@@ -30,11 +33,16 @@ def start_repl(file: str | None = None, headless: bool = False) -> None:
         pygame.quit()
 
 
-def _run_headless(file: str, steps: int) -> None:
+def _run_headless(file: str | None, steps: int, commands: list[str] | None = None) -> None:
     configure_logging()
     sim = Simulator((10, 10))
     interpreter = SimInterpreter(sim)
-    interpreter.load_file(file)
+
+    if file is not None:
+        interpreter.load_file(file)
+
+    for command in commands or []:
+        interpreter.evaluate_line(command)
 
     for _ in range(steps):
         sim.next_step()
@@ -72,7 +80,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     argv = list(sys.argv[1:] if argv is None else argv)
 
     parser = argparse.ArgumentParser(prog="opus-magnum", description="Opus Magnum puzzle simulator.")
-    subparsers = parser.add_subparsers(dest="command")
+    subparsers = parser.add_subparsers(dest="subcommand")
 
     repl_parser = subparsers.add_parser("repl", help="interactive REPL session")
     repl_parser.add_argument("file", nargs="?", help="solution file to load on start")
@@ -81,26 +89,40 @@ def main(argv: Sequence[str] | None = None) -> None:
         action="store_true",
         help="run without pygame visualization",
     )
+    repl_parser.add_argument(
+        "--command", "-c",
+        action="append",
+        default=[],
+        help="inline DSL command to execute on startup (can be repeated)",
+    )
 
     validate_parser = subparsers.add_parser("validate", help="validate a solution file")
     validate_parser.add_argument("file")
 
     run_parser = subparsers.add_parser("run", help="run a solution headlessly")
-    run_parser.add_argument("file")
+    run_parser.add_argument("file", nargs="?", help="solution file to load before running inline commands")
     run_parser.add_argument("--steps", type=int, default=30)
+    run_parser.add_argument(
+        "--command", "-c",
+        action="append",
+        default=[],
+        help="inline DSL command to execute before running (can be repeated)",
+    )
 
     if not argv or (argv[0] not in subparsers.choices and not argv[0].startswith("-")):
         argv.insert(0, "repl")
 
     args = parser.parse_args(argv)
 
-    match args.command:
+    match args.subcommand:
         case "validate":
             _validate(args.file)
         case "run":
-            _run_headless(args.file, args.steps)
+            if not args.file and not args.command:
+                parser.error("'run' requires either a file or at least one -c/--command")
+            _run_headless(args.file, args.steps, commands=args.command)
         case _:
-            start_repl(args.file, headless=args.headless)
+            start_repl(args.file, headless=args.headless, commands=args.command)
 
 
 if __name__ == "__main__":
