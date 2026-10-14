@@ -20,6 +20,7 @@ class SimInterpreter:
             "remove": self._handle_remove,
             "rm": self._handle_remove,
             "connection": self._handle_connection,
+            "disconnection": self._handle_disconnection,
         }
 
     def load_file(self, filepath):
@@ -86,5 +87,15 @@ class SimInterpreter:
         self.sim.remove_component(comp_id)
 
     def _handle_connection(self, args):
-        # TODO: not yet implemented
-        pass
+        # comp_id_a, comp_id_b
+        id_a = int(args[0])
+        id_b = int(args[1])
+        if not self.sim.connect_components(id_a, id_b):
+            print(f"Failed to connect components {id_a} and {id_b}")
+
+    def _handle_disconnection(self, args):
+        # comp_id_a, comp_id_b
+        id_a = int(args[0])
+        id_b = int(args[1])
+        if not self.sim.disconnect_components(id_a, id_b):
+            print(f"Failed to disconnect components {id_a} and {id_b}")
