@@ -63,3 +63,12 @@ class Atom:
         self.connections[rotation] = None
         if other is not None:
             other.connections[(rotation + 3) % 6] = None
+
+    def rotate_connections(self, steps: int) -> None:
+        """
+        Rotate connection slots by `steps`.
+        Every atom of a molecule must be rotated by the same `steps`;
+        reciprocity is preserved because opposite slots shift together.
+        """
+        steps %= 6
+        self.connections = self.connections[-steps:] + self.connections[:-steps]
