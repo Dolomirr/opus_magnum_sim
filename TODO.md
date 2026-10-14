@@ -42,4 +42,5 @@
 
 - ...
 - ruff
+- Component signature (.holding is defined only for arm etc.)
 
