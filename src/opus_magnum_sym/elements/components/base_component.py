@@ -31,6 +31,8 @@ class ComponentType(IntEnum):
     ARM = 2
     ARM_RETR = 3
     TRANSPORTER = 4
+    CONNECTOR = 5
+    DISCONNECTOR = 6
 
 
 @dataclass

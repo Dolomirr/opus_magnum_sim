@@ -75,7 +75,12 @@ class Simulator:
             msg = f"Cannot place {comp_type.name.lower()} at ({cell.r}, {cell.s})."
             raise SimulationRuntimeError(msg, step=self.step)
 
-        if comp_type in {ComponentType.ENTRANCE, ComponentType.EXIT}:
+        if comp_type in {
+            ComponentType.ENTRANCE,
+            ComponentType.EXIT,
+            ComponentType.CONNECTOR,
+            ComponentType.DISCONNECTOR,
+        }:
             self.entrypoints[new_id] = comp
         else:
             self.components[new_id] = comp
@@ -109,6 +114,8 @@ class Simulator:
         if comp_a.type != comp_b.type or comp_a.type not in {
             ComponentType.ENTRANCE,
             ComponentType.EXIT,
+            ComponentType.CONNECTOR,
+            ComponentType.DISCONNECTOR,
         }:
             return False
         # Multi-cell entrypoints: switch to any-footprint-cell neighborhood when they appear.
