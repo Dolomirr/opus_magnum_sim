@@ -15,7 +15,7 @@
     - [x] Grabbing logic should be moved to atoms (?).
     - [x] Moving molecules.
         - [x] Graph traversal with "bounded" atoms.
-        - [ ] Rotation around "hand" not only "base".
+        - [x] Rotation around "hand" not only "base".
     - [ ] Actual components to glue/un-glue molecules.
 - [ ] ! Collision
     - For start molecules and atoms can go throe each other ig, so only multi arm grab problem is to solve.
@@ -44,5 +44,4 @@
 
 - ...
 - Component signature (.holding is defined only for arm etc.)
-- Rotating alongside head (not base).
 

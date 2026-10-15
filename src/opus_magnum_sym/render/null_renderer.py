@@ -15,7 +15,7 @@ class NullRenderer:
     def draw(self) -> None:
         pass
 
-    def tick(self, fps: int = 60) -> None:
+    def tick(self, fps: float = 60) -> None:
         pass
 
     def process_events(self) -> bool:

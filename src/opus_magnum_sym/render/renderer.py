@@ -416,7 +416,7 @@ class BoardRenderer:
         )
         self.screen.blit(text, (10, 10))
 
-    def tick(self, fps=60):
+    def tick(self, fps: float = 60):
         self.clock.tick(fps)
 
     def process_events(self) -> bool:
