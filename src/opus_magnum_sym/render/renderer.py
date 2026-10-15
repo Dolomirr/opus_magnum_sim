@@ -8,11 +8,13 @@ from opus_magnum_sym.elements.components.base_component import ComponentType
 from opus_magnum_sym.render.colors import (
     ATOM,
     BACKGROUND,
+    BOND,
     CELL_BORDER,
     CELL_CURRENT,
     CELL_EMPTY,
     CELL_FILLED,
     CELL_TEXT,
+    CONNECTION,
     ENTRANCE,
     EXIT,
     HAND,
@@ -69,6 +71,8 @@ class BoardRenderer:
         try:
             self._draw_grid()
             self._draw_components()
+            self._draw_connections()
+            self._draw_atom_bonds()
             self._draw_objects()
             self._draw_manipulator_hands()
             self._draw_programs()
@@ -175,6 +179,62 @@ class BoardRenderer:
                     ]
                     pygame.draw.polygon(self.screen, EXIT, diamond)
                     pygame.draw.polygon(self.screen, (255, 240, 240), diamond, 1)
+
+    # link lines between connected entrances/exits
+    def _draw_connections(self):
+        entrypoints = self.sim.entrypoints
+        drawn: set[tuple[int, ...]] = set()
+
+        for cid, comp in entrypoints.items():
+            ax, ay = self.layout.hex_to_pixel(comp.pos.r, comp.pos.s)
+            ax += self.offset_x
+            ay += self.offset_y
+
+            for other_id in self.sim.connections.links_of(cid):
+                other = entrypoints.get(other_id)
+                if other is None:
+                    continue
+
+                key = tuple(sorted((cid, other_id)))
+                if key in drawn:
+                    continue
+                drawn.add(key)
+
+                bx, by = self.layout.hex_to_pixel(other.pos.r, other.pos.s)
+                bx += self.offset_x
+                by += self.offset_y
+
+                pygame.draw.line(self.screen, CONNECTION, (ax, ay), (bx, by), 6)
+                pygame.draw.line(self.screen, (40, 90, 40), (ax, ay), (bx, by), 2)
+
+    # bond lines between connected atoms currently on board
+    def _draw_atom_bonds(self):
+        pos_of = {atom: cell for cell, atom in self.board.atoms.items()}
+        drawn: set[frozenset[int]] = set()
+
+        for cell, atom in self.board.atoms.items():
+            ax, ay = self.layout.hex_to_pixel(cell.r, cell.s)
+            ax += self.offset_x
+            ay += self.offset_y
+
+            for neighbor in atom.connections:
+                if neighbor is None:
+                    continue
+
+                ncell = pos_of.get(neighbor)
+                if ncell is None:
+                    continue
+
+                key = frozenset((id(atom), id(neighbor)))
+                if key in drawn:
+                    continue
+                drawn.add(key)
+
+                bx, by = self.layout.hex_to_pixel(ncell.r, ncell.s)
+                bx += self.offset_x
+                by += self.offset_y
+
+                pygame.draw.line(self.screen, BOND, (ax, ay), (bx, by), 3)
 
     # objects (atoms)
     def _draw_objects(self):
