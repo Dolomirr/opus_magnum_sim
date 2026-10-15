@@ -1,0 +1,41 @@
+# Demonstrates the two manipulator rotation actions:
+#   rotate_clw/rotate_cclw          - full rotation: the arm moves around its base,
+#                                     carrying any held molecule with it
+#   rotate_molecule_clw/rotate_molecule_cclw
+#                                   - in-place rotation: the arm stays put, and only
+#                                     the held molecule rotates around the hand
+#
+# Actions are spaced with 2 idle steps in between (the "pauses"), so each state is
+# clearly visible when stepping through the REPL with `!run 17`.
+#
+# Note: entrances re-spawn the instant the arm empties them, so a spare bonded pair
+# stays behind at (4,5)-(4,6). This is a known simulation quirk, not part of the demo.
+
+# Connected entrances spawn a bonded pair at (4,5)-(4,6).
+comp 4 5 entrance atom_type=basic # id 0
+comp 4 6 entrance atom_type=basic # id 1
+connection 0 1
+
+# Arm at (5,5) rotation 0 -> hand at (4,6), on top of the second entrance atom.
+comp 5 5 arm                      # id 2
+
+# Unreachable exit, present only so the file passes validate/run.
+comp 8 8 exit atom_type=basic     # id 3
+
+# step 1: grab the pair at the hand -> holds (4,5)-(4,6)
+action 2 1 grab
+
+# step 4: full rotate CLW -> hand (5,6), holds (4,6)-(5,6)
+action 2 4 rotate_clw
+
+# step 7: full rotate CLW again -> hand (6,5), holds (5,6)-(6,5), clear of the entrances
+action 2 7 rotate_clw
+
+# step 10: in-place rotate CLW around the hand (6,5) -> pair (6,6)-(6,5)
+action 2 10 rotate_molecule_clw
+
+# step 13: in-place rotate CCLW around the hand (6,5) -> pair back to (5,6)-(6,5)
+action 2 13 rotate_molecule_cclw
+
+# step 16: release the pair into the open cells (5,6)-(6,5)
+action 2 16 release

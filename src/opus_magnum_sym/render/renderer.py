@@ -35,6 +35,8 @@ _ACTION_ABBR: dict[StepActionType, str] = {
     StepActionType.RELEASE: "R",
     StepActionType.ROTATE_CLW: "CW",
     StepActionType.ROTATE_CCLW: "CCW",
+    StepActionType.ROTATE_MOLECULE_CLW: "MCW",
+    StepActionType.ROTATE_MOLECULE_CCLW: "MCCW",
     StepActionType.EXTEND: "EX",
     StepActionType.RETRACT: "RT",
     StepActionType.MOVE_POS: "M+",

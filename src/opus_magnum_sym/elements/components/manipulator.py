@@ -41,6 +41,13 @@ class Manipulator(Component):
             for atom in self.holding.values():
                 atom.rotate_connections(rotation)
 
+    def _rotate_molecule(self, rotation: int = 1) -> None:
+        if not self.holding:
+            return
+        self.holding = {pos.rotate_around(self.get_hand_pos, rotation): atom for pos, atom in self.holding.items()}
+        for atom in self.holding.values():
+            atom.rotate_connections(rotation)
+
     def _extend(self) -> None:
         msg = "Assigned EXTEND action to component that does not support this action."
         raise ActionAssignmentError(msg, self.type, self.idx)
@@ -78,6 +85,10 @@ class Manipulator(Component):
                 self._rotate(1)
             case StepActionType.ROTATE_CCLW:
                 self._rotate(-1)
+            case StepActionType.ROTATE_MOLECULE_CLW:
+                self._rotate_molecule(1)
+            case StepActionType.ROTATE_MOLECULE_CCLW:
+                self._rotate_molecule(-1)
             case StepActionType.EXTEND:
                 self._extend()
             case StepActionType.RETRACT:
