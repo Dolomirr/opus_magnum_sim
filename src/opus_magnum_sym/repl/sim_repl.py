@@ -52,6 +52,7 @@ class SimREPL:
             "w": self._save,
             "reset": self._reset,
             "clear": self._reset,
+            "c": self._reset,
             "history": self._history,
             "h": self._history,
             "edit": self._edit,
