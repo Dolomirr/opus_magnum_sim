@@ -34,10 +34,7 @@ class Manipulator(Component):
     def _rotate(self, rotation: int = 1) -> None:
         self.rotation = (self.rotation + rotation) % 6
         if self.holding:
-            self.holding = {
-                pos.rotate_around(self.pos, rotation): atom
-                for pos, atom in self.holding.items()
-            }
+            self.holding = {pos.rotate_around(self.pos, rotation): atom for pos, atom in self.holding.items()}
             for atom in self.holding.values():
                 atom.rotate_connections(rotation)
 
@@ -67,9 +64,7 @@ class Manipulator(Component):
     def _release(self, board: Board) -> None:
         if self.holding is None:
             return
-        if not all(
-            board.in_bounds(pos) and pos not in board.atoms for pos in self.holding
-        ):
+        if not all(board.in_bounds(pos) and pos not in board.atoms for pos in self.holding):
             return
         hand = self.get_hand_pos
         for pos, atom in self.holding.items():
