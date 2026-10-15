@@ -46,6 +46,8 @@ class SimREPL:
 
         self.meta = {
             "run": self._run,
+            "step": self._step,
+            "s": self._step,
             "load": self._load,
             "r": self._load,
             "list": self._list,
@@ -101,11 +103,41 @@ class SimREPL:
         handler(tokens[1:])
 
     def _run(self, args: list[str]) -> None:
-        try:
-            steps = int(args[0]) if args else 30
-        except ValueError:
-            print(f"Invalid step count: {args[0]}")
-            return
+        self._advance(args, default_steps=30)
+
+    def _step(self, args: list[str]) -> None:
+        self._advance(args, default_steps=1)
+
+    def _advance(self, args: list[str], default_steps: int) -> None:
+        steps, pause = default_steps, None
+
+        positional: list[str] = []
+        for arg in args:
+            key, sep, value = arg.partition("=")
+            if not sep:
+                positional.append(arg)
+                continue
+            try:
+                if key.lower() in {"steps", "main", "n"}:
+                    steps = int(value)
+                elif key.lower() in {"pause", "delay"}:
+                    pause = float(value)
+                else:
+                    print(f"Unknown argument: {key}")
+                    return
+            except ValueError:
+                print(f"Invalid value for {key}: {value}")
+                return
+
+        if positional:
+            try:
+                steps = int(positional[0])
+            except ValueError:
+                print(f"Invalid step count: {positional[0]}")
+                return
+
+        # preventing 0-fps pause
+        fps = 5 if pause is None else (0 if pause <= 0 else 1 / pause)
 
         try:
             for _ in range(steps):
@@ -114,7 +146,7 @@ class SimREPL:
                     return
                 self.sim.next_step()
                 self.renderer.draw()
-                self.renderer.tick(5)
+                self.renderer.tick(fps)
         except KeyboardInterrupt:
             print("Simulation interrupted. Use !clear to reset or !run to continue.")
         except Exception as e:
@@ -136,7 +168,10 @@ class SimREPL:
         for comp_id, comp in sorted(components.items()):
             print(f"{comp_id}: {comp.type.name} at {comp.pos}")
             if comp.programm:
-                actions = ", ".join(f"{step}:{action.name.lower()}" for step, action in sorted(comp.programm.items()))
+                actions = ", ".join(
+                    f"{step}:{action.name.lower()}"
+                    for step, action in sorted(comp.programm.items())
+                )
                 print(f"    actions: {actions}")
 
     def _history(self, args: list[str]) -> None:
@@ -245,7 +280,8 @@ class SimREPL:
                     "  action <comp_id> <step> <action_type>  (use 'none' to clear)",
                     "  remove <comp_id>                       (alias: rm)",
                     "Meta commands:",
-                    "  !run [steps]      run simulation",
+                    "  !run [steps] [pause=<sec>]   run simulation (default 30 steps)",
+                    "  !step [steps] [pause=<sec>]  advance steps (default 1; alias: !s)",
                     "  !load <path>      load level file",
                     "  !list             list placed components",
                     "  !reset / !clear   clear board and reset counters",
@@ -319,7 +355,9 @@ class ReplCompleter(Completer):
         cmd, arg_index = tokens[0].lower(), len(tokens) - 1
         candidates: Iterable[str] = ()
         if cmd in {"comp", "c"} and arg_index == 2:
-            candidates = [t.name.lower() for t in ComponentType if t != ComponentType.EMPTY]
+            candidates = [
+                t.name.lower() for t in ComponentType if t != ComponentType.EMPTY
+            ]
         elif cmd in {"action", "a"}:
             if arg_index == 0:
                 candidates = self._component_ids()
