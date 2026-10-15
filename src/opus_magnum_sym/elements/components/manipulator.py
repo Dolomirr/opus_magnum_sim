@@ -34,12 +34,16 @@ class Manipulator(Component):
     def _rotate(self, rotation: int = 1) -> None:
         self.rotation = (self.rotation + rotation) % 6
         if self.holding:
-            self.holding = {
-                pos.rotate_around(self.pos, rotation): atom
-                for pos, atom in self.holding.items()
-            }
+            self.holding = {pos.rotate_around(self.pos, rotation): atom for pos, atom in self.holding.items()}
             for atom in self.holding.values():
                 atom.rotate_connections(rotation)
+
+    def _rotate_molecule(self, rotation: int = 1) -> None:
+        if not self.holding:
+            return
+        self.holding = {pos.rotate_around(self.get_hand_pos, rotation): atom for pos, atom in self.holding.items()}
+        for atom in self.holding.values():
+            atom.rotate_connections(rotation)
 
     def _extend(self) -> None:
         msg = "Assigned EXTEND action to component that does not support this action."
@@ -60,9 +64,7 @@ class Manipulator(Component):
     def _release(self, board: Board) -> None:
         if self.holding is None:
             return
-        if not all(
-            board.in_bounds(pos) and pos not in board.atoms for pos in self.holding
-        ):
+        if not all(board.in_bounds(pos) and pos not in board.atoms for pos in self.holding):
             return
         hand = self.get_hand_pos
         for pos, atom in self.holding.items():
@@ -78,6 +80,10 @@ class Manipulator(Component):
                 self._rotate(1)
             case StepActionType.ROTATE_CCLW:
                 self._rotate(-1)
+            case StepActionType.ROTATE_MOLECULE_CLW:
+                self._rotate_molecule(1)
+            case StepActionType.ROTATE_MOLECULE_CCLW:
+                self._rotate_molecule(-1)
             case StepActionType.EXTEND:
                 self._extend()
             case StepActionType.RETRACT:

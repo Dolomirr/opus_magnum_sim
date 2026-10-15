@@ -50,10 +50,7 @@ class Atom:
         """
         rotation %= 6
         opposite = (rotation + 3) % 6
-        if (
-            self.connections[rotation] is not None
-            or other.connections[opposite] is not None
-        ):
+        if self.connections[rotation] is not None or other.connections[opposite] is not None:
             return
         self.connections[rotation] = other
         other.connections[opposite] = self

@@ -85,12 +85,14 @@ def main(argv: Sequence[str] | None = None) -> None:
     repl_parser = subparsers.add_parser("repl", help="interactive REPL session")
     repl_parser.add_argument("file", nargs="?", help="solution file to load on start")
     repl_parser.add_argument(
-        "--headless", "-H",
+        "--headless",
+        "-H",
         action="store_true",
         help="run without pygame visualization",
     )
     repl_parser.add_argument(
-        "--command", "-c",
+        "--command",
+        "-c",
         action="append",
         default=[],
         help="inline DSL command to execute on startup (can be repeated)",
@@ -103,7 +105,8 @@ def main(argv: Sequence[str] | None = None) -> None:
     run_parser.add_argument("file", nargs="?", help="solution file to load before running inline commands")
     run_parser.add_argument("--steps", type=int, default=30)
     run_parser.add_argument(
-        "--command", "-c",
+        "--command",
+        "-c",
         action="append",
         default=[],
         help="inline DSL command to execute before running (can be repeated)",

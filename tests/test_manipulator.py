@@ -120,6 +120,45 @@ def test_rotate_moves_held_molecule():
     assert b.connection_at(5) is a
 
 
+def test_rotate_molecule_around_hand_keeps_arm_orientation():
+    board, arm, a, b = _arm_before_molecule()
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+
+    arm.assign_step_action(1, StepActionType.ROTATE_MOLECULE_CLW)
+    arm.execute_step(board, 1)
+
+    assert arm.rotation == 0
+    assert arm.holding == {Hex(0, 2): a, Hex(1, 2): b}
+    assert a.connection_at(2) is b
+    assert b.connection_at(5) is a
+
+
+def test_rotate_molecule_ccw_around_hand():
+    board, arm, a, b = _arm_before_molecule()
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+
+    arm.assign_step_action(1, StepActionType.ROTATE_MOLECULE_CCLW)
+    arm.execute_step(board, 1)
+
+    assert arm.rotation == 0
+    assert arm.holding == {Hex(0, 2): a, Hex(-1, 3): b}
+    assert a.connection_at(0) is b
+    assert b.connection_at(3) is a
+
+
+def test_rotate_molecule_without_holding_is_noop():
+    board = Board(5, 5)
+    arm = Manipulator(idx=0, pos=Hex(1, 1), rotation=0)
+
+    arm.assign_step_action(0, StepActionType.ROTATE_MOLECULE_CLW)
+    arm.execute_step(board, 0)
+
+    assert arm.rotation == 0
+    assert arm.holding is None
+
+
 def test_release_places_whole_molecule():
     board, arm, a, b = _arm_before_molecule()
     arm.assign_step_action(0, StepActionType.GRAB)

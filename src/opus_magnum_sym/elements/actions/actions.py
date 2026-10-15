@@ -24,6 +24,8 @@ class StepActionType(IntEnum):
     RELEASE = auto()
     ROTATE_CLW = auto()
     ROTATE_CCLW = auto()
+    ROTATE_MOLECULE_CLW = auto()
+    ROTATE_MOLECULE_CCLW = auto()
     EXTEND = auto()
     RETRACT = auto()
     MOVE_POS = auto()

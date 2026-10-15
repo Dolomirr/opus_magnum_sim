@@ -8,7 +8,12 @@ from pathlib import Path
 import pygame
 from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
-from prompt_toolkit.completion import CompleteEvent, Completer, Completion, PathCompleter
+from prompt_toolkit.completion import (
+    CompleteEvent,
+    Completer,
+    Completion,
+    PathCompleter,
+)
 from prompt_toolkit.document import Document
 from prompt_toolkit.history import FileHistory
 
@@ -52,6 +57,7 @@ class SimREPL:
             "w": self._save,
             "reset": self._reset,
             "clear": self._reset,
+            "c": self._reset,
             "history": self._history,
             "h": self._history,
             "edit": self._edit,
@@ -267,7 +273,11 @@ class ReplCompleter(Completer):
         self.repl = repl
         self.path_completer = PathCompleter()
 
-    def get_completions(self, document: Document, complete_event: CompleteEvent) -> Iterable[Completion]:
+    def get_completions(
+        self,
+        document: Document,
+        complete_event: CompleteEvent,
+    ) -> Iterable[Completion]:
         stripped = document.text_before_cursor.lstrip()
         if not stripped:
             return
@@ -277,7 +287,12 @@ class ReplCompleter(Completer):
         else:
             yield from self._complete_dsl(stripped)
 
-    def _complete_meta(self, prefix: str, body: str, complete_event: CompleteEvent) -> Iterable[Completion]:
+    def _complete_meta(
+        self,
+        prefix: str,
+        body: str,
+        complete_event: CompleteEvent,
+    ) -> Iterable[Completion]:
         tokens, word = self._parse(body)
         if not tokens:
             lw = word.lower()
@@ -287,7 +302,10 @@ class ReplCompleter(Completer):
             return
 
         if tokens[0].lower() in {"load", "r", "save", "w"} and len(tokens) == 1:
-            yield from self.path_completer.get_completions(Document(word, len(word)), complete_event)
+            yield from self.path_completer.get_completions(
+                Document(word, len(word)),
+                complete_event,
+            )
 
     def _complete_dsl(self, text: str) -> Iterable[Completion]:
         tokens, word = self._parse(text)
