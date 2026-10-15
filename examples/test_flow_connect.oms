@@ -1,3 +1,4 @@
+
 comp 2 4 entrance atom_type=basic # id 0
 comp 2 5 entrance atom_type=basic # id 1
 connection 0 1                    # link the two entrances
