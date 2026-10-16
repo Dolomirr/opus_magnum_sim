@@ -7,5 +7,5 @@ from opus_magnum_sym.elements.env import level_counter
 @pytest.fixture(autouse=True)
 def clean_state():
     im.reset()
-    level_counter.CORRECT_FINISHED = 0
+    level_counter.reset()
     yield  # noqa: PT022
