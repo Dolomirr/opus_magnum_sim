@@ -63,17 +63,17 @@ Everything that does not start with `!` (or `:`) is treated as DSL input.
 Lines starting with `!` (or `:`) are REPL commands; any other line is treated as DSL input.
 Arguments are space-separated.
 
-| Command        | Alias         | Description                                                                                  |
-|----------------|---------------|----------------------------------------------------------------------------------------------|
-| `!load <path>` | `!r`          | Read a `.oms` file and apply its components and actions to the simulation.                   |
-| `!save [path]` | `!w`          | Save the current level as `.oms` to `path` (defaults to `solution.oms`).                     |
-| `!run [steps]` |               | Run the simulation for `n` steps (default `30`), redrawing on every step.                    |
-| `!reset`       | `!clear`      | Clear the board, remove all components, reset ids, the step counter, and `CORRECT_FINISHED`. |
-| `!list`        |               | List placed components with their ids and assigned actions.                                  |
-| `!history [n]` |               | Show the last `n` entered commands (default `20`); history persists across sessions.         |
-| `!edit`        | `!e`          | Open the current solution in `$EDITOR` (default `vi`); on exit the board is reset and the edited file is reloaded. |
-| `!help`        |               | Show the available commands.                                                                 |
-| `!quit`        | `!q`, `!exit` | Exit the REPL.                                                                               |
+| Command        | Alias         | Description                                                                                             |
+|----------------|---------------|---------------------------------------------------------------------------------------------------------|
+| `!load <path>` | `!r`          | Read a `.oms` file and apply its components and actions to the simulation.                              |
+| `!save [path]` | `!w`          | Save the current level as `.oms` to `path` (defaults to `solution.oms`).                                |
+| `!run [steps]` |               | Run the simulation for `n` steps (default `30`), redrawing on every step.                               |
+| `!reset`       | `!clear`      | Clear the board, remove all components, reset ids, step counter, and per-cluster finished counters.     |
+| `!list`        |               | List placed components with their ids and assigned actions.                                             |
+| `!history [n]` |               | Show the last `n` entered commands (default `20`); history persists across sessions.                    |
+| `!edit`        | `!e`          | Open the current solution in `$EDITOR` (default `vi`); on exit the board is reset and file is reloaded. |
+| `!help`        |               | Show the available commands.                                                                            |
+| `!quit`        | `!q`, `!exit` | Exit the REPL.                                                                                          |
 
 Reading from and saving to a file:
 
