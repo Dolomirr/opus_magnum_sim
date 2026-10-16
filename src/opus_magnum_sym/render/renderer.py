@@ -15,6 +15,8 @@ from opus_magnum_sym.render.colors import (
     CELL_FILLED,
     CELL_TEXT,
     CONNECTION,
+    CONNECTOR,
+    DISCONNECTOR,
     ENTRANCE,
     EXIT,
     HAND,
@@ -182,6 +184,30 @@ class BoardRenderer:
                     pygame.draw.polygon(self.screen, EXIT, diamond)
                     pygame.draw.polygon(self.screen, (255, 240, 240), diamond, 1)
 
+                elif comp == ComponentType.CONNECTOR:
+                    radius = int(self.hex_size * 0.3)
+                    pygame.draw.circle(self.screen, CONNECTOR, (cx, cy), radius)
+                    pygame.draw.circle(self.screen, (235, 240, 255), (cx, cy), radius, 1)
+
+                elif comp == ComponentType.DISCONNECTOR:
+                    radius = int(self.hex_size * 0.3)
+                    pygame.draw.circle(self.screen, DISCONNECTOR, (cx, cy), radius, 1)
+                    d = int(radius * 0.6)
+                    pygame.draw.line(
+                        self.screen,
+                        DISCONNECTOR,
+                        (cx - d, cy - d),
+                        (cx + d, cy + d),
+                        2,
+                    )
+                    pygame.draw.line(
+                        self.screen,
+                        DISCONNECTOR,
+                        (cx - d, cy + d),
+                        (cx + d, cy - d),
+                        2,
+                    )
+
     # link lines between connected entrances/exits
     def _draw_connections(self):
         entrypoints = self.sim.entrypoints
@@ -341,7 +367,13 @@ class BoardRenderer:
         components = {
             cid: comp
             for cid, comp in {**self.sim.entrypoints, **self.sim.components}.items()
-            if comp.type not in (ComponentType.ENTRANCE, ComponentType.EXIT)
+            if comp.type
+            not in (
+                ComponentType.ENTRANCE,
+                ComponentType.EXIT,
+                ComponentType.CONNECTOR,
+                ComponentType.DISCONNECTOR,
+            )
         }
         if not components:
             return

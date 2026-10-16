@@ -31,17 +31,26 @@ class Manipulator(Component):
             .apply(self.pos, self.hand_length)
         )  # fmt: skip
 
-    def _rotate(self, rotation: int = 1) -> None:
-        self.rotation = (self.rotation + rotation) % 6
+    def _positions_free(self, board: Board, positions: dict[Hex, Atom]) -> bool:
+        return all(board.in_bounds(pos) and pos not in board.atoms for pos in positions)
+
+    def _rotate(self, rotation: int, board: Board) -> None:
         if self.holding:
-            self.holding = {pos.rotate_around(self.pos, rotation): atom for pos, atom in self.holding.items()}
+            new_holding = {pos.rotate_around(self.pos, rotation): atom for pos, atom in self.holding.items()}
+            if not self._positions_free(board, new_holding):
+                return
+            self.holding = new_holding
             for atom in self.holding.values():
                 atom.rotate_connections(rotation)
+        self.rotation = (self.rotation + rotation) % 6
 
-    def _rotate_molecule(self, rotation: int = 1) -> None:
+    def _rotate_molecule(self, rotation: int, board: Board) -> None:
         if not self.holding:
             return
-        self.holding = {pos.rotate_around(self.get_hand_pos, rotation): atom for pos, atom in self.holding.items()}
+        new_holding = {pos.rotate_around(self.get_hand_pos, rotation): atom for pos, atom in self.holding.items()}
+        if not self._positions_free(board, new_holding):
+            return
+        self.holding = new_holding
         for atom in self.holding.values():
             atom.rotate_connections(rotation)
 
@@ -77,13 +86,13 @@ class Manipulator(Component):
             case StepActionType.NONE:
                 pass
             case StepActionType.ROTATE_CLW:
-                self._rotate(1)
+                self._rotate(1, board)
             case StepActionType.ROTATE_CCLW:
-                self._rotate(-1)
+                self._rotate(-1, board)
             case StepActionType.ROTATE_MOLECULE_CLW:
-                self._rotate_molecule(1)
+                self._rotate_molecule(1, board)
             case StepActionType.ROTATE_MOLECULE_CCLW:
-                self._rotate_molecule(-1)
+                self._rotate_molecule(-1, board)
             case StepActionType.EXTEND:
                 self._extend()
             case StepActionType.RETRACT:

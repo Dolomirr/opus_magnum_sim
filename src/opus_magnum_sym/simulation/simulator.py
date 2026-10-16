@@ -47,6 +47,17 @@ class Simulator:
             msg = "Incorrect initial state of board, ENTER or EXIT is missing."
             raise SimulationRuntimeError(msg, step=self.step)
 
+    def held_cells(self) -> set[Hex]:
+        """
+        Cells currently occupied by molecules held in an arm's hand.
+        """
+        cells: set[Hex] = set()
+        for comp in self.components.values():
+            holding = getattr(comp, "holding", None)
+            if holding:
+                cells.update(holding)
+        return cells
+
     def next_step(self):
         if self.step == 0:
             self._verify_init_state()
@@ -55,7 +66,10 @@ class Simulator:
             comp.execute_step(self.board, self.step)
 
             # TODO: ! that may cause race conditions
+        held_cells = self.held_cells()
         for comp in self.entrypoints.values():
+            if comp.type == ComponentType.ENTRANCE and comp.pos in held_cells:
+                continue
             comp.execute_step(self.board, self.step)
 
         self.step += 1
@@ -75,7 +89,12 @@ class Simulator:
             msg = f"Cannot place {comp_type.name.lower()} at ({cell.r}, {cell.s})."
             raise SimulationRuntimeError(msg, step=self.step)
 
-        if comp_type in {ComponentType.ENTRANCE, ComponentType.EXIT}:
+        if comp_type in {
+            ComponentType.ENTRANCE,
+            ComponentType.EXIT,
+            ComponentType.CONNECTOR,
+            ComponentType.DISCONNECTOR,
+        }:
             self.entrypoints[new_id] = comp
         else:
             self.components[new_id] = comp
@@ -109,6 +128,8 @@ class Simulator:
         if comp_a.type != comp_b.type or comp_a.type not in {
             ComponentType.ENTRANCE,
             ComponentType.EXIT,
+            ComponentType.CONNECTOR,
+            ComponentType.DISCONNECTOR,
         }:
             return False
         # Multi-cell entrypoints: switch to any-footprint-cell neighborhood when they appear.

@@ -43,6 +43,24 @@ def test_entrance_does_not_double_spawn():
     assert len(sim.board.atoms) == 1
 
 
+def test_entrance_does_not_spawn_under_hand():
+    sim = Simulator((6, 6))
+    sim.add_component(Hex(0, 0), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)  # id 0
+    sim.add_component(Hex(5, 5), ComponentType.EXIT, atom_type=AtomType.BASIC)  # id 1
+    sim.add_component(Hex(1, 0), ComponentType.ARM, rotation=5)  # id 2, hand -> (0, 0)
+    arm_id = 2
+    sim.assign_step_action(arm_id, 1, StepActionType.GRAB)
+
+    sim.next_step()  # step 0: entrance spawns atom
+    atom = sim.board.get_atom(Hex(0, 0))
+    assert atom is not None
+
+    sim.next_step()  # step 1: arm grabs; entrance must not re-spawn under the hand
+
+    assert sim.components[arm_id].holding == {Hex(0, 0): atom}
+    assert sim.board.get_atom(Hex(0, 0)) is None
+
+
 def test_exit_consumes_matching_atom():
     sim = _flow_sim()
     sim.board.place_atom(Hex(3, 2), Atom(AtomType.BASIC))
