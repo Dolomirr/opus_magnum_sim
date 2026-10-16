@@ -1,0 +1,37 @@
+
+# bond a pair of atoms, then unbond them
+
+comp 2 4 entrance atom_type=basic     # id 0
+comp 3 4 connector atom_type=basic    # id 1
+comp 4 3 connector atom_type=basic    # id 2
+comp 3 2 disconnector atom_type=basic # id 3
+comp 2 3 disconnector atom_type=basic # id 4
+comp 3 3 arm                          # id 5
+
+# unused exit, satisfies the entrance+exit init check
+comp 9 9 exit atom_type=basic         # id 6
+
+connection 1 2
+connection 3 4
+
+# first atom: entrance -> connector (3,4)
+action 5 2 grab
+action 5 3 rotate_clw
+action 5 4 release
+
+# second atom: entrance -> connector (4,3), swung the long way to avoid (3,4)
+action 5 5 rotate_cclw
+action 5 6 grab
+action 5 7 rotate_cclw
+action 5 8 rotate_cclw
+action 5 9 rotate_cclw
+action 5 10 rotate_cclw
+action 5 11 release
+
+# bonded pair: connectors -> disconnectors
+action 5 13 rotate_cclw
+action 5 14 grab
+action 5 15 rotate_clw
+action 5 16 rotate_clw
+action 5 17 rotate_clw
+action 5 18 release
