@@ -55,8 +55,8 @@ def test_full_flow_step_by_step_trace():
     expected = [
         ({Hex(2, 3)}, False, 0),  # step 0: entrance spawns
         ({Hex(2, 3)}, False, 0),  # step 1: arm rotated to entrance, nothing else
-        ({Hex(2, 3)}, True, 0),  # step 2: grabbed, entrance respawns
-        ({Hex(2, 3)}, True, 0),  # step 3: arm rotated to exit while holding
+        (set(), True, 0),  # step 2: grabbed, no re-spawn under the hand
+        ({Hex(2, 3)}, True, 0),  # step 3: hand moved, entrance respawns
         ({Hex(2, 3)}, False, 1),  # step 4: released onto exit, consumed
     ]
     assert trace == expected
@@ -103,7 +103,7 @@ def test_idle_entrance_blocks_at_one_atom():
     assert level_counter.CORRECT_FINISHED == 0
 
 
-def test_entrance_respawns_same_step_after_grab():
+def test_entrance_does_not_respawn_under_hand():
     sim = _flow_sim()
     arm_id = _arm_id(sim)
     arm = sim.components[arm_id]
@@ -116,7 +116,7 @@ def test_entrance_respawns_same_step_after_grab():
         sim.next_step()
 
     assert arm.holding is not None
-    assert sim.board.get_atom(Hex(2, 3)) is not None
+    assert sim.board.get_atom(Hex(2, 3)) is None
 
 
 def test_repeated_production_increments_counter():
@@ -258,7 +258,7 @@ def test_grab_out_of_bounds_is_noop():
     assert sim.components[arm_id].holding is None
 
 
-def test_release_out_of_bounds_keeps_holding():
+def test_rotate_out_of_bounds_is_blocked():
     sim = Simulator((5, 5))
     sim.add_component(Hex(4, 4), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)
     sim.add_component(Hex(4, 3), ComponentType.EXIT, atom_type=AtomType.BASIC)
@@ -268,14 +268,14 @@ def test_release_out_of_bounds_keeps_holding():
     atom = Atom(AtomType.BASIC)
     sim.board.place_atom(Hex(1, 0), atom)
     sim.assign_step_action(arm_id, 1, StepActionType.GRAB)
-    # rotation 3 -> hand (1, -1)
+    # rotation 3 -> hand (1, -1), out of bounds
     sim.assign_step_action(arm_id, 2, StepActionType.ROTATE_CLW)
-    sim.assign_step_action(arm_id, 3, StepActionType.RELEASE)
 
-    for _ in range(4):
+    for _ in range(3):
         sim.next_step()
 
-    assert arm.holding == {Hex(1, -1): atom}
+    assert arm.rotation == 2
+    assert arm.holding == {Hex(1, 0): atom}
 
 
 def test_rotation_wraparound():
@@ -302,15 +302,19 @@ def test_release_onto_occupied_keeps_holding_until_free():
     arm_id = _arm_id(sim)
     atom = Atom(AtomType.BASIC)
     sim.board.place_atom(Hex(0, 2), atom)
-    sim.board.place_atom(Hex(1, 2), Atom(AtomType.BASIC))  # blocker at next hand cell
     sim.assign_step_action(arm_id, 1, StepActionType.GRAB)
     sim.assign_step_action(arm_id, 2, StepActionType.ROTATE_CLW)  # hand -> (1, 2)
     sim.assign_step_action(arm_id, 3, StepActionType.RELEASE)  # blocked
     sim.assign_step_action(arm_id, 4, StepActionType.ROTATE_CLW)  # hand -> (2, 1)
     sim.assign_step_action(arm_id, 5, StepActionType.RELEASE)  # succeeds
 
-    for _ in range(6):
-        sim.next_step()
+    for _ in range(3):
+        sim.next_step()  # grab + rotate, hand now (1, 2)
+
+    sim.board.place_atom(Hex(1, 2), Atom(AtomType.BASIC))  # blocker arrives late
+
+    for _ in range(3):
+        sim.next_step()  # blocked release, rotate to (2, 1), release
 
     assert sim.components[arm_id].holding is None
     assert sim.board.get_atom(Hex(2, 1)) is atom

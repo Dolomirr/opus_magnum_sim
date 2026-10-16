@@ -70,16 +70,32 @@ def test_release_onto_occupied_cell_keeps_holding():
     arm.assign_step_action(0, StepActionType.GRAB)
     arm.execute_step(board, 0)
 
-    blocker = Atom(AtomType.BASIC)
-    board.place_atom(Hex(1, 2), blocker)
-
     arm.assign_step_action(1, StepActionType.ROTATE_CLW)  # hand -> (1, 2)
     arm.execute_step(board, 1)
+
+    blocker = Atom(AtomType.BASIC)
+    board.place_atom(Hex(1, 2), blocker)
 
     arm.assign_step_action(2, StepActionType.RELEASE)
     arm.execute_step(board, 2)
 
     assert arm.holding == {Hex(1, 2): atom}
+    assert board.get_atom(Hex(1, 2)) is blocker
+
+
+def test_rotate_into_occupied_cell_is_blocked():
+    board, arm, atom = _arm_before_atom()
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+
+    blocker = Atom(AtomType.BASIC)
+    board.place_atom(Hex(1, 2), blocker)
+
+    arm.assign_step_action(1, StepActionType.ROTATE_CLW)  # hand -> (1, 2), occupied
+    arm.execute_step(board, 1)
+
+    assert arm.rotation == 0
+    assert arm.holding == {Hex(0, 2): atom}
     assert board.get_atom(Hex(1, 2)) is blocker
 
 
@@ -134,8 +150,31 @@ def test_rotate_molecule_around_hand_keeps_arm_orientation():
     assert b.connection_at(5) is a
 
 
-def test_rotate_molecule_ccw_around_hand():
+def test_rotate_molecule_into_occupied_cell_is_blocked():
     board, arm, a, b = _arm_before_molecule()
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+
+    blocker = Atom(AtomType.BASIC)
+    board.place_atom(Hex(1, 2), blocker)  # b would land here on ROTATE_MOLECULE_CLW
+
+    arm.assign_step_action(1, StepActionType.ROTATE_MOLECULE_CLW)
+    arm.execute_step(board, 1)
+
+    assert arm.holding == {Hex(0, 2): a, Hex(0, 3): b}
+    assert a.connection_at(1) is b
+    assert b.connection_at(4) is a
+    assert board.get_atom(Hex(1, 2)) is blocker
+
+
+def test_rotate_molecule_ccw_around_hand():
+    board = Board(6, 6)
+    arm = Manipulator(idx=0, pos=Hex(2, 2), rotation=0)  # hand -> (1, 3)
+    a = Atom(AtomType.BASIC)
+    b = Atom(AtomType.BASIC)
+    board.place_atom(Hex(1, 3), a)
+    board.place_atom(Hex(1, 4), b)
+    board.connect_atoms(Hex(1, 3), Hex(1, 4))
     arm.assign_step_action(0, StepActionType.GRAB)
     arm.execute_step(board, 0)
 
@@ -143,7 +182,7 @@ def test_rotate_molecule_ccw_around_hand():
     arm.execute_step(board, 1)
 
     assert arm.rotation == 0
-    assert arm.holding == {Hex(0, 2): a, Hex(-1, 3): b}
+    assert arm.holding == {Hex(1, 3): a, Hex(0, 4): b}
     assert a.connection_at(0) is b
     assert b.connection_at(3) is a
 
