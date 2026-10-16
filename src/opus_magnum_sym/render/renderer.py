@@ -367,7 +367,8 @@ class BoardRenderer:
         components = {
             cid: comp
             for cid, comp in {**self.sim.entrypoints, **self.sim.components}.items()
-            if comp.type not in (
+            if comp.type
+            not in (
                 ComponentType.ENTRANCE,
                 ComponentType.EXIT,
                 ComponentType.CONNECTOR,

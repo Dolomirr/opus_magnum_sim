@@ -47,6 +47,17 @@ class Simulator:
             msg = "Incorrect initial state of board, ENTER or EXIT is missing."
             raise SimulationRuntimeError(msg, step=self.step)
 
+    def held_cells(self) -> set[Hex]:
+        """
+        Cells currently occupied by molecules held in an arm's hand.
+        """
+        cells: set[Hex] = set()
+        for comp in self.components.values():
+            holding = getattr(comp, "holding", None)
+            if holding:
+                cells.update(holding)
+        return cells
+
     def next_step(self):
         if self.step == 0:
             self._verify_init_state()
@@ -55,7 +66,10 @@ class Simulator:
             comp.execute_step(self.board, self.step)
 
             # TODO: ! that may cause race conditions
+        held_cells = self.held_cells()
         for comp in self.entrypoints.values():
+            if comp.type == ComponentType.ENTRANCE and comp.pos in held_cells:
+                continue
             comp.execute_step(self.board, self.step)
 
         self.step += 1

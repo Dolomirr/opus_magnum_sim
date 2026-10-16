@@ -48,7 +48,9 @@ class Connector(Component):
         cells = [self.pos, *(c.pos for c in self.group)]
         for a, b in _adjacent_pairs(cells):
             if _atom_matches(board, a, self.atom_type) and _atom_matches(
-                board, b, self.atom_type
+                board,
+                b,
+                self.atom_type,
             ):
                 board.connect_atoms(a, b)
 
@@ -78,6 +80,8 @@ class Disconnector(Component):
         cells = [self.pos, *(c.pos for c in self.group)]
         for a, b in _adjacent_pairs(cells):
             if _atom_matches(board, a, self.atom_type) and _atom_matches(
-                board, b, self.atom_type
+                board,
+                b,
+                self.atom_type,
             ):
                 board.disconnect_atoms(a, b)
