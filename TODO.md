@@ -28,7 +28,7 @@
 - [ ] Level completion logic.
     - [x] Per-exit counters (each should be correct).
     - [ ] Stale level detection (then no steps limit is given)
-    - [ ] Conditions to mark level as correct / finished.
+    - [x] Conditions to mark level as correct / finished.
     - [ ] Results conuters.
         - [ ] Steps.
         - [ ] Const per-component.

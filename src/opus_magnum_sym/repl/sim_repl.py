@@ -135,6 +135,8 @@ class ReplCompleter(Completer):
                 candidates = [a.name.lower() for a in StepActionType]
         elif cmd in {"remove", "rm"} and arg_index == 0:
             candidates = self._component_ids()
+        elif cmd == "target" and arg_index >= 1:
+            candidates = self._exit_ids()
 
         for cand in candidates:
             if cand.startswith(lw):
@@ -143,6 +145,9 @@ class ReplCompleter(Completer):
     def _component_ids(self) -> list[str]:
         components = {**self.repl.sim.entrypoints, **self.repl.sim.components}
         return [str(idx) for idx in sorted(components)]
+
+    def _exit_ids(self) -> list[str]:
+        return [str(idx) for idx, comp in sorted(self.repl.sim.entrypoints.items()) if comp.type == ComponentType.EXIT]
 
     @staticmethod
     def _parse(text: str) -> tuple[list[str], str]:

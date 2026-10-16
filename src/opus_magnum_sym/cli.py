@@ -10,7 +10,7 @@ from opus_magnum_sym.interpreter import SimInterpreter
 from opus_magnum_sym.logging import configure_logging
 from opus_magnum_sym.render.factory import create_renderer
 from opus_magnum_sym.repl import SimREPL
-from opus_magnum_sym.simulation.simulator import Simulator
+from opus_magnum_sym.simulation.simulator import LevelFinished, Simulator
 
 
 def start_repl(file: str | None = None, headless: bool = False, commands: list[str] | None = None) -> None:
@@ -44,8 +44,12 @@ def _run_headless(file: str | None, steps: int, commands: list[str] | None = Non
     for command in commands or []:
         interpreter.evaluate_line(command)
 
-    for _ in range(steps):
-        sim.next_step()
+    try:
+        for _ in range(steps):
+            sim.next_step()
+    except LevelFinished as exc:
+        print(exc.message)
+        return
 
     print(f"Ran {steps} steps. Correct finished: {level_counter.total_finished()}")
 

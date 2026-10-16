@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
 from icecream import ic
@@ -9,6 +10,7 @@ from opus_magnum_sym.elements.components import ComponentType
 from opus_magnum_sym.elements.components.components_index import get_component_type
 from opus_magnum_sym.elements.components.connections import ConnectionGraph
 from opus_magnum_sym.elements.env import level_counter
+from opus_magnum_sym.elements.env.level import Level
 from opus_magnum_sym.logging import logger
 
 if TYPE_CHECKING:
@@ -26,6 +28,13 @@ class SimulationRuntimeError(Exception):
         super().__init__(self.message)
 
 
+class LevelFinished(SimulationRuntimeError):
+    """Raised when all level targets have been satisfied."""
+
+    def __init__(self, step: int) -> None:
+        super().__init__(f"Level finished at step {step}", step=step)
+
+
 class Simulator:
     def __init__(self, size: tuple[int, int]) -> None:
         self.board: Board = Board(*size)
@@ -33,6 +42,8 @@ class Simulator:
         self.components: dict[int, Component] = {}
         self.entrypoints: dict[int, Component] = {}
         self.connections = ConnectionGraph()
+        self.level = Level()
+        self._finished = False
         self.step = 0
 
     def _verify_init_state(self):
@@ -59,6 +70,8 @@ class Simulator:
         return cells
 
     def next_step(self):
+        if self._finished:
+            raise LevelFinished(self.step)
         if self.step == 0:
             self._verify_init_state()
 
@@ -73,6 +86,9 @@ class Simulator:
             comp.execute_step(self.board, self.step)
 
         self.step += 1
+        if self.level.is_satisfied():
+            self._finished = True
+            raise LevelFinished(self.step)
 
     # TODO: do something with kwargs
     # TODO: rework id logic (again)
@@ -164,11 +180,23 @@ class Simulator:
         self.im.free(comp_id)
         self._refresh_groups()
 
+    def set_exit_target(self, exit_ids: Iterable[int], count: int) -> None:
+        """Require `count` finished molecules for the cluster(s) containing `exit_ids`."""
+        clusters = {frozenset(self.connections.group_of(i)) for i in exit_ids}
+        for cluster in clusters:
+            self.level.set_target(cluster, count)
+
+    @property
+    def finished(self) -> bool:
+        return self._finished
+
     def reset(self) -> None:
         self.board.clear()
         self.components.clear()
         self.entrypoints.clear()
         self.connections = ConnectionGraph()
+        self.level.reset()
+        self._finished = False
         self.step = 0
         self.im.reset()
         level_counter.reset()
