@@ -35,3 +35,9 @@ action 5 15 rotate_clw
 action 5 16 rotate_clw
 action 5 17 rotate_clw
 action 5 18 release
+
+action 5 20 grab
+action 5 20 rotate_cclw
+action 5 21 release
+
+action 5 23 grab
