@@ -24,7 +24,7 @@
     - [x] Moving molecules.
         - [x] Graph traversal with "bounded" atoms.
         - [x] Rotation around "hand" not only "base".
-    - [ ] Actual components to glue/un-glue molecules.
+    - [x] Actual components to glue/un-glue molecules.
 - [ ] Level completion logic.
     - [ ] Per-exit counters (each should be correct).
     - [ ] Conditions to mark level as correct / finished.
@@ -46,6 +46,9 @@
             - [ ] Atoms store as limited pre-allocated array (since board is not infinite) with ids.
             - Classify what cannot be handled statically.
             - ...
+- [ ] Actual validation.
+    - Probably bouded by @[! Collision]
+    - ...
 - [x] Proper logging.
 - [?] Interactive simulation control via keyboard (is it really needed?).
   - [ ] Keyboard control.
@@ -58,5 +61,5 @@
 
 - ...
 - Component signature (`.holding` is defined only for arm etc.) (generics?)
-- 
+- Make agents stuff ig
 
