@@ -127,9 +127,7 @@ class ReplCompleter(Completer):
         cmd, arg_index = tokens[0].lower(), len(tokens) - 1
         candidates: Iterable[str] = ()
         if cmd in {"comp", "c"} and arg_index == 2:
-            candidates = [
-                t.name.lower() for t in ComponentType if t != ComponentType.EMPTY
-            ]
+            candidates = [t.name.lower() for t in ComponentType if t != ComponentType.EMPTY]
         elif cmd in {"action", "a"}:
             if arg_index == 0:
                 candidates = self._component_ids()
