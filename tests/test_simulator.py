@@ -68,7 +68,7 @@ def test_exit_consumes_matching_atom():
     sim.next_step()
 
     assert sim.board.get_atom(Hex(3, 2)) is None
-    assert level_counter.CORRECT_FINISHED == 1
+    assert level_counter.total_finished() == 1
 
 
 def test_arm_moves_atom_to_exit():
@@ -86,7 +86,7 @@ def test_arm_moves_atom_to_exit():
     for _ in range(5):
         sim.next_step()
 
-    assert level_counter.CORRECT_FINISHED == 1
+    assert level_counter.total_finished() == 1
     assert sim.board.get_atom(Hex(3, 2)) is None
 
 
@@ -102,7 +102,7 @@ def test_arm_moves_atom_between_cells():
         sim.next_step()
 
     assert sim.board.get_atom(Hex(2, 4)) is not None
-    assert level_counter.CORRECT_FINISHED == 0
+    assert level_counter.total_finished() == 0
 
 
 def _connected_exit_sim():
@@ -176,7 +176,43 @@ def test_connected_exits_consume_full_molecule():
 
     assert sim.board.get_atom(Hex(3, 2)) is None
     assert sim.board.get_atom(Hex(2, 2)) is None
-    assert level_counter.CORRECT_FINISHED == 1
+    assert level_counter.total_finished() == 1
+
+
+def test_connected_exits_share_single_counter():
+    sim = _connected_exit_sim()
+
+    a = Atom(AtomType.BASIC)
+    b = Atom(AtomType.BASIC)
+    sim.board.place_atom(Hex(3, 2), a)
+    sim.board.place_atom(Hex(2, 2), b)
+    sim.board.connect_atoms(Hex(3, 2), Hex(2, 2))
+
+    sim.next_step()
+
+    # The two exits form one cluster, counted under its full id set.
+    assert level_counter.finished({1, 2}) == 1
+    assert level_counter.finished({1}) == 0
+    assert level_counter.finished({2}) == 0
+    assert level_counter.total_finished() == 1
+
+
+def test_separate_exit_clusters_have_separate_counters():
+    sim = Simulator((6, 6))
+    sim.add_component(Hex(0, 0), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)  # id 0
+    sim.add_component(Hex(3, 2), ComponentType.EXIT, atom_type=AtomType.BASIC)  # id 1
+    sim.add_component(Hex(5, 5), ComponentType.EXIT, atom_type=AtomType.BASIC)  # id 2
+    # Exits are not connected -> two independent clusters.
+
+    sim.board.place_atom(Hex(3, 2), Atom(AtomType.BASIC))
+    sim.board.place_atom(Hex(5, 5), Atom(AtomType.BASIC))
+
+    sim.next_step()
+
+    assert level_counter.finished({1}) == 1
+    assert level_counter.finished({2}) == 1
+    assert level_counter.total_finished() == 2
+    assert level_counter.clusters() == {frozenset({1}): 1, frozenset({2}): 1}
 
 
 def test_connected_exits_partial_molecule_not_consumed():
@@ -188,7 +224,7 @@ def test_connected_exits_partial_molecule_not_consumed():
     sim.next_step()
 
     assert sim.board.get_atom(Hex(3, 2)) is a
-    assert level_counter.CORRECT_FINISHED == 0
+    assert level_counter.total_finished() == 0
 
 
 def test_connected_exits_reject_oversized_molecule():
@@ -208,7 +244,7 @@ def test_connected_exits_reject_oversized_molecule():
     assert sim.board.get_atom(Hex(3, 2)) is a
     assert sim.board.get_atom(Hex(2, 2)) is b
     assert sim.board.get_atom(Hex(2, 3)) is c
-    assert level_counter.CORRECT_FINISHED == 0
+    assert level_counter.total_finished() == 0
 
 
 def test_connected_exits_reject_wrong_atom_type():
@@ -224,7 +260,7 @@ def test_connected_exits_reject_wrong_atom_type():
 
     assert sim.board.get_atom(Hex(3, 2)) is a
     assert sim.board.get_atom(Hex(2, 2)) is b
-    assert level_counter.CORRECT_FINISHED == 0
+    assert level_counter.total_finished() == 0
 
 
 def test_lone_exit_rejects_multi_atom_molecule():
@@ -242,7 +278,7 @@ def test_lone_exit_rejects_multi_atom_molecule():
 
     assert sim.board.get_atom(Hex(3, 2)) is a
     assert sim.board.get_atom(Hex(3, 3)) is b
-    assert level_counter.CORRECT_FINISHED == 0
+    assert level_counter.total_finished() == 0
 
 
 def test_remove_component_purges_links():

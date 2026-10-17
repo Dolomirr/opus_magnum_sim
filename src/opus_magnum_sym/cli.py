@@ -47,7 +47,7 @@ def _run_headless(file: str | None, steps: int, commands: list[str] | None = Non
     for _ in range(steps):
         sim.next_step()
 
-    print(f"Ran {steps} steps. Correct finished: {level_counter.CORRECT_FINISHED}")
+    print(f"Ran {steps} steps. Correct finished: {level_counter.total_finished()}")
 
 
 def _validate(file: str) -> None:

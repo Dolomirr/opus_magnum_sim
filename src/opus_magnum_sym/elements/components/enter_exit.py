@@ -65,7 +65,7 @@ class Exit(Component):
     def _execute(self, board: Board, action_type: StepActionType) -> None:
         # Single molecule must sit precisely on the cells of this exit and its connected exit partners.
         # The first member to run pops the whole molecule.
-        # Others see an empty cell and return, so `CORRECT_FINISHED` increments once per delivered molecule.
+        # Others see an empty cell and return, so the cluster counter increments once per delivered molecule.
 
         # TODO: what if molecule will be moved in between? (is it even possible?)
         # TODO: real type/bond-pattern  verification.
@@ -79,5 +79,5 @@ class Exit(Component):
         if set(molecule) != set(cells):
             return
         board.pop_molecule(self.pos)
-        level_counter.CORRECT_FINISHED += 1
+        level_counter.record_finished(comp.idx for comp in exits)
         self.log_action("consumed", self.atom_type.name.lower(), self.pos)

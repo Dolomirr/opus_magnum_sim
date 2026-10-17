@@ -26,8 +26,13 @@
         - [x] Rotation around "hand" not only "base".
     - [x] Actual components to glue/un-glue molecules.
 - [ ] Level completion logic.
-    - [ ] Per-exit counters (each should be correct).
+    - [x] Per-exit counters (each should be correct).
+    - [ ] Stale level detection (then no steps limit is given)
     - [ ] Conditions to mark level as correct / finished.
+    - [ ] Results conuters.
+        - [ ] Steps.
+        - [ ] Const per-component.
+        - [?] Used space.
 - [ ] ! Collision
     - [?] For start molecules and atoms can go throe each other ig, so only multi arm grab problem is to solve.
     - [ ] For Atoms define `held_by`or smth similar

@@ -57,7 +57,7 @@ def main():
     time.sleep(2)
 
     sim.next_step()
-    print("CORRECT_FINISHED =", level_counter.CORRECT_FINISHED)
+    print("CORRECT_FINISHED =", level_counter.total_finished())
 
     renderer.draw()
     renderer.tick(60)

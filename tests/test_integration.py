@@ -48,7 +48,7 @@ def test_full_flow_step_by_step_trace():
             (
                 frozenset(sim.board.atoms),
                 arm.holding is not None,
-                level_counter.CORRECT_FINISHED,
+                level_counter.total_finished(),
             ),
         )
 
@@ -81,14 +81,14 @@ def test_atom_conservation_invariant():
 
     def total() -> int:
         held = sim.components[arm_id].holding is not None
-        return len(sim.board.atoms) + int(held) + level_counter.CORRECT_FINISHED
+        return len(sim.board.atoms) + int(held) + level_counter.total_finished()
 
     assert total() == 2
     for _ in range(4):
         sim.next_step()
         assert total() == 2
 
-    assert level_counter.CORRECT_FINISHED == 1
+    assert level_counter.total_finished() == 1
     assert sim.board.get_atom(Hex(3, 2)) is None
     assert sim.board.get_atom(Hex(2, 3)) is None
 
@@ -100,7 +100,7 @@ def test_idle_entrance_blocks_at_one_atom():
         sim.next_step()
 
     assert len(sim.board.atoms) == 1
-    assert level_counter.CORRECT_FINISHED == 0
+    assert level_counter.total_finished() == 0
 
 
 def test_entrance_does_not_respawn_under_hand():
@@ -139,10 +139,10 @@ def test_repeated_production_increments_counter():
     prev = 0
     for _ in range(cycles * 4 + 1):
         sim.next_step()
-        assert prev <= level_counter.CORRECT_FINISHED
-        prev = level_counter.CORRECT_FINISHED
+        assert prev <= level_counter.total_finished()
+        prev = level_counter.total_finished()
 
-    assert cycles == level_counter.CORRECT_FINISHED
+    assert cycles == level_counter.total_finished()
 
 
 def test_release_onto_exit_consumes_same_step():
@@ -155,10 +155,10 @@ def test_release_onto_exit_consumes_same_step():
 
     for _ in range(4):
         sim.next_step()
-    assert level_counter.CORRECT_FINISHED == 0
+    assert level_counter.total_finished() == 0
 
     sim.next_step()  # step 4: release -> consumed in the same step
-    assert level_counter.CORRECT_FINISHED == 1
+    assert level_counter.total_finished() == 1
     assert sim.board.get_atom(Hex(3, 2)) is None
 
 
@@ -169,7 +169,7 @@ def test_wrong_type_atom_not_consumed():
     sim.next_step()
 
     assert sim.board.get_atom(Hex(3, 2)) is not None
-    assert level_counter.CORRECT_FINISHED == 0
+    assert level_counter.total_finished() == 0
 
 
 def test_counter_increments_once_per_atom():
@@ -177,10 +177,10 @@ def test_counter_increments_once_per_atom():
     sim.board.place_atom(Hex(3, 2), Atom(AtomType.BASIC))
 
     sim.next_step()
-    assert level_counter.CORRECT_FINISHED == 1
+    assert level_counter.total_finished() == 1
 
     sim.next_step()
-    assert level_counter.CORRECT_FINISHED == 1
+    assert level_counter.total_finished() == 1
 
 
 def test_actions_fire_only_at_assigned_step():
@@ -372,7 +372,7 @@ def test_reset_clears_state_and_ids():
     assert len(sim.components) == 0
     assert len(sim.entrypoints) == 0
     assert np.all(sim.board.base_obj == ComponentType.EMPTY)
-    assert level_counter.CORRECT_FINISHED == 0
+    assert level_counter.total_finished() == 0
     assert sim.im.total_allocated() == 0
 
     with pytest.raises(SimulationRuntimeError, match="EXIT is missing"):
@@ -406,9 +406,9 @@ def test_deterministic_runs():
         return sim
 
     first = build_and_run()
-    first_counter = level_counter.CORRECT_FINISHED
+    first_counter = level_counter.total_finished()
     second = build_and_run()
-    second_counter = level_counter.CORRECT_FINISHED
+    second_counter = level_counter.total_finished()
 
     assert first_counter == 1
     assert second_counter == 2
@@ -421,11 +421,11 @@ def test_dsl_file_flow():
 
     for _ in range(5):
         sim.next_step()
-    assert level_counter.CORRECT_FINISHED == 1
+    assert level_counter.total_finished() == 1
 
     for _ in range(5):
         sim.next_step()
-    assert level_counter.CORRECT_FINISHED == 2
+    assert level_counter.total_finished() == 2
     assert sim.board.get_atom(Hex(2, 3)) is not None
 
 

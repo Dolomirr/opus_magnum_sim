@@ -171,4 +171,4 @@ class Simulator:
         self.connections = ConnectionGraph()
         self.step = 0
         self.im.reset()
-        level_counter.CORRECT_FINISHED = 0
+        level_counter.reset()
