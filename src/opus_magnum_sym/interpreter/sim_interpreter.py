@@ -21,6 +21,7 @@ class SimInterpreter:
             "rm": self._handle_remove,
             "connection": self._handle_connection,
             "disconnection": self._handle_disconnection,
+            "target": self._handle_target,
         }
 
     def load_file(self, filepath):
@@ -99,3 +100,11 @@ class SimInterpreter:
         id_b = int(args[1])
         if not self.sim.disconnect_components(id_a, id_b):
             print(f"Failed to disconnect components {id_a} and {id_b}")
+
+    def _handle_target(self, args):
+        # count, exit_id [exit_id ...]
+        if len(args) < 2:
+            raise ValueError("target requires <count> <exit_id> [exit_id...]")
+        count = int(args[0])
+        exit_ids = [int(a) for a in args[1:]]
+        self.sim.set_exit_target(exit_ids, count)

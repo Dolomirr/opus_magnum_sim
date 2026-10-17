@@ -9,6 +9,7 @@ import pygame
 
 from opus_magnum_sym.render.null_renderer import NullRenderer
 from opus_magnum_sym.render.renderer import BoardRenderer
+from opus_magnum_sym.simulation.simulator import LevelFinished
 
 if TYPE_CHECKING:
     from opus_magnum_sym.repl.sim_repl import SimREPL
@@ -100,6 +101,8 @@ class MetaInterpreter:
                 self.repl.sim.next_step()
                 self.repl.renderer.draw()
                 self.repl.renderer.tick(fps)
+        except LevelFinished as exc:
+            print(exc.message)
         except KeyboardInterrupt:
             print("Simulation interrupted. Use !clear to reset or !run to continue.")
         except Exception as e:
@@ -123,6 +126,14 @@ class MetaInterpreter:
             if comp.programm:
                 actions = ", ".join(f"{step}:{action.name.lower()}" for step, action in sorted(comp.programm.items()))
                 print(f"    actions: {actions}")
+        if self.repl.sim.level.targets:
+            print("Targets:")
+            for cluster, count in sorted(
+                self.repl.sim.level.targets.items(),
+                key=lambda item: min(item[0]),
+            ):
+                ids = ", ".join(str(i) for i in sorted(cluster))
+                print(f"    {ids}: {count}")
 
     def _history(self, args: list[str]) -> None:
         n = 20
@@ -168,6 +179,15 @@ class MetaInterpreter:
         for comp in components:
             for step, action in sorted(comp.programm.items()):
                 lines.append(f"action {comp.idx} {step} {action.name.lower()}")
+
+        if self.repl.sim.level.targets:
+            lines.append("")
+            for cluster, count in sorted(
+                self.repl.sim.level.targets.items(),
+                key=lambda item: min(item[0]),
+            ):
+                ids = " ".join(str(i) for i in sorted(cluster))
+                lines.append(f"target {count} {ids}")
 
         return "\n".join(lines) + "\n"
 
@@ -228,6 +248,7 @@ class MetaInterpreter:
                     "DSL commands:",
                     "  comp <x> <y> <type> [key=value ...]",
                     "  action <comp_id> <step> <action_type>  (use 'none' to clear)",
+                    "  target <count> <exit_id> [exit_id...]  set cluster finish target",
                     "  remove <comp_id>                       (alias: rm)",
                     "Meta commands:",
                     "  !run [steps] [pause=<sec>]   run simulation (default 30 steps)",

@@ -52,11 +52,12 @@ Program bars update as soon as an `action` is entered; the cell for the current 
 
 Everything that does not start with `!` (or `:`) is treated as DSL input.
 
-| Command                               | Alias | Description                                                 |
-|---------------------------------------|-------|-------------------------------------------------------------|
-| `comp <x> <y> <type> [key=value ...]` | `c`   | Place a component on the board.                             |
-| `action <id> <step> <type>`           | `a`   | Assign action to component at a step. `none` type to clear. |
-| `remove <id>`                         | `rm`  | Remove a component from the board.                          |
+| Command                               | Alias | Description                                                                  |
+|---------------------------------------|-------|------------------------------------------------------------------------------|
+| `comp <x> <y> <type> [key=value ...]` | `c`   | Place a component on the board.                                              |
+| `action <id> <step> <type>`           | `a`   | Assign action to component at a step. `none` type to clear.                  |
+| `target <count> <exit_id> [exit_id...]`|      | Set the minimum number of molecules an exit cluster must consume to finish.  |
+| `remove <id>`                         | `rm`  | Remove a component from the board.                                           |
 
 ### Meta commands
 
@@ -90,9 +91,25 @@ Reading from and saving to a file:
 
 `!load` merges the file contents into the running simulation; it does not reset the board first, so load into a fresh REPL session if you want a clean state.
 
+### Level completion targets
+
+Use the `target` command to define how many molecules each exit cluster must consume before the level is considered finished. `!run` and `opus-magnum run` stop automatically once every target is satisfied.
+
+```text
+# two separate exit clusters, each must consume 2 molecules
+comp 2 3 entrance atom_type=basic
+comp 3 2 exit atom_type=basic
+comp 5 5 exit atom_type=basic
+
+target 2 1
+target 2 2
+```
+
+For connected exits, any id from the cluster can be used; the target applies to the whole cluster. Set targets after the `connection` commands that define the cluster.
+
 ## File Format
 
-`.oms` files contain Opus Magnum solutions in a custom text format. See `test_flow.oms` for an example.
+`.oms` files contain Opus Magnum solutions in a custom text format. See `test_flow.oms` for an example. Targets are saved and loaded along with components and actions.
 
 ## Key Components
 

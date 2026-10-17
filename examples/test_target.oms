@@ -1,0 +1,20 @@
+# Entrance -> arm -> exit, exit must consume 2 molecules to finish.
+
+comp 2 3 entrance atom_type=basic
+comp 3 2 exit atom_type=basic
+comp 3 3 arm
+
+# deliver the first atom
+action 2 1 rotate_cclw
+action 2 2 grab
+action 2 3 rotate_cclw
+action 2 4 release
+
+# return and deliver the second atom
+action 2 5 rotate_clw
+action 2 6 grab
+action 2 7 rotate_cclw
+action 2 8 release
+
+# require 2 consumed molecules for exit id 1
+target 2 1
