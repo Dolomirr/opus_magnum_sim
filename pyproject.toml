@@ -49,29 +49,29 @@ target-version = "py314"
 
 [tool.ruff.lint]
 select = [
-    "E",    # pycodestyle errors
-    "F",    # pyflakes
-    "W",    # pycodestyle warnings
-    "I",    # isort
-    "UP",   # pyupgrade
-    "B",    # flake8-bugbear
-    "C4",   # flake8-comprehensions
-    "SIM",  # flake8-simplify
-    "PT",   # flake8-pytest-style
-    "RUF",  # ruff-specific rules
-    "PL",   # pylint
-    "TRY",  # tryceratops
-    "PERF", # perflint
-    "S",    # flake8-bandit
-    "D",    # pydocstyle
-    "TD",   # flake8-todos
-    "FIX",  # flake8-fixme
-    "PGH",  # pygrep-hooks
-    "ISC",  # flake8-implicit-str-concat
-    "COM",  # flake8-commas
-    "ERA",  # eradicate
-    "Q",    # flake8-quotes
-    "T20",  # flake8-print
+    "E",      # pycodestyle errors
+    "F",      # pyflakes
+    "W",      # pycodestyle warnings
+    "I",      # isort
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "SIM",    # flake8-simplify
+    "PT",     # flake8-pytest-style
+    "RUF",    # ruff-specific rules
+    "PL",     # pylint
+    "TRY",    # tryceratops
+    "PERF",   # perflint
+    "S",      # flake8-bandit
+    "D",      # pydocstyle
+    "TD",     # flake8-todos
+    "FIX",    # flake8-fixme
+    "PGH",    # pygrep-hooks
+    "ISC",    # flake8-implicit-str-concat
+    "COM818", # trailing-commas
+    "ERA",    # eradicate
+    "Q",      # flake8-quotes
+    "T20",    # flake8-print
 ]
 
 ignore = [
