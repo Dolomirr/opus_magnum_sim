@@ -104,7 +104,7 @@ class Component(ABC):
             blocked_cells
             if blocked_cells is not None
             else set()
-        ) # fmt: skip
+        )  # fmt: skip
         self._execute(
             board=board,
             action_type=self.get_step_action(step=step),
