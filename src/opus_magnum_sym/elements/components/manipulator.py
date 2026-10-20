@@ -32,10 +32,26 @@ class Manipulator(Component):
         )  # fmt: skip
 
     def _positions_free(self, board: Board, positions: dict[Hex, Atom]) -> bool:
-        return all(board.in_bounds(pos) and pos not in board.atoms for pos in positions)
+        return all(
+            board.in_bounds(pos)
+            and pos not in board.atoms
+            and pos not in self._blocked_cells
+            for pos in positions
+        )  # fmt: skip
+
+    def _held_by_other_arm(self) -> bool:
+        """
+        True when any atom of molecule held by this arm
+        is also held by another arm.
+        Moving a molecule shared between arms would tear it into two places.
+        """
+        held_by_other = any(atom.held_by - {self.idx} for atom in self.holding.values())
+        return self.holding is not None and held_by_other
 
     def _rotate(self, rotation: int, board: Board) -> None:
         if self.holding:
+            if self._held_by_other_arm():
+                return
             new_holding = {pos.rotate_around(self.pos, rotation): atom for pos, atom in self.holding.items()}
             if not self._positions_free(board, new_holding):
                 return
@@ -46,6 +62,8 @@ class Manipulator(Component):
 
     def _rotate_molecule(self, rotation: int, board: Board) -> None:
         if not self.holding:
+            return
+        if self._held_by_other_arm():
             return
         new_holding = {pos.rotate_around(self.get_hand_pos, rotation): atom for pos, atom in self.holding.items()}
         if not self._positions_free(board, new_holding):
@@ -67,16 +85,27 @@ class Manipulator(Component):
             hand = self.get_hand_pos
             grabbed = board.pop_molecule(hand)
             if grabbed:
+                for atom in grabbed.values():
+                    atom.held_by.add(self.idx)
                 self.holding = grabbed
                 self.log_action("grabbed", f"{len(grabbed)} atom(s)", hand)
 
     def _release(self, board: Board) -> None:
         if self.holding is None:
             return
-        if not all(board.in_bounds(pos) and pos not in board.atoms for pos in self.holding):
+        if self._held_by_other_arm():
+            return
+        # yeah...
+        if not all(
+            board.in_bounds(pos)
+            and pos not in board.atoms
+            and pos not in self._blocked_cells
+            for pos in self.holding
+        ):  # fmt: skip
             return
         hand = self.get_hand_pos
         for pos, atom in self.holding.items():
+            atom.held_by.discard(self.idx)
             board.place_atom(pos, atom)
         self.log_action("released", f"{len(self.holding)} atom(s)", hand)
         self.holding = None

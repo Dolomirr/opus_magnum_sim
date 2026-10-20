@@ -18,12 +18,15 @@ class Atom:
 
     __slots__ = (
         "connections",
+        "held_by",
         "type",
     )
 
     def __init__(self, type: AtomType = AtomType.BASIC) -> None:
         self.type = type
         self.connections: list[Atom | None] = [None] * 6
+        # Component ids of arms currently holding this atom; empty while it sits on the board.
+        self.held_by: set[int] = set()
 
     def iter_connections(self) -> Iterator[tuple[int, Atom]]:
         """

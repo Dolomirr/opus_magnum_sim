@@ -63,9 +63,11 @@ class Simulator:
             self._verify_init_state()
 
         for comp in self.components.values():
-            comp.execute_step(self.board, self.step)
-
-            # TODO: ! that may cause race conditions
+            # Mechanical collision: arm cannot move cells held by another arm.
+            # Recomputing per component means later arms see where
+            # earlier arms moved this step.
+            blocked = self.held_cells() - set(getattr(comp, "holding", None) or ())
+            comp.execute_step(self.board, self.step, blocked_cells=blocked)
         held_cells = self.held_cells()
         for comp in self.entrypoints.values():
             if comp.type == ComponentType.ENTRANCE and comp.pos in held_cells:
