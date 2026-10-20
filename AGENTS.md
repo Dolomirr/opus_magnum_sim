@@ -120,7 +120,7 @@ When placing components or reading the board, always use `Hex(r, s)`.
 - `Atom`: an instance placed on the board via `board.place_atom`. It carries `connections` — a list of 6 slots (`Atom | None`), one per neighbor direction, indexed by rotation index `0..5` matching `Direction().from_rotation(rotation)`; the opposite of slot `i` is slot `(i + 3) % 6`. `connect` / `disconnect` / `connection_at` maintain these slots reciprocally, and `rotate_connections(steps)` rotates every slot in place.
 - Bonds are created manually (low-level, by cell) via `Board.connect_atoms` / `Board.disconnect_atoms`. `molecule.py::collect_molecule(root)` runs a BFS to return all atoms connected to `root`.
 - `Atom.connect` / `Atom.disconnect` are the low-level slot primitives with no positional validation; all bonding/removal from `src/` must route through `Board.connect_atoms` / `Board.disconnect_atoms`, which reject non-adjacent cells.
-- The manipulator grabs, rotates, and releases whole molecules (every atom bonded to the atom at its hand), not single atoms. Collision of a moving molecule with board atoms is not detected yet.
+- The manipulator grabs, rotates, and releases whole molecules (every atom bonded to the atom at its hand), not single atoms. A held atom records its holder arm ids in `Atom.held_by` (a set, so several arms may hold the same molecule); an arm refuses to move or release a molecule into a cell occupied by a board atom or by another arm's held molecule, and refuses to move a molecule that is also held by another arm.
 
 ### Actions (`elements/actions/actions.py`)
 
@@ -230,6 +230,7 @@ Keyword arguments supported by `_handle_comp`:
 - `EXTEND`, `RETRACT`, `MOVE_POS`, `MOVE_NEG` are declared but largely unimplemented.
 - Only a single atom kind (`AtomType.BASIC`) exists. Atoms have per-direction connection slots and manual bonding, but alchemical glyphs, multiple bond types, and bond rendering are not modeled.
 - The simulator runs components in two hard-coded phases; simultaneous actions can race.
+- Mechanical molecule collision is structural: an arm can't move/release into a cell held by another arm (cell-level), and can't move a molecule that is also held by another arm (`Atom.held_by` is a set of holder ids — a shared molecule is blocked from moving rather than torn into two places). Note: the current whole-molecule grab (`Board.pop_molecule`) removes the entire connected molecule, so a second arm can't grab an already-held molecule — the shared-holder state is currently unreachable, and the shared-move guard only triggers once grab is changed to allow multiple holders.
 - `level_counter.CORRECT_FINISHED` is a module-level counter — not suitable for parallel environments without refactoring. It counts delivered molecules (not atoms), so a lone exit no longer tears apart a multi-atom molecule touching it.
 - `Board.place_componet` retains a typo in the source; preserve existing naming unless refactoring.
 

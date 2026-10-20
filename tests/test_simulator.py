@@ -291,3 +291,58 @@ def test_remove_component_purges_links():
 
     assert sim.connections.links_of(1) == set()
     assert sim.entrypoints[1].group == []
+
+
+def test_arm_cannot_rotate_into_other_arms_held_cell():
+    sim = Simulator((6, 6))
+    sim.add_component(Hex(0, 0), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)  # id 0
+    sim.add_component(Hex(5, 5), ComponentType.EXIT, atom_type=AtomType.BASIC)  # id 1
+    sim.add_component(Hex(2, 2), ComponentType.ARM, rotation=0)  # id 2, hand -> (1, 3)
+    sim.add_component(Hex(2, 4), ComponentType.ARM, rotation=4)  # id 3, hand -> (2, 3)
+
+    arm_a, arm_b = 2, 3
+    atom_a = Atom(AtomType.BASIC)
+    atom_b = Atom(AtomType.BASIC)
+    sim.board.place_atom(Hex(1, 3), atom_a)
+    sim.board.place_atom(Hex(2, 3), atom_b)
+
+    sim.assign_step_action(arm_a, 1, StepActionType.GRAB)
+    sim.assign_step_action(arm_b, 1, StepActionType.GRAB)
+    sim.assign_step_action(arm_a, 2, StepActionType.ROTATE_CLW)  # hand -> (2, 3), held by arm_b
+
+    for _ in range(3):
+        sim.next_step()
+
+    assert sim.components[arm_a].rotation == 0
+    assert sim.components[arm_a].holding == {Hex(1, 3): atom_a}
+    assert sim.components[arm_b].holding == {Hex(2, 3): atom_b}
+    assert atom_a.held_by == {arm_a}
+    assert atom_b.held_by == {arm_b}
+
+
+def test_two_arms_cannot_move_into_same_cell():
+    sim = Simulator((6, 6))
+    sim.add_component(Hex(0, 0), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)  # id 0
+    sim.add_component(Hex(5, 5), ComponentType.EXIT, atom_type=AtomType.BASIC)  # id 1
+    sim.add_component(Hex(2, 2), ComponentType.ARM, rotation=0)  # id 2, hand -> (1, 3)
+    sim.add_component(Hex(2, 4), ComponentType.ARM, rotation=3)  # id 3, hand -> (3, 3)
+
+    arm_a, arm_b = 2, 3
+    atom_a = Atom(AtomType.BASIC)
+    atom_b = Atom(AtomType.BASIC)
+    sim.board.place_atom(Hex(1, 3), atom_a)
+    sim.board.place_atom(Hex(3, 3), atom_b)
+
+    sim.assign_step_action(arm_a, 1, StepActionType.GRAB)
+    sim.assign_step_action(arm_b, 1, StepActionType.GRAB)
+    sim.assign_step_action(arm_a, 2, StepActionType.ROTATE_CLW)  # hand -> (2, 3)
+    sim.assign_step_action(arm_b, 2, StepActionType.ROTATE_CLW)  # hand -> (2, 3)
+
+    for _ in range(3):
+        sim.next_step()
+
+    # Arm A (runs first) claims the shared target; arm B is blocked.
+    assert sim.components[arm_a].rotation == 1
+    assert sim.components[arm_a].holding == {Hex(2, 3): atom_a}
+    assert sim.components[arm_b].rotation == 3
+    assert sim.components[arm_b].holding == {Hex(3, 3): atom_b}

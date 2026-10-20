@@ -231,3 +231,80 @@ def test_release_blocked_keeps_whole_molecule():
     assert arm.holding == {Hex(1, 2): a, Hex(2, 2): b}
     assert board.get_atom(Hex(1, 2)) is None
     assert board.get_atom(Hex(2, 2)) is blocker
+
+
+def test_grab_marks_atoms_held_by():
+    board, arm, atom = _arm_before_atom()
+
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+
+    assert atom.held_by == {arm.idx}
+
+
+def test_release_clears_held_by():
+    board, arm, atom = _arm_before_atom()
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+    arm.assign_step_action(1, StepActionType.ROTATE_CLW)  # hand -> (1, 2)
+    arm.execute_step(board, 1)
+
+    arm.assign_step_action(2, StepActionType.RELEASE)
+    arm.execute_step(board, 2)
+
+    assert atom.held_by == set()
+    assert board.get_atom(Hex(1, 2)) is atom
+
+
+def test_rotate_blocked_by_other_held_cell():
+    board, arm, atom = _arm_before_atom()
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+
+    arm.assign_step_action(1, StepActionType.ROTATE_CLW)  # hand -> (1, 2)
+    arm.execute_step(board, 1, blocked_cells={Hex(1, 2)})
+
+    assert arm.rotation == 0
+    assert arm.holding == {Hex(0, 2): atom}
+
+
+def test_release_blocked_by_other_held_cell():
+    board, arm, atom = _arm_before_atom()
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+
+    arm.assign_step_action(1, StepActionType.RELEASE)
+    arm.execute_step(board, 1, blocked_cells={Hex(0, 2)})
+
+    assert arm.holding == {Hex(0, 2): atom}
+    assert atom.held_by == {arm.idx}
+    assert board.get_atom(Hex(0, 2)) is None
+
+
+def test_rotate_blocked_when_molecule_held_by_another_arm():
+    board, arm, atom = _arm_before_atom()
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+
+    # Simulate a second arm also holding this molecule.
+    atom.held_by.add(999)
+
+    arm.assign_step_action(1, StepActionType.ROTATE_CLW)  # hand -> (1, 2)
+    arm.execute_step(board, 1)
+
+    assert arm.rotation == 0
+    assert arm.holding == {Hex(0, 2): atom}
+
+
+def test_release_blocked_when_molecule_held_by_another_arm():
+    board, arm, atom = _arm_before_atom()
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+
+    atom.held_by.add(999)
+
+    arm.assign_step_action(1, StepActionType.RELEASE)
+    arm.execute_step(board, 1)
+
+    assert arm.holding == {Hex(0, 2): atom}
+    assert board.get_atom(Hex(0, 2)) is None
