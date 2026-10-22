@@ -10,20 +10,10 @@ from opus_magnum_sym.elements.components.components_index import get_component_t
 from opus_magnum_sym.elements.components.connections import ConnectionGraph
 from opus_magnum_sym.elements.env import level_counter
 from opus_magnum_sym.logging import logger
+from opus_magnum_sym.simulation.errors import SimulationRuntimeError
 
 if TYPE_CHECKING:
     from opus_magnum_sym.elements.components.base_component import Component
-
-
-# TODO: sprinkle Errors across simulation
-class SimulationRuntimeError(Exception):
-    def __init__(
-        self,
-        message,
-        step: int,
-    ) -> None:
-        self.message = message
-        super().__init__(self.message)
 
 
 class Simulator:
