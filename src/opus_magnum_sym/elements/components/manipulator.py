@@ -7,6 +7,9 @@ from opus_magnum_sym.elements.actions.base_action import ActionAssignmentError
 from opus_magnum_sym.elements.atoms.atom import Atom
 from opus_magnum_sym.elements.board.directions import Direction
 from opus_magnum_sym.elements.components.base_component import Component, ComponentType
+from opus_magnum_sym.simulation.collision import CollisionCategory, CollisionEvent
+from opus_magnum_sym.simulation.errors import SimulationCollisionError
+from opus_magnum_sym.simulation.movement import Movement, MovementKind
 
 if TYPE_CHECKING:
     from opus_magnum_sym.elements.board import Board, Hex
@@ -32,12 +35,49 @@ class Manipulator(Component):
         )  # fmt: skip
 
     def _positions_free(self, board: Board, positions: dict[Hex, Atom]) -> bool:
-        return all(
-            board.in_bounds(pos)
-            and pos not in board.atoms
-            and pos not in self._blocked_cells
-            for pos in positions
-        )  # fmt: skip
+        """
+        True when every target cell is in bounds and unoccupied.
+
+        Out-of-bounds targets are a silent no-op (returns False).
+        Taken/occupied target (board atom or another arm's held cell)
+        raises `ENDPOINT_OVERLAP` collision instead of silently refusing.
+        """
+        if not all(board.in_bounds(pos) for pos in positions):
+            return False
+        for pos in positions:
+            if pos in board.atoms or pos in self._blocked_cells:
+                self._report_endpoint_overlap(pos)
+        return True
+
+    def _report_endpoint_overlap(self, cell: Hex) -> None:
+        raise SimulationCollisionError(
+            CollisionEvent(
+                category=CollisionCategory.ENDPOINT_OVERLAP,
+                step=self._step,
+                cell=cell,
+                owner_ids=(self.idx,),
+                progress=1.0,
+            )
+        )
+
+    def _record_movement(
+        self,
+        kind: MovementKind,
+        pivot: Hex,
+        rotation: int,
+        holding: dict[Hex, Atom],
+    ) -> None:
+        if self._movement_recorder is None:
+            return
+        self._movement_recorder.append(
+            Movement(
+                owner_id=self.idx,
+                kind=kind,
+                pivot=pivot,
+                rotation_steps=rotation,
+                atoms=list(holding.items()),
+            )
+        )
 
     def _held_by_other_arm(self) -> bool:
         """
@@ -55,6 +95,7 @@ class Manipulator(Component):
             new_holding = {pos.rotate_around(self.pos, rotation): atom for pos, atom in self.holding.items()}
             if not self._positions_free(board, new_holding):
                 return
+            self._record_movement(MovementKind.ARM_SWING, self.pos, rotation, self.holding)
             self.holding = new_holding
             for atom in self.holding.values():
                 atom.rotate_connections(rotation)
@@ -68,6 +109,7 @@ class Manipulator(Component):
         new_holding = {pos.rotate_around(self.get_hand_pos, rotation): atom for pos, atom in self.holding.items()}
         if not self._positions_free(board, new_holding):
             return
+        self._record_movement(MovementKind.MOLECULE_PIVOT, self.get_hand_pos, rotation, self.holding)
         self.holding = new_holding
         for atom in self.holding.values():
             atom.rotate_connections(rotation)
@@ -95,13 +137,7 @@ class Manipulator(Component):
             return
         if self._held_by_other_arm():
             return
-        # yeah...
-        if not all(
-            board.in_bounds(pos)
-            and pos not in board.atoms
-            and pos not in self._blocked_cells
-            for pos in self.holding
-        ):  # fmt: skip
+        if not self._positions_free(board, self.holding):
             return
         hand = self.get_hand_pos
         for pos, atom in self.holding.items():
