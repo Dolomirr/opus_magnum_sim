@@ -36,7 +36,7 @@
 - [ ] ! Collision
     - [?] For start molecules and atoms can go throe each other ig, so only multi arm grab problem is to solve.
     - [ ] For Atoms define `held_by`or smth similar
-    - [ ] Define `movement_root` to validate conflicts before moving atom (multi arm grab etc.).
+    - [x] Define `movement_root` to validate conflicts before moving atom (multi arm grab etc.).
     - ...
 - [ ] Program Flow.
     - [ ] Programs cycle (optional, or just the simplest, without epicycles)
@@ -46,6 +46,7 @@
     - [-] Test suit.
     - [x] Headless simulation.
         - [?] Parallel?
+            - not really relevant
     - [?] Numba (most probably).
         - [ ] Prepare for static structures.
             - [ ] Atoms store as limited pre-allocated array (since board is not infinite) with ids.
