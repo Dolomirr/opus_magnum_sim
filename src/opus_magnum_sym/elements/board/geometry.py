@@ -32,6 +32,25 @@ def hex_to_xy(cell: Hex) -> tuple[float, float]:
     return (cell.s + 0.5 * cell.r, (_SQRT_3 / 2.0) * cell.r)
 
 
+def xy_to_hex(x: float, y: float) -> Hex:
+    """
+    Nearest cell to a normalized-space point.
+    Inverse of `hex_to_xy`.
+    """
+    q = x - y / _SQRT_3
+    r = (2.0 / _SQRT_3) * y
+    cx, cy, cz = q, -q - r, r
+    rx, ry, rz = round(cx), round(cy), round(cz)
+    dx, dy, dz = abs(rx - cx), abs(ry - cy), abs(rz - cz)
+    if dx > dy and dx > dz:
+        rx = -ry - rz
+    elif dy > dz:
+        ry = -rx - rz
+    else:
+        rz = -rx - ry
+    return Hex(rz, rx)
+
+
 def rotate_offset(offset: tuple[float, float], steps: float) -> tuple[float, float]:
     """
     Rotate xy offset by `steps` with 60-degree increments.
