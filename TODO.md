@@ -37,6 +37,7 @@
     - [?] For start molecules and atoms can go throe each other ig, so only multi arm grab problem is to solve.
     - [ ] For Atoms define `held_by`or smth similar
     - [x] Define `movement_root` to validate conflicts before moving atom (multi arm grab etc.).
+    - [ ] Make mechanical collision to error-out sim.
     - ...
 - [ ] Program Flow.
     - [ ] Programs cycle (optional, or just the simplest, without epicycles)
