@@ -5,12 +5,11 @@ from enum import IntEnum
 from typing import TYPE_CHECKING
 
 from opus_magnum_sym.elements.actions.actions import StepActionType
-from opus_magnum_sym.elements.board.hex import Hex
 from opus_magnum_sym.logging import logger
-from opus_magnum_sym.simulation.movement import Movement
 
 if TYPE_CHECKING:
-    from opus_magnum_sym.elements.board import Board
+    from opus_magnum_sym.elements.board import Board, Hex
+    from opus_magnum_sym.simulation.movement import Movement
 
 
 class ComponentAssignmentError(Exception):
