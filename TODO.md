@@ -60,12 +60,14 @@
         - ...
 - [ ] Actual validation.
     - Probably bouded by [Collision]
+    - [ ] Level condition placement (define entrances and exits)
     - ...
 - [x] Proper logging.
 - [ ] (?) Interactive simulation control via keyboard (is it really needed?).
   - [ ] Keyboard control.
   - [ ] Interactive adding.
   - [ ] Ctrl+C handling
+- [ ] ! Library usage
 - [ ] In-between step visualization (optional ig).
     - Ghost-particles, after [Collision].
 
