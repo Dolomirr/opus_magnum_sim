@@ -1,0 +1,22 @@
+
+# SWEEP_ARM_BASE: an arm carrying an atom swings through an adjacent arm base.
+
+# Atom source for the moving arm.
+comp 4 5 entrance atom_type=basic # id 0
+
+# Required exit (not used in the run).
+comp 7 4 exit atom_type=basic     # id 1
+
+# Moving arm: rotation 1 -> hand at (4,5).
+comp 4 4 arm rotation=1           # id 2
+
+# Obstacle arm base at (3,5); the atom's swept arc passes through it.
+comp 3 5 arm                      # id 3
+
+# Pick up the atom, wait a few steps so it is visibly held, then rotate CCLW
+# into the neighbouring base. The continuous sweep detects the overlap.
+action 2 1 grab
+action 2 2 none
+action 2 3 none
+action 2 4 none
+action 2 5 rotate_cclw

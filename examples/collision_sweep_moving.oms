@@ -1,0 +1,33 @@
+
+# SWEEP_MOVING: two arms rotate held atoms into the same mid-sweep space.
+
+# Atom sources, one for each moving arm.
+comp 3 5 entrance atom_type=basic # id 0
+comp 2 5 entrance atom_type=basic # id 1
+
+# Static atom left sitting off to the side so something is visibly on the board.
+comp 7 7 entrance atom_type=basic # id 2
+
+# Required exit (not used in the run).
+comp 7 4 exit atom_type=basic     # id 3
+
+# Arm A at (4,4), rotation 0 -> hand at (3,5).
+comp 4 4 arm rotation=0           # id 4
+
+# Arm B at (2,6), rotation 4 -> hand at (2,5).
+comp 2 6 arm rotation=4           # id 5
+
+# Both arms grab their atoms, wait so the held atoms are visible, then rotate
+# CCLW at the same step. Their arcs cross between the two arms.
+action 4 1 grab
+action 5 1 grab
+
+action 4 2 none
+action 5 2 none
+action 4 3 none
+action 5 3 none
+action 4 4 none
+action 5 4 none
+
+action 4 5 rotate_cclw
+action 5 5 rotate_cclw
