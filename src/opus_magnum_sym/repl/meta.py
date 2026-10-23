@@ -9,6 +9,7 @@ import pygame
 
 from opus_magnum_sym.render.null_renderer import NullRenderer
 from opus_magnum_sym.render.renderer import BoardRenderer
+from opus_magnum_sym.simulation.errors import SimulationCollisionError
 
 if TYPE_CHECKING:
     from opus_magnum_sym.repl.sim_repl import SimREPL
@@ -102,6 +103,14 @@ class MetaInterpreter:
                 self.repl.renderer.tick(fps)
         except KeyboardInterrupt:
             print("Simulation interrupted. Use !clear to reset or !run to continue.")
+        except SimulationCollisionError as e:
+            event = e.event
+            owners = ", ".join(str(i) for i in event.owner_ids)
+            print(
+                f"Collision ({event.category.name}) at step {event.step} "
+                f"near ({event.cell.r}, {event.cell.s}) involving component(s) {owners}"
+            )
+            self.repl.renderer.draw()
         except Exception as e:
             print(f"Simulation error: {e}")
 
