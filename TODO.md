@@ -34,9 +34,10 @@
         - [ ] Const per-component.
         - [ ] (?) Used space.
 - [ ] ! Collision
-    - [ ] (?) For start molecules and atoms can go throe each other ig, so only multi arm grab problem is to solve.
-    - [ ] For Atoms define `held_by`or smth similar
+    - [ ] ~For start molecules and atoms can go throe each other ig, so only multi arm grab problem is to solve.~
+    - [ ] ~For Atoms define `held_by`or smth similar~
     - [x] Define `movement_root` to validate conflicts before moving atom (multi arm grab etc.).
+    - [ ] Spatial collision seem to not error-out in repl ?
     - [ ] Make mechanical collision to error-out sim.
     - ...
 - [ ] Program Flow.
@@ -75,4 +76,5 @@
 
 - ...
 - Component signature (`.holding` is defined only for arm etc.) (generics?)
+- `collision_sweep_atom.oms` seem to cause visual bug - arm goes more even if collision detected
 
