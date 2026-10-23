@@ -10,7 +10,9 @@ from opus_magnum_sym.elements.components.components_index import get_component_t
 from opus_magnum_sym.elements.components.connections import ConnectionGraph
 from opus_magnum_sym.elements.env import level_counter
 from opus_magnum_sym.logging import logger
-from opus_magnum_sym.simulation.errors import SimulationRuntimeError
+from opus_magnum_sym.simulation.collision import CollisionEvent, detect_collision
+from opus_magnum_sym.simulation.errors import SimulationCollisionError, SimulationRuntimeError
+from opus_magnum_sym.simulation.movement import Movement
 
 if TYPE_CHECKING:
     from opus_magnum_sym.elements.components.base_component import Component
@@ -24,6 +26,7 @@ class Simulator:
         self.entrypoints: dict[int, Component] = {}
         self.connections = ConnectionGraph()
         self.step = 0
+        self.collision: CollisionEvent | None = None
 
     def _verify_init_state(self):
         # TODO: create more granular verification if needed
@@ -52,12 +55,33 @@ class Simulator:
         if self.step == 0:
             self._verify_init_state()
 
-        for comp in self.components.values():
-            # Mechanical collision: arm cannot move cells held by another arm.
-            # Recomputing per component means later arms see where
-            # earlier arms moved this step.
-            blocked = self.held_cells() - set(getattr(comp, "holding", None) or ())
-            comp.execute_step(self.board, self.step, blocked_cells=blocked)
+        movements: list[Movement] = []
+        try:
+            for comp in self.components.values():
+                # Mechanical collision: arm cannot move cells held by another arm.
+                # Recomputing per component means later arms see where
+                # earlier arms moved this step.
+                blocked = self.held_cells() - set(getattr(comp, "holding", None) or ())
+                comp.execute_step(
+                    self.board,
+                    self.step,
+                    blocked_cells=blocked,
+                    movement_recorder=movements,
+                )
+        except SimulationCollisionError as err:
+            self.collision = err.event
+            raise
+
+        event = detect_collision(
+            self.board,
+            [*self.components.values(), *self.entrypoints.values()],
+            movements,
+            self.step,
+        )
+        if event is not None:
+            self.collision = event
+            raise SimulationCollisionError(event)
+
         held_cells = self.held_cells()
         for comp in self.entrypoints.values():
             if comp.type == ComponentType.ENTRANCE and comp.pos in held_cells:
@@ -162,5 +186,6 @@ class Simulator:
         self.entrypoints.clear()
         self.connections = ConnectionGraph()
         self.step = 0
+        self.collision = None
         self.im.reset()
         level_counter.reset()
