@@ -4,7 +4,9 @@ from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import Atom, AtomType
 from opus_magnum_sym.elements.board import Board, Hex
 from opus_magnum_sym.elements.components import Manipulator
+from opus_magnum_sym.simulation.collision import CollisionCategory
 from opus_magnum_sym.simulation.errors import SimulationCollisionError
+from opus_magnum_sym.simulation.movement import Movement, MovementKind
 
 
 def _arm_before_atom():
@@ -78,11 +80,15 @@ def test_release_onto_occupied_cell_keeps_holding():
     board.place_atom(Hex(1, 2), blocker)
 
     arm.assign_step_action(2, StepActionType.RELEASE)
-    with pytest.raises(SimulationCollisionError):
+    with pytest.raises(SimulationCollisionError) as excinfo:
         arm.execute_step(board, 2)
 
     assert arm.holding == {Hex(1, 2): atom}
     assert board.get_atom(Hex(1, 2)) is blocker
+    assert excinfo.value.event.category is CollisionCategory.ENDPOINT_OVERLAP
+    assert excinfo.value.event.progress == 1.0
+    assert excinfo.value.event.owner_ids == (arm.idx,)
+    assert excinfo.value.event.cell == Hex(1, 2)
 
 
 def test_rotate_into_occupied_cell_is_blocked():
@@ -94,12 +100,16 @@ def test_rotate_into_occupied_cell_is_blocked():
     board.place_atom(Hex(1, 2), blocker)
 
     arm.assign_step_action(1, StepActionType.ROTATE_CLW)  # hand -> (1, 2), occupied
-    with pytest.raises(SimulationCollisionError):
+    with pytest.raises(SimulationCollisionError) as excinfo:
         arm.execute_step(board, 1)
 
     assert arm.rotation == 0
     assert arm.holding == {Hex(0, 2): atom}
     assert board.get_atom(Hex(1, 2)) is blocker
+    assert excinfo.value.event.category is CollisionCategory.ENDPOINT_OVERLAP
+    assert excinfo.value.event.progress == 1.0
+    assert excinfo.value.event.owner_ids == (arm.idx,)
+    assert excinfo.value.event.cell == Hex(1, 2)
 
 
 def _arm_before_molecule():
@@ -162,13 +172,17 @@ def test_rotate_molecule_into_occupied_cell_is_blocked():
     board.place_atom(Hex(1, 2), blocker)  # b would land here on ROTATE_MOLECULE_CLW
 
     arm.assign_step_action(1, StepActionType.ROTATE_MOLECULE_CLW)
-    with pytest.raises(SimulationCollisionError):
+    with pytest.raises(SimulationCollisionError) as excinfo:
         arm.execute_step(board, 1)
 
     assert arm.holding == {Hex(0, 2): a, Hex(0, 3): b}
     assert a.connection_at(1) is b
     assert b.connection_at(4) is a
     assert board.get_atom(Hex(1, 2)) is blocker
+    assert excinfo.value.event.category is CollisionCategory.ENDPOINT_OVERLAP
+    assert excinfo.value.event.progress == 1.0
+    assert excinfo.value.event.owner_ids == (arm.idx,)
+    assert excinfo.value.event.cell == Hex(1, 2)
 
 
 def test_rotate_molecule_ccw_around_hand():
@@ -230,12 +244,16 @@ def test_release_blocked_keeps_whole_molecule():
     board.place_atom(Hex(2, 2), blocker)
 
     arm.assign_step_action(2, StepActionType.RELEASE)
-    with pytest.raises(SimulationCollisionError):
+    with pytest.raises(SimulationCollisionError) as excinfo:
         arm.execute_step(board, 2)
 
     assert arm.holding == {Hex(1, 2): a, Hex(2, 2): b}
     assert board.get_atom(Hex(1, 2)) is None
     assert board.get_atom(Hex(2, 2)) is blocker
+    assert excinfo.value.event.category is CollisionCategory.ENDPOINT_OVERLAP
+    assert excinfo.value.event.progress == 1.0
+    assert excinfo.value.event.owner_ids == (arm.idx,)
+    assert excinfo.value.event.cell == Hex(2, 2)
 
 
 def test_grab_marks_atoms_held_by():
@@ -267,11 +285,15 @@ def test_rotate_blocked_by_other_held_cell():
     arm.execute_step(board, 0)
 
     arm.assign_step_action(1, StepActionType.ROTATE_CLW)  # hand -> (1, 2)
-    with pytest.raises(SimulationCollisionError):
+    with pytest.raises(SimulationCollisionError) as excinfo:
         arm.execute_step(board, 1, blocked_cells={Hex(1, 2)})
 
     assert arm.rotation == 0
     assert arm.holding == {Hex(0, 2): atom}
+    assert excinfo.value.event.category is CollisionCategory.ENDPOINT_OVERLAP
+    assert excinfo.value.event.progress == 1.0
+    assert excinfo.value.event.owner_ids == (arm.idx,)
+    assert excinfo.value.event.cell == Hex(1, 2)
 
 
 def test_release_blocked_by_other_held_cell():
@@ -280,12 +302,16 @@ def test_release_blocked_by_other_held_cell():
     arm.execute_step(board, 0)
 
     arm.assign_step_action(1, StepActionType.RELEASE)
-    with pytest.raises(SimulationCollisionError):
+    with pytest.raises(SimulationCollisionError) as excinfo:
         arm.execute_step(board, 1, blocked_cells={Hex(0, 2)})
 
     assert arm.holding == {Hex(0, 2): atom}
     assert atom.held_by == {arm.idx}
     assert board.get_atom(Hex(0, 2)) is None
+    assert excinfo.value.event.category is CollisionCategory.ENDPOINT_OVERLAP
+    assert excinfo.value.event.progress == 1.0
+    assert excinfo.value.event.owner_ids == (arm.idx,)
+    assert excinfo.value.event.cell == Hex(0, 2)
 
 
 def test_rotate_blocked_when_molecule_held_by_another_arm():
