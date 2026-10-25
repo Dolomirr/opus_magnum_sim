@@ -13,9 +13,15 @@
 - [ ] Correct steps handling.
     - [x] Ensure enter/exit apply change on atom above only within correct step.
     - ...
+- [ ] Composed multi hex components (predefined shapes, rather than freestyle).
+    - [ ] Pre-defined entrances and exits placement
+        - [ ] Way of describing such shapes (and possibly "finding root"?)
+    - [ ] Fixed shapes of components.
+        - Y-shaped (triangle) connectors
+        - Snowflake manipulators
+        - Destructors.
 - [ ] Atom connection.
-    - [x] Multi hex components.
-        - [ ] Add high-level api for batch adding (pre-define forms, rather than freestyle)
+    - [x] Generic multi hex components.
     - [x] Dynamic atoms IDs.
         - [ ] Add generic types of atoms.
     - [ ] Grabbed counter for each atom.
@@ -27,48 +33,41 @@
     - [x] Actual components to glue/un-glue molecules.
 - [ ] Level completion logic
     - [x] Per-exit counters (each should be correct).
+    - [ ] Actual validation of level.
     - [ ] Stale level detection (then no steps limit is given)
+    - [ ] Entrances and exists verification, connected to [Composed multi hex components]
     - [ ] Conditions to mark level as correct / finished.
     - [ ] Results counters.
         - [ ] Steps.
         - [ ] Const per-component.
         - [ ] (?) Used space.
-- [ ] ! Collision
-    - [ ] ~For start molecules and atoms can go throe each other ig, so only multi arm grab problem is to solve.~
-    - [ ] ~For Atoms define `held_by`or smth similar~
+- [x] ! Collision
+    - [x] ~For start molecules and atoms can go throe each other ig, so only multi arm grab problem is to solve.~
+    - [x] ~For Atoms define `held_by`or smth similar~
     - [x] Define `movement_root` to validate conflicts before moving atom (multi arm grab etc.).
-    - [ ] Spatial collision seem to not error-out in repl?
-    - [ ] Make mechanical collision to error-out sim.
-    - ...
+    - [x] ~Spatial collision seem to not error-out in REPL?~
+    - [x] Make mechanical collision to error-out sim.
 - [ ] Program Flow.
     - [ ] Programs cycle (optional, or just the simplest, without epicycles)
     - [ ] (?) Possibly only level-wise max steps limit [Level completion logic]
 - [ ] Exporting board state on steps via python structure (full serialization).
 - [ ] Optimization.
-    - [ ] (-) Test suit.
     - [x] Headless simulation.
         - [x] ~Parallel?~
-    - [ ] (?) Numba (most probably).
-        - Consider JIT implication (run as daemon?)
-        - Optimization options control (its ok to have slower warm-up)
-    - [ ] (?) C+-
-        - Ah shiiit here we go again...
-    - [ ] (?) Nim
-        - Can be nice, but not transparent as always.
+        - [x] Keep-alive on python-object level daemon.
+    - [ ] (?) Numba (most probably) - Need to consider warm-ups and optimization control.
+    - [ ] (?) C+- - Ah shiiit here we go again...
+    - [ ] (?) Nim - Can be nice, but not transparent.
     - [ ] Prepare for static structures.
         - [ ] Atoms store as limited pre-allocated array (since board is not infinite) with ids.
         - Classify what cannot be handled statically.
         - ...
     - [ ] (?) Consider bitmap collision overlap checking, instead of full sub-step pass.
-- [ ] Actual validation.
-    - Probably bound by [Collision]
-    - [ ] Level condition placement (define entrances and exits)
-    - ...
 - [x] Proper logging.
-- [ ] (?) Interactive simulation control via keyboard (is it really needed?).
-  - [ ] Keyboard control.
-  - [ ] Interactive adding.
-  - [ ] Ctrl+C handling
+- [ ] ~(?) Interactive simulation control via keyboard (is it really needed?).~
+  - [ ] (?) Keyboard control.
+  - [ ] (?) Interactive adding.
+  - [x] Ctrl+C handling
 - [ ] ! Library usage
 - [ ] In-between step visualization (optional ig).
     - Ghost-particles, after [Collision].
@@ -77,4 +76,5 @@
 
 - ...
 - Component signature (`.holding` is defined only for arm etc.) (generics?)
+- REPL's `!save` seem to loose connections?
 
