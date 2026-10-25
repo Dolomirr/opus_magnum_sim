@@ -294,6 +294,7 @@ def test_rotation_wraparound():
     assert arm.get_hand_pos == start
 
 
+@pytest.mark.xfail(reason="Blocked release is now a collision, not retry-until no-op", strict=True)
 def test_release_onto_occupied_keeps_holding_until_free():
     sim = Simulator((5, 5))
     sim.add_component(Hex(4, 4), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)

@@ -1,0 +1,22 @@
+
+# SWEEP_ATOM: a length-2 arm swings an atom through a static atom in the gap.
+
+# Atom source for the moving arm (grabbed at the far hand cell).
+comp 2 6 entrance atom_type=basic # id 0
+
+# Static atom that sits in the swept arc between (2,6) and (4,6).
+comp 3 6 entrance atom_type=basic # id 1
+
+# Required exit (not used in the run).
+comp 7 4 exit atom_type=basic     # id 2
+
+# Moving arm at (4,4), length 2, rotation 0 -> hand at (2,6).
+comp 4 4 arm rotation=0 length=2  # id 3
+
+# Pick up the far atom, let the static atom sit visibly for a few steps, then
+# rotate CLW. The moving atom sweeps close enough to the static one to collide.
+action 3 1 grab
+action 3 2 none
+action 3 3 none
+action 3 4 none
+action 3 5 rotate_clw

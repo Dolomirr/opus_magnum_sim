@@ -5,11 +5,11 @@ from enum import IntEnum
 from typing import TYPE_CHECKING
 
 from opus_magnum_sym.elements.actions.actions import StepActionType
-from opus_magnum_sym.elements.board.hex import Hex
 from opus_magnum_sym.logging import logger
 
 if TYPE_CHECKING:
-    from opus_magnum_sym.elements.board import Board
+    from opus_magnum_sym.elements.board import Board, Hex
+    from opus_magnum_sym.simulation.movement import Movement
 
 
 class ComponentAssignmentError(Exception):
@@ -47,6 +47,9 @@ class Component(ABC):
     )
     # Cells held by other arms during step; for mechanical collision checks.
     _blocked_cells: set[Hex] = field(default_factory=set, init=False, repr=False, compare=False)
+    # Rotations recorded this step, for the post-action slide collision pass.
+    _movement_recorder: list[Movement] | None = field(default=None, init=False, repr=False, compare=False)
+    _step: int = field(default=0, init=False, repr=False, compare=False)
 
     def assign_step_action(self, step: int, action: StepActionType):
         """
@@ -99,12 +102,20 @@ class Component(ABC):
             source_pos=f"({self.pos.r}, {self.pos.s})",
         )
 
-    def execute_step(self, board: Board, step: int, blocked_cells: set[Hex] | None = None) -> None:
+    def execute_step(
+        self,
+        board: Board,
+        step: int,
+        blocked_cells: set[Hex] | None = None,
+        movement_recorder: list[Movement] | None = None,
+    ) -> None:
         self._blocked_cells = (
             blocked_cells
             if blocked_cells is not None
             else set()
         )  # fmt: skip
+        self._movement_recorder = movement_recorder
+        self._step = step
         self._execute(
             board=board,
             action_type=self.get_step_action(step=step),

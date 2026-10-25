@@ -10,6 +10,7 @@ from opus_magnum_sym.interpreter import SimInterpreter
 from opus_magnum_sym.logging import configure_logging
 from opus_magnum_sym.render.factory import create_renderer
 from opus_magnum_sym.repl import SimREPL
+from opus_magnum_sym.simulation.errors import SimulationCollisionError
 from opus_magnum_sym.simulation.simulator import Simulator
 
 
@@ -44,8 +45,12 @@ def _run_headless(file: str | None, steps: int, commands: list[str] | None = Non
     for command in commands or []:
         interpreter.evaluate_line(command)
 
-    for _ in range(steps):
-        sim.next_step()
+    try:
+        for _ in range(steps):
+            sim.next_step()
+    except SimulationCollisionError as e:
+        print(e, file=sys.stderr)
+        sys.exit(1)
 
     print(f"Ran {steps} steps. Correct finished: {level_counter.total_finished()}")
 

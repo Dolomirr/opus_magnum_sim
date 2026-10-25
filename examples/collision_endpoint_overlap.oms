@@ -1,0 +1,13 @@
+comp 2 6 entrance atom_type=basic # id 0
+
+comp 4 6 entrance atom_type=basic # id 1
+
+comp 7 4 exit atom_type=basic     # id 2
+
+comp 4 4 arm rotation=0 length=2  # id 3
+
+action 3 1 grab
+action 3 2 none
+action 3 3 none
+action 3 4 none
+action 3 5 rotate_clw

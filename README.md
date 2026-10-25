@@ -90,6 +90,14 @@ Reading from and saving to a file:
 
 `!load` merges the file contents into the running simulation; it does not reset the board first, so load into a fresh REPL session if you want a clean state.
 
+### Collision Handling
+
+When simulation executes a step, arm rotations are recorded as continuous arcs in two dimensional space rather than checking only start and end cells. 
+After all arms move, separate collision pass samples every moved atom along its arc (on fixed sub-steps) and tests for overlap with stationary atoms, arm bases, and atoms carried by other arms. 
+Any physical overlap immediately stops the simulation run and reports circumstances under which collision occurred (step, type, cell).
+
+Physical overlap includes atoms or arm bases touching during movement, two moving atoms crossing paths at the same time, and arm rotating or releasing molecule onto already occupied cell.
+
 ## File Format
 
 `.oms` files contain Opus Magnum solutions in a custom text format. See `test_flow.oms` for an example.
