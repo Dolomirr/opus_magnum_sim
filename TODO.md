@@ -61,7 +61,7 @@
         - ...
     - [ ] (?) Consider bitmap collision overlap checking, instead of full sub-step pass.
 - [ ] Actual validation.
-    - Probably bouded by [Collision]
+    - Probably bound by [Collision]
     - [ ] Level condition placement (define entrances and exits)
     - ...
 - [x] Proper logging.
