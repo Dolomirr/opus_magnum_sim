@@ -76,5 +76,4 @@
 
 - ...
 - Component signature (`.holding` is defined only for arm etc.) (generics?)
-- `collision_sweep_atom.oms` seem to cause visual bug - arm goes more even if collision detected
 

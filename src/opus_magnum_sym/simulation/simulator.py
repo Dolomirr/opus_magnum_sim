@@ -72,6 +72,10 @@ class Simulator:
             self.collision = err.event
             raise
 
+        # Collision is detected after visual step:
+        # components above have already committed their full rotation/holding,
+        # so on actual collision the arm stays at its final pose
+        # (past event.progress/event.cell) instead of freezing mid-sweep.
         event = detect_collision(
             self.board,
             [*self.components.values(), *self.entrypoints.values()],
