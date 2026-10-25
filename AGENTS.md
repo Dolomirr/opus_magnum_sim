@@ -198,7 +198,7 @@ Keyword arguments supported by `_handle_comp`:
 
 - Tests live in `tests/` and use `pytest`.
 - `tests/conftest.py` provides an autouse `clean_state` fixture that resets the global `index_manager` and `level_counter` before every test. Because these keep module-level state, any test that allocates component IDs or runs the simulator relies on it.
-- Coverage is behavior-focused (architecture regression guards): `test_atom.py` (connection slots), `test_board.py` (atom placement/movement, `move_atom` atomicity), `test_manipulator.py` (arm grab/release), `test_simulator.py` (entrance spawn, exit consume, arm moving an atom to the exit).
+- Coverage is behavior-focused (architecture regression guards): `test_atom.py` (connection slots), `test_board.py` (atom placement/movement, `move_atom` atomicity), `test_manipulator.py` (arm grab/release, movement recording, ENDPOINT_OVERLAP payloads), `test_simulator.py` (entrance spawn, exit consume, arm moving an atom to the exit, sweep collisions), `test_geometry.py` (hex↔xy mapping, offset rotation, circle overlap), `test_movement.py` (`Movement.atom_xy` interpolation), `test_collision.py` (`detect_collision` unit tests).
 - Logging goes through `opus_magnum_sym.logging`. `configure_logging(pretty=True)` (REPL default) emits aligned columns with one separator between setup and runtime; `configure_logging(pretty=False)` emits raw stdlib messages. Do not use `icecream` in source.
 - Ruff is heavily configured in `pyproject.toml`. Most docstring rules and unused-import rules are intentionally ignored; do not fight the existing lint list unless asked.
 
