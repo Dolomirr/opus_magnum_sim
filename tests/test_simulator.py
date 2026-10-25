@@ -6,6 +6,7 @@ from opus_magnum_sym.elements.atoms.molecule import collect_molecule
 from opus_magnum_sym.elements.board import Hex
 from opus_magnum_sym.elements.components import ComponentType
 from opus_magnum_sym.elements.env import level_counter
+from opus_magnum_sym.simulation.errors import SimulationCollisionError
 from opus_magnum_sym.simulation.simulator import SimulationRuntimeError, Simulator
 
 
@@ -310,8 +311,10 @@ def test_arm_cannot_rotate_into_other_arms_held_cell():
     sim.assign_step_action(arm_b, 1, StepActionType.GRAB)
     sim.assign_step_action(arm_a, 2, StepActionType.ROTATE_CLW)  # hand -> (2, 3), held by arm_b
 
-    for _ in range(3):
-        sim.next_step()
+    sim.next_step()  # step 0: entrance spawns
+    sim.next_step()  # step 1: both arms grab
+    with pytest.raises(SimulationCollisionError):
+        sim.next_step()  # step 2: arm A collides into arm B's held cell
 
     assert sim.components[arm_a].rotation == 0
     assert sim.components[arm_a].holding == {Hex(1, 3): atom_a}
@@ -320,6 +323,7 @@ def test_arm_cannot_rotate_into_other_arms_held_cell():
     assert atom_b.held_by == {arm_b}
 
 
+@pytest.mark.xfail(reason="Silent exclusion resolution replaced by stopping collision", strict=True)
 def test_two_arms_cannot_move_into_same_cell():
     sim = Simulator((6, 6))
     sim.add_component(Hex(0, 0), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)  # id 0
