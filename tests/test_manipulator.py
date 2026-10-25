@@ -341,3 +341,94 @@ def test_release_blocked_when_molecule_held_by_another_arm():
 
     assert arm.holding == {Hex(0, 2): atom}
     assert board.get_atom(Hex(0, 2)) is None
+
+
+def test_rotate_records_arm_swing_movement():
+    board, arm, a, b = _arm_before_molecule()
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+
+    recorder: list[Movement] = []
+    arm.assign_step_action(1, StepActionType.ROTATE_CLW)
+    arm.execute_step(board, 1, movement_recorder=recorder)
+
+    assert len(recorder) == 1
+    movement = recorder[0]
+    assert movement.kind is MovementKind.ARM_SWING
+    assert movement.pivot == arm.pos
+    assert movement.rotation_steps == 1
+    assert movement.owner_id == arm.idx
+    assert dict(movement.atoms) == {Hex(0, 2): a, Hex(0, 3): b}
+
+
+def test_rotate_molecule_records_pivot_movement():
+    board = Board(6, 6)
+    arm = Manipulator(idx=0, pos=Hex(2, 2), rotation=0)  # hand -> (1, 3)
+    a = Atom(AtomType.BASIC)
+    b = Atom(AtomType.BASIC)
+    board.place_atom(Hex(1, 3), a)
+    board.place_atom(Hex(1, 4), b)
+    board.connect_atoms(Hex(1, 3), Hex(1, 4))
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+
+    recorder: list[Movement] = []
+    arm.assign_step_action(1, StepActionType.ROTATE_MOLECULE_CCLW)
+    arm.execute_step(board, 1, movement_recorder=recorder)
+
+    assert len(recorder) == 1
+    movement = recorder[0]
+    assert movement.kind is MovementKind.MOLECULE_PIVOT
+    assert movement.pivot == arm.get_hand_pos
+    assert movement.rotation_steps == -1
+    assert movement.owner_id == arm.idx
+    assert dict(movement.atoms) == {Hex(1, 3): a, Hex(1, 4): b}
+
+
+def test_no_movement_recorded_without_holding():
+    board = Board(5, 5)
+    arm = Manipulator(idx=0, pos=Hex(1, 1), rotation=0)
+    recorder: list[Movement] = []
+
+    arm.assign_step_action(0, StepActionType.ROTATE_CLW)
+    arm.execute_step(board, 0, movement_recorder=recorder)
+
+    assert recorder == []
+
+
+def test_no_movement_recorded_for_grab_release_none():
+    board, arm, _atom = _arm_before_atom()
+    recorder: list[Movement] = []
+
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0, movement_recorder=recorder)
+    arm.assign_step_action(1, StepActionType.RELEASE)
+    arm.execute_step(board, 1, movement_recorder=recorder)
+
+    assert recorder == []
+
+
+def test_blocked_rotation_records_nothing():
+    board, arm, _atom = _arm_before_atom()
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+
+    blocker = Atom(AtomType.BASIC)
+    board.place_atom(Hex(1, 2), blocker)
+
+    recorder: list[Movement] = []
+    arm.assign_step_action(1, StepActionType.ROTATE_CLW)
+    with pytest.raises(SimulationCollisionError):
+        arm.execute_step(board, 1, movement_recorder=recorder)
+
+    assert recorder == []
+
+
+def test_no_recorder_by_default():
+    board, arm, atom = _arm_before_atom()
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+    arm.assign_step_action(1, StepActionType.ROTATE_CLW)
+    arm.execute_step(board, 1)  # no movement_recorder -> must not crash
+
+    assert arm.holding == {Hex(1, 2): atom}

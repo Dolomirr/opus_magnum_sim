@@ -370,3 +370,201 @@ def test_two_arms_cannot_move_into_same_cell():
     assert event.progress == 1.0
     assert sim.step == 2
 
+
+def _sweep_sim():
+    """Entrance (0,0), exit (5,5), arm A (id 2) at (3,3) length 2 rotation 0 (hand -> (1,5))."""
+    sim = Simulator((7, 7))
+    sim.add_component(Hex(0, 0), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)
+    sim.add_component(Hex(5, 5), ComponentType.EXIT, atom_type=AtomType.BASIC)
+    sim.add_component(Hex(3, 3), ComponentType.ARM, rotation=0, length=2)
+    return sim
+
+
+def test_sweep_atom_collision_via_next_step():
+    sim = _sweep_sim()
+    arm_id = 2
+    atom_a = Atom(AtomType.BASIC)
+    sim.board.place_atom(Hex(1, 5), atom_a)
+    sim.board.place_atom(Hex(2, 5), Atom(AtomType.BASIC))  # blocker on the sweep arc
+
+    sim.assign_step_action(arm_id, 1, StepActionType.GRAB)
+    sim.assign_step_action(arm_id, 2, StepActionType.ROTATE_CLW)  # (1,5) -> (3,5)
+
+    sim.next_step()  # step 0: spawn
+    sim.next_step()  # step 1: grab
+    with pytest.raises(SimulationCollisionError) as excinfo:
+        sim.next_step()  # step 2: sweep hits blocker
+
+    assert sim.collision is not None
+    assert excinfo.value.event is sim.collision
+    assert sim.collision.category is CollisionCategory.SWEEP_ATOM
+    assert sim.collision.cell == Hex(2, 5)
+    assert sim.collision.owner_ids == (arm_id,)
+    assert sim.collision.progress == 0.25
+    assert sim.collision.step == 2
+
+
+def test_sweep_collision_commits_final_pose():
+    sim = _sweep_sim()
+    arm_id = 2
+    atom_a = Atom(AtomType.BASIC)
+    blocker = Atom(AtomType.BASIC)
+    sim.board.place_atom(Hex(1, 5), atom_a)
+    sim.board.place_atom(Hex(2, 5), blocker)
+
+    sim.assign_step_action(arm_id, 1, StepActionType.GRAB)
+    sim.assign_step_action(arm_id, 2, StepActionType.ROTATE_CLW)
+
+    sim.next_step()
+    sim.next_step()
+    with pytest.raises(SimulationCollisionError):
+        sim.next_step()
+
+    # Arm stays at its final pose past the collision point (documented semantics).
+    assert sim.components[arm_id].rotation == 1
+    assert sim.components[arm_id].holding == {Hex(3, 5): atom_a}
+    assert sim.board.get_atom(Hex(2, 5)) is blocker
+    assert sim.step == 2  # not incremented
+
+
+def test_entrypoints_skipped_after_sweep_collision():
+    # Entrance at (1,5); the arm grabs its spawn on step 1 (leaving the entrance empty)
+    # and sweeps into a blocker on step 2. If entrypoints still ran after the collision,
+    # the now-empty entrance would re-spawn an atom.
+    sim = Simulator((7, 7))
+    sim.add_component(Hex(1, 5), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)  # id 0
+    sim.add_component(Hex(6, 6), ComponentType.EXIT, atom_type=AtomType.BASIC)  # id 1
+    sim.add_component(Hex(3, 3), ComponentType.ARM, rotation=0, length=2)  # id 2, hand -> (1,5)
+    arm_id = 2
+
+    sim.board.place_atom(Hex(2, 5), Atom(AtomType.BASIC))  # blocker on the sweep arc
+
+    sim.assign_step_action(arm_id, 1, StepActionType.GRAB)  # grabs the (1,5) spawn
+    sim.assign_step_action(arm_id, 2, StepActionType.ROTATE_CLW)  # (1,5) -> (3,5), hits (2,5)
+
+    sim.next_step()  # step 0: entrance spawns at (1,5)
+    assert sim.board.get_atom(Hex(1, 5)) is not None
+    sim.next_step()  # step 1: arm grabs, entrance cell empties
+    assert sim.board.get_atom(Hex(1, 5)) is None
+
+    with pytest.raises(SimulationCollisionError):
+        sim.next_step()  # step 2: sweep collision
+
+    assert sim.collision.category is CollisionCategory.SWEEP_ATOM
+    assert sim.step == 2  # not incremented
+    # The entrance cell is empty and eligible to spawn; it stays empty only because
+    # the entrypoint phase was skipped after the collision.
+    assert sim.board.get_atom(Hex(1, 5)) is None
+
+
+def test_sweep_arm_base_collision_via_next_step():
+    sim = _sweep_sim()
+    arm_a = 2
+    sim.add_component(Hex(2, 5), ComponentType.ARM)  # arm B (id 3), base on the arc
+    atom_a = Atom(AtomType.BASIC)
+    sim.board.place_atom(Hex(1, 5), atom_a)
+
+    sim.assign_step_action(arm_a, 1, StepActionType.GRAB)
+    sim.assign_step_action(arm_a, 2, StepActionType.ROTATE_CLW)
+
+    sim.next_step()
+    sim.next_step()
+    with pytest.raises(SimulationCollisionError):
+        sim.next_step()
+
+    assert sim.collision.category is CollisionCategory.SWEEP_ARM_BASE
+    assert sim.collision.cell == Hex(2, 5)
+    assert sim.collision.owner_ids == (2, 3)
+    assert sim.collision.progress == 0.25
+
+
+def test_sweep_onto_other_arms_stationary_held_atom():
+    sim = _sweep_sim()
+    arm_a = 2
+    # Arm B (id 3) at (2,4) rotation 1 -> hand (2,5).
+    sim.add_component(Hex(2, 4), ComponentType.ARM, rotation=1)
+    arm_b = 3
+    atom_a = Atom(AtomType.BASIC)
+    atom_b = Atom(AtomType.BASIC)
+    sim.board.place_atom(Hex(1, 5), atom_a)
+    sim.board.place_atom(Hex(2, 5), atom_b)
+
+    sim.assign_step_action(arm_a, 1, StepActionType.GRAB)
+    sim.assign_step_action(arm_b, 1, StepActionType.GRAB)
+    sim.assign_step_action(arm_a, 2, StepActionType.ROTATE_CLW)  # sweeps over (2,5)
+
+    sim.next_step()
+    sim.next_step()
+    with pytest.raises(SimulationCollisionError):
+        sim.next_step()
+
+    assert sim.collision.category is CollisionCategory.SWEEP_ATOM
+    assert sim.collision.cell == Hex(2, 5)
+    assert sim.collision.owner_ids == (2, 3)
+
+
+def test_sweep_moving_collision_via_next_step():
+    sim = Simulator((6, 6))
+    sim.add_component(Hex(0, 0), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)  # id 0
+    sim.add_component(Hex(5, 5), ComponentType.EXIT, atom_type=AtomType.BASIC)  # id 1
+    sim.add_component(Hex(2, 2), ComponentType.ARM, rotation=0)  # id 2, hand (1,3)
+    sim.add_component(Hex(1, 5), ComponentType.ARM, rotation=3)  # id 3, hand (2,4)
+    arm_a, arm_b = 2, 3
+    atom_a = Atom(AtomType.BASIC)
+    atom_b = Atom(AtomType.BASIC)
+    sim.board.place_atom(Hex(1, 3), atom_a)
+    sim.board.place_atom(Hex(2, 4), atom_b)
+
+    sim.assign_step_action(arm_a, 1, StepActionType.GRAB)
+    sim.assign_step_action(arm_b, 1, StepActionType.GRAB)
+    sim.assign_step_action(arm_a, 2, StepActionType.ROTATE_CLW)  # (1,3) -> (2,3)
+    sim.assign_step_action(arm_b, 2, StepActionType.ROTATE_CLW)  # (2,4) -> (1,4)
+
+    sim.next_step()
+    sim.next_step()
+    with pytest.raises(SimulationCollisionError):
+        sim.next_step()
+
+    assert sim.collision.category is CollisionCategory.SWEEP_MOVING
+    assert sim.collision.owner_ids == (2, 3)
+    assert sim.collision.progress == 0.625
+    assert sim.collision.cell == Hex(2, 3)
+
+
+def test_reset_clears_collision():
+    sim = _sweep_sim()
+    arm_id = 2
+    atom_a = Atom(AtomType.BASIC)
+    sim.board.place_atom(Hex(1, 5), atom_a)
+    sim.board.place_atom(Hex(2, 5), Atom(AtomType.BASIC))
+
+    sim.assign_step_action(arm_id, 1, StepActionType.GRAB)
+    sim.assign_step_action(arm_id, 2, StepActionType.ROTATE_CLW)
+
+    sim.next_step()
+    sim.next_step()
+    with pytest.raises(SimulationCollisionError):
+        sim.next_step()
+    assert sim.collision is not None
+
+    sim.reset()
+
+    assert sim.collision is None
+    assert sim.step == 0
+
+
+def test_held_cells_aggregates_all_arms():
+    sim = Simulator((6, 6))
+    sim.add_component(Hex(0, 0), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)
+    sim.add_component(Hex(5, 5), ComponentType.EXIT, atom_type=AtomType.BASIC)
+    sim.add_component(Hex(2, 2), ComponentType.ARM, rotation=0)  # id 2
+    sim.add_component(Hex(3, 4), ComponentType.ARM, rotation=0)  # id 3
+
+    assert sim.held_cells() == set()
+
+    a = Atom(AtomType.BASIC)
+    b = Atom(AtomType.BASIC)
+    sim.components[2].holding = {Hex(1, 3): a}
+    sim.components[3].holding = {Hex(2, 5): b}
+
+    assert sim.held_cells() == {Hex(1, 3), Hex(2, 5)}
