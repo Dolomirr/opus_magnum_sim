@@ -59,6 +59,7 @@
         - [ ] Atoms store as limited pre-allocated array (since board is not infinite) with ids.
         - Classify what cannot be handled statically.
         - ...
+    - [ ] (?) Consider bitmap collision overlap checking, instead of full sub-step pass.
 - [ ] Actual validation.
     - Probably bouded by [Collision]
     - [ ] Level condition placement (define entrances and exits)
