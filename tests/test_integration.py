@@ -458,3 +458,36 @@ def test_dsl_component_kwargs():
     arm = sim.components[_arm_id(sim)]
     assert arm.rotation == 2
     assert arm.hand_length == 1
+
+
+def test_dsl_place_shape():
+    sim = Simulator((10, 10))
+    interp = SimInterpreter(sim)
+    interp.evaluate_line("place connector_tri 4 4 rotation=0 atom_type=basic")
+
+    assert len(sim.placements) == 1
+    record = sim.placements[0]
+    assert record.blueprint == "connector_tri"
+    assert record.rotation == 0
+    assert len(record.component_ids) == 4
+    assert len(record.links) == 3
+    # every placed cell is a CONNECTOR with the atom_type override
+    for comp_id in record.component_ids:
+        assert sim.entrypoints[comp_id].atom_type == AtomType.BASIC
+
+
+def test_dsl_place_arm_and_gated():
+    sim = Simulator((6, 6))
+    interp = SimInterpreter(sim)
+    interp.evaluate_line("place arm 3 3 rotation=2 length=2")
+
+    assert len(sim.placements) == 1
+    record = sim.placements[0]
+    assert record.blueprint == "arm"
+    (arm_id,) = record.component_ids
+    assert sim.components[arm_id].spec.arm_count == 1
+    assert sim.components[arm_id].rotation == 2
+    assert sim.components[arm_id].hand_length == 2
+
+    interp.evaluate_line("place arm_triple 3 3")
+    assert len(sim.placements) == 1
