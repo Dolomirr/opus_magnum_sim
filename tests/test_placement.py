@@ -7,7 +7,13 @@ import pytest  # noqa: INP001
 import opus_magnum_sym.elements.env.index_manager as im
 from opus_magnum_sym.elements.atoms.atom import Atom, AtomType
 from opus_magnum_sym.elements.board import Direction, Hex
-from opus_magnum_sym.elements.components import ComponentType, ManipulatorSpec
+from opus_magnum_sym.elements.components import (
+    ComponentType,
+    ManipulatorSpec,
+    ShapeCell,
+    ShapeTemplate,
+    register_blueprint,
+)
 from opus_magnum_sym.simulation.errors import SimulationRuntimeError
 from opus_magnum_sym.simulation.simulator import Simulator
 
@@ -75,6 +81,42 @@ def test_place_atomicity_on_occupied_cell():
     assert im.active_count() == baseline
     assert sim.placements == []
     for cell in _y_cells(center):
+        assert sim.board.base_obj[cell] == ComponentType.EMPTY
+
+
+def test_place_rollback_on_link_failure():
+    sim = _make_sim()
+    center = Hex(3, 3)
+    baseline = im.active_count()
+    before_ids = set(sim.components) | set(sim.entrypoints)
+
+    # A template with duplicate links passes definition-time validation
+    # (only adjacency, bounds, and self-links are checked) but fails at
+    # wiring time: the second link is already present in the graph.
+    beam_offset = Direction().from_rotation(0).apply(Hex(0, 0))
+    register_blueprint(
+        ShapeTemplate(
+            "duplicate_link_test",
+            ComponentType.CONNECTOR,
+            cells=(
+                ShapeCell(offset=Hex(0, 0)),
+                ShapeCell(offset=beam_offset),
+            ),
+            links=((0, 1), (0, 1)),
+        )
+    )
+
+    with pytest.raises(SimulationRuntimeError, match="invalid link"):
+        sim.place("duplicate_link_test", center, atom_type=AtomType.BASIC)
+
+    assert im.active_count() == baseline
+    assert set(sim.components) | set(sim.entrypoints) == before_ids
+    assert sim.placements == []
+    placed_cells = (
+        center,
+        Hex(center.r + beam_offset.r, center.s + beam_offset.s),
+    )
+    for cell in placed_cells:
         assert sim.board.base_obj[cell] == ComponentType.EMPTY
 
 

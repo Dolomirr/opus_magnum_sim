@@ -284,6 +284,8 @@ class Simulator:
         for a, b in blueprint.links:
             id_a, id_b = placed_ids[a], placed_ids[b]
             if not self.connect_components(id_a, id_b):
+                for comp_id in reversed(placed_ids):
+                    self.remove_component(comp_id)
                 msg = f"Blueprint {name!r} defines an invalid link between cells {a} and {b}."
                 raise SimulationRuntimeError(msg, step=self.step)
             links.append((id_a, id_b))
