@@ -17,9 +17,9 @@
     - [ ] Pre-defined entrances and exits placement
         - [ ] Way of describing such shapes (and possibly "finding root"?)
     - [ ] Fixed shapes of components.
-        - Y-shaped (triangle) connectors
-        - Snowflake manipulators
-        - Destructors.
+        - [ ] Various shape connectors.
+        - [x] Snowflake manipulators
+        - [ ] Destructors.
 - [ ] Atom connection.
     - [x] Generic multi hex components.
     - [x] Dynamic atoms IDs.
@@ -33,6 +33,7 @@
     - [x] Actual components to glue/un-glue molecules.
 - [ ] Level completion logic
     - [x] Per-exit counters (each should be correct).
+    - [ ] Move things like `index_manager` and `result_counter` to Simulator or separate Level to isolate envs.
     - [ ] Actual validation of level.
     - [ ] Stale level detection (then no steps limit is given)
     - [ ] Entrances and exists verification, connected to [Composed multi hex components]
@@ -64,6 +65,9 @@
         - ...
     - [ ] (?) Consider bitmap collision overlap checking, instead of full sub-step pass.
 - [x] Proper logging.
+- [ ] Ensure determinism.
+    - Currently two hard-coded phases + dict iteration cause simultaneous actions to race
+    - [ ] Define resolution order
 - [ ] ~(?) Interactive simulation control via keyboard (is it really needed?).~
   - [ ] (?) Keyboard control.
   - [ ] (?) Interactive adding.
@@ -76,5 +80,5 @@
 
 - ...
 - Component signature (`.holding` is defined only for arm etc.) (generics?)
-- REPL's `!save` seem to loose connections?
+- REPL's `!save` seem to lose connections?
 
