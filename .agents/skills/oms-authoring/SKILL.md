@@ -27,6 +27,7 @@ A `.oms` file is a plain-text DSL, loaded line by line by
 
 ```text
 comp <r> <s> <type> [key=value ...]      # place a component (alias: c)
+place <blueprint> <r> <s> [rotation=R] [key=value ...]  # place a blueprint
 action <comp_id> <step> <action_type>    # schedule a step action (alias: a)
 remove <comp_id>                         # remove a component (alias: rm)
 connection <id_a> <id_b>                 # link two components
@@ -49,6 +50,23 @@ disconnection <id_a> <id_b>              # unlink two components
 
 `arm_retr` and `transporter` are enum values but are **not** registered in
 `_COMPONENT_MAP`; using them in `comp` raises `Unknown component`.
+
+## Blueprints (`place`)
+
+`place` expands a registered blueprint into one or more primitive components (and,
+for shapes, their `connection` links) in a single line. `<blueprint>` is a name from
+`list_blueprints()`. The two flavors:
+
+- Shape templates (`connector_tri`, `connector_straight_2`, `entrance_straight_2`,
+  `exit_straight_2`, ...) expand into a multi-cell group with pre-wired links.
+- Manipulator specs (`arm`) place a single arm with a stored capability descriptor.
+  Gated variants (`arm_piston`, `arm_double`, `arm_triple`, `arm_hex`) are
+  registered but `implemented=False`; `place` on them raises a load-time error.
+
+`rotation=R` rotates the whole shape around the origin cell; some shapes restrict the
+allowed rotations (e.g. the Y shapes only accept {0,2,4} or {1,3,5}). Remaining
+`key=value` pairs merge onto every placed cell — `atom_type=` reaches all cells of a
+connector/entrance/exit shape.
 
 ## Component kwargs
 
@@ -122,7 +140,9 @@ Follow these rules for every new `.oms` file:
    self-explanatory or is important to the scenario. Do not comment every section or every step.
 5. **`# id n` on every component** — each `comp` line ends with an inline `# id n`
    showing the allocated id.
-6. **Ascending step order** — within a component, list `action` lines by increasing `step`.
+6. **`place` lines in their own section** — put `place` lines in a section after all
+   `comp` lines, with a context comment noting the blueprint and its atom type.
+7. **Ascending step order** — within a component, list `action` lines by increasing `step`.
 
 These rules are cosmetic; the parser ignores blank lines and comments. They exist for
 human and agent readability.

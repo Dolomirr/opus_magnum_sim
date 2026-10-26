@@ -63,13 +63,13 @@ src/opus_magnum_sym/
 ├── elements/
 │   ├── actions/        # Per-step action enum (StepActionType)
 │   ├── board/          # Hex grid, coordinates, directions
-│   ├── components/     # Components: arms, entrance, exit
+│   ├── components/     # Components: arms, entrance, exit; blueprints.py (placement templates)
 │   ├── env/            # Global-ish helpers: index manager, level counter
 │   └── atoms/          # Atom type/instances + molecule BFS (molecule.py)
 ├── interpreter/        # Parses .oms solution files
 ├── render/             # Pygame-based visualization
 ├── repl/               # Interactive REPL
-└── simulation/         # Simulator orchestration
+└── simulation/         # Simulator orchestration; placement.py (PlacementRecord)
 tests/                  # pytest tests + conftest.py (reset global state fixture)
 examples/               # Example .oms solutions + ad-hoc integration scripts
 ```
@@ -153,6 +153,15 @@ sim.next_step()  # advances one simulation step
 - `Simulator.connect_components(id_a, id_b)` links two components, returning `False` (no state change) unless both ids exist, differ, are not already linked, share the same type, and that type is `ENTRANCE` or `EXIT`, and the two cells are adjacent. `disconnect_components` removes an existing link.
 - On any link change the simulator refreshes each entrypoint's `group` list (its transitive neighbours). Linked entrances bond their spawned atoms together; linked exits accept a molecule only when it covers every group cell exactly (set equality), consuming the whole molecule and incrementing `CORRECT_FINISHED` once.
 
+### Blueprints & placement (`elements/components/blueprints.py`, `simulation/placement.py`)
+
+- A high-level placement layer on top of the single-hex primitives. Callers place a named, registered **blueprint** with `sim.place(name, pos, rotation=0, **overrides)`; the result is a `PlacementRecord`.
+- Two blueprint flavors, discriminated with `isinstance`:
+  - `ShapeTemplate` — a multi-cell group of linkable entrypoint components (`ENTRANCE`, `EXIT`, `CONNECTOR`, `DISCONNECTOR`). At runtime it exists as N ordinary components wired through the existing `ConnectionGraph`. Carries `cells` (offset + per-cell kwargs), `links` (index pairs), and optional `allowed_rotations`.
+  - `ManipulatorSpec` — a capability descriptor for an arm variant (`arm_count`, `extendable`, `min_length`/`max_length`). Variants are data, not enum values or subclasses.
+- Registry functions: `register_blueprint`, `get_blueprint`, `list_blueprints` (returns name + `implemented` flag). `implemented=False` blueprints are registerable but not placeable (place raises `SimulationRuntimeError`).
+- `Simulator.placements` records every placement; `Simulator.remove_placement(record)` removes the member components (which purges their links) and the record. `reset()` clears placements.
+
 ### Interpreter (`interpreter/sim_interpreter.py`)
 
 Parses `.oms` text files. Commands:
@@ -160,6 +169,9 @@ Parses `.oms` text files. Commands:
 ```text
 # Place a component
 comp <x> <y> <COMPONENT_TYPE> [key=value ...]
+
+# Place a registered blueprint (shape template or manipulator spec)
+place <blueprint_name> <x> <y> [rotation=<int>] [key=value ...]
 
 # Schedule a step action on a component
 action <comp_id> <step> <STEP_ACTION_TYPE>
@@ -228,6 +240,7 @@ Keyword arguments supported by `_handle_comp`:
 
 - Connector / disconnector / transporter components themselves are not implemented; the link graph and `connection` DSL command exist only as the structure they will plug into.
 - `EXTEND`, `RETRACT`, `MOVE_POS`, `MOVE_NEG` are declared but largely unimplemented.
+- The blueprint type surface (Stage 2+) exists, but multi-arm and piston arm variants are data-only: `arm_piston`, `arm_double`, `arm_triple`, `arm_hex` are registered as `ManipulatorSpec` with `implemented=False`, so `sim.place` (and the `place` DSL command) reject them. Only the basic `arm` spec (`arm_count=1`, `extendable=False`) is placeable; constructing a `Manipulator` with `arm_count != 1` raises `ComponentAssignmentError`.
 - Only a single atom kind (`AtomType.BASIC`) exists. Atoms have per-direction connection slots and manual bonding, but alchemical glyphs, multiple bond types, and bond rendering are not modeled.
 - The simulator runs components in two hard-coded phases; simultaneous actions can race.
 - Mechanical molecule collision is structural: an arm can't move/release into a cell held by another arm (cell-level), and can't move a molecule that is also held by another arm (`Atom.held_by` is a set of holder ids — a shared molecule is blocked from moving rather than torn into two places). Note: the current whole-molecule grab (`Board.pop_molecule`) removes the entire connected molecule, so a second arm can't grab an already-held molecule — the shared-holder state is currently unreachable, and the shared-move guard only triggers once grab is changed to allow multiple holders.
