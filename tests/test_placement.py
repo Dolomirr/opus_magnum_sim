@@ -10,6 +10,7 @@ from opus_magnum_sym.elements.board import Direction, Hex
 from opus_magnum_sym.elements.components import (
     ComponentType,
     ManipulatorSpec,
+    RetractableManipulator,
     ShapeCell,
     ShapeTemplate,
     register_blueprint,
@@ -180,9 +181,31 @@ def test_arm_placement_stores_spec():
 
 def test_gated_presets_raise():
     sim = _make_sim()
-    for name in ("arm_piston", "arm_double", "arm_triple", "arm_hex"):
+    for name in ("arm_double", "arm_triple", "arm_hex"):
         with pytest.raises(SimulationRuntimeError, match="not implemented"):
             sim.place(name, Hex(3, 3))
+
+
+def test_arm_piston_placement_stores_retractable_arm():
+    sim = _make_sim()
+    record = sim.place("arm_piston", Hex(3, 3))
+    assert len(record.component_ids) == 1
+    (cid,) = record.component_ids
+    comp = sim.components[cid]
+    assert comp.type is ComponentType.ARM_RETR
+    assert isinstance(comp, RetractableManipulator)
+    assert comp.spec.name == "arm_piston"
+    assert comp.spec.extendable is True
+    assert (comp.spec.min_length, comp.spec.max_length) == (1, 3)
+
+
+def test_arm_piston_length_override_bounds():
+    sim = _make_sim()
+    with pytest.raises(SimulationRuntimeError, match="length"):
+        sim.place("arm_piston", Hex(3, 3), length=4)
+    record = sim.place("arm_piston", Hex(3, 3), length=3)
+    (cid,) = record.component_ids
+    assert sim.components[cid].hand_length == 3
 
 
 def test_length_override_bounds():

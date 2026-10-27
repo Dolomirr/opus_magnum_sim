@@ -96,10 +96,18 @@ class TestBuiltins:
         assert spec.implemented is True
 
     def test_gated_presets_not_implemented(self):
-        for name in ("arm_piston", "arm_double", "arm_triple", "arm_hex"):
+        for name in ("arm_double", "arm_triple", "arm_hex"):
             spec = get_blueprint(name)
             assert isinstance(spec, ManipulatorSpec)
             assert spec.implemented is False
+
+    def test_arm_piston(self):
+        spec = get_blueprint("arm_piston")
+        assert isinstance(spec, ManipulatorSpec)
+        assert spec.arm_count == 1
+        assert spec.extendable is True
+        assert (spec.min_length, spec.max_length) == (1, 3)
+        assert spec.implemented is True
 
     def test_all_builtins_listed(self):
         names = {entry["name"] for entry in list_blueprints()}
