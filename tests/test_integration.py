@@ -491,3 +491,65 @@ def test_dsl_place_arm_and_gated():
 
     interp.evaluate_line("place arm_triple 3 3")
     assert len(sim.placements) == 1
+
+
+def test_place_full_delivery_flow():
+    sim = Simulator((6, 6))
+    sim.place("entrance_straight_2", Hex(2, 3), rotation=1, atom_type=AtomType.BASIC)
+    sim.place("exit_straight_2", Hex(3, 2), rotation=2, atom_type=AtomType.BASIC)
+    arm_record = sim.place("arm", Hex(3, 3))
+    (arm_id,) = arm_record.component_ids
+
+    sim.assign_step_action(arm_id, 1, StepActionType.GRAB)
+    for step in (2, 3, 4, 5):
+        sim.assign_step_action(arm_id, step, StepActionType.ROTATE_CLW)
+    sim.assign_step_action(arm_id, 6, StepActionType.RELEASE)
+
+    for _ in range(7):
+        sim.next_step()
+
+    assert level_counter.total_finished() == 1
+    assert sim.board.get_atom(Hex(3, 2)) is None
+    assert sim.board.get_atom(Hex(4, 2)) is None
+    assert [r.blueprint for r in sim.placements] == [
+        "entrance_straight_2",
+        "exit_straight_2",
+        "arm",
+    ]
+
+
+def test_dsl_place_full_flow():
+    dsl = Simulator((6, 6))
+    interp = SimInterpreter(dsl)
+    interp.evaluate_line("place entrance_straight_2 2 3 rotation=1 atom_type=basic")
+    interp.evaluate_line("place exit_straight_2 3 2 rotation=2 atom_type=basic")
+    interp.evaluate_line("place arm 3 3")
+    # ids allocate sequentially from 0: entrance pair -> 0,1; exit pair -> 2,3; arm -> 4
+    for line in (
+        "action 4 1 grab",
+        "action 4 2 rotate_clw",
+        "action 4 3 rotate_clw",
+        "action 4 4 rotate_clw",
+        "action 4 5 rotate_clw",
+        "action 4 6 release",
+    ):
+        interp.evaluate_line(line)
+
+    for _ in range(7):
+        dsl.next_step()
+    assert level_counter.total_finished() == 1
+
+    # API-level run of the identical scenario, for board-state interop check.
+    api = Simulator((6, 6))
+    api.place("entrance_straight_2", Hex(2, 3), rotation=1, atom_type=AtomType.BASIC)
+    api.place("exit_straight_2", Hex(3, 2), rotation=2, atom_type=AtomType.BASIC)
+    arm_record = api.place("arm", Hex(3, 3))
+    (arm_id,) = arm_record.component_ids
+    api.assign_step_action(arm_id, 1, StepActionType.GRAB)
+    for step in (2, 3, 4, 5):
+        api.assign_step_action(arm_id, step, StepActionType.ROTATE_CLW)
+    api.assign_step_action(arm_id, 6, StepActionType.RELEASE)
+    for _ in range(7):
+        api.next_step()
+
+    assert np.array_equal(dsl.board.get_state(), api.board.get_state())

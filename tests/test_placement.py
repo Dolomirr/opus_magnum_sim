@@ -209,3 +209,119 @@ def test_reset_clears_placements():
     assert len(sim.placements) == 2
     sim.reset()
     assert sim.placements == []
+
+
+# ---------------------------------------------------------------------------
+# Rotation / occupancy validation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("rotation", range(6))
+def test_straight_template_rotation_geometry(rotation):
+    sim = _make_sim()
+    origin = Hex(4, 4)
+    record = sim.place("connector_straight_2", origin, rotation=rotation, atom_type=AtomType.BASIC)
+
+    dr, ds = Direction().from_rotation(rotation).offset
+    beam = Hex(origin.r + dr, origin.s + ds)
+    positions = [sim.entrypoints[cid].pos for cid in record.component_ids]
+    assert set(positions) == {origin, beam}
+
+    assert len(record.component_ids) == 2
+    assert len(record.links) == 1
+    (id_a, id_b) = record.links[0]
+    assert sim.connections.links_of(id_a) == {id_b}
+
+
+def test_y_template_rotation_symmetry():
+    sim = _make_sim()
+
+    def rel_cells(name: str, rotation: int, origin: Hex) -> set[Hex]:
+        record = sim.place(name, origin, rotation=rotation, atom_type=AtomType.BASIC)
+        return {
+            Hex(comp.pos.r - origin.r, comp.pos.s - origin.s)
+            for comp in (sim.entrypoints[cid] for cid in record.component_ids)
+        } - {Hex(0, 0)}
+
+    even_sets = [rel_cells("connector_tri", r, Hex(2 + i * 2, 2)) for i, r in enumerate((0, 2, 4))]
+    assert even_sets[0] == even_sets[1] == even_sets[2]
+
+    odd_sets = [rel_cells("connector_tri_odd", r, Hex(2 + i * 2, 6)) for i, r in enumerate((1, 3, 5))]
+    assert odd_sets[0] == odd_sets[1] == odd_sets[2]
+
+    for r in (0, 2, 4):
+        with pytest.raises(SimulationRuntimeError, match="rotation"):
+            sim.place("connector_tri_odd", Hex(1, 1), rotation=r, atom_type=AtomType.BASIC)
+
+    # Odd-Y ({1,3,5} arms) differs from even-Y ({0,2,4} arms).
+    assert even_sets[0] != odd_sets[0]
+
+
+def test_place_rejects_component_occupied_cell():
+    sim = _make_sim()
+    center = Hex(3, 3)
+    target = _y_cells(center)[1]
+    sim.add_component(target, ComponentType.ENTRANCE, atom_type=AtomType.BASIC)
+    baseline = im.active_count()
+
+    with pytest.raises(SimulationRuntimeError):
+        sim.place("connector_tri", center, rotation=0, atom_type=AtomType.BASIC)
+
+    assert im.active_count() == baseline
+    assert sim.placements == []
+    for cell in _y_cells(center):
+        assert sim.board.base_obj[cell] != ComponentType.CONNECTOR
+    assert sim.board.base_obj[target] == ComponentType.ENTRANCE
+
+
+def test_place_rejects_overlapping_placement():
+    sim = _make_sim()
+    center = Hex(3, 3)
+    first = sim.place("connector_tri", center, rotation=0, atom_type=AtomType.BASIC)
+
+    overlap_origin = _y_cells(center)[1]
+    with pytest.raises(SimulationRuntimeError):
+        sim.place("connector_tri", overlap_origin, rotation=0, atom_type=AtomType.BASIC)
+
+    assert len(sim.placements) == 1
+    assert sim.placements[0] is first
+    assert len(first.component_ids) == 4
+    for cid in first.component_ids:
+        assert sim._lookup(cid) is not None
+    assert len(first.links) == 3
+    for id_a, id_b in first.links:
+        assert id_b in sim.connections.links_of(id_a)
+        assert id_a in sim.connections.links_of(id_b)
+
+
+def test_place_rejects_out_of_bounds():
+    sim = Simulator((6, 6))
+    with pytest.raises(SimulationRuntimeError):
+        sim.place("connector_straight_2", Hex(0, 0), rotation=0, atom_type=AtomType.BASIC)
+
+    assert sim.board.base_obj[Hex(0, 0)] == ComponentType.EMPTY
+
+
+def test_replace_after_removal():
+    sim = _make_sim()
+    center = Hex(3, 3)
+    baseline = im.active_count()
+
+    first = sim.place("connector_tri", center, rotation=0, atom_type=AtomType.BASIC)
+    sim.remove_placement(first)
+    assert im.active_count() == baseline
+
+    second = sim.place("connector_tri", center, rotation=0, atom_type=AtomType.BASIC)
+    assert len(second.component_ids) == 4
+    assert len(second.links) == 3
+    assert {sim.entrypoints[cid].pos for cid in second.component_ids} == set(_y_cells(center))
+
+
+def test_arm_place_on_occupied_cell_rejected():
+    sim = _make_sim()
+    sim.add_component(Hex(3, 3), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)
+
+    with pytest.raises(SimulationRuntimeError):
+        sim.place("arm", Hex(3, 3))
+
+    assert sim.placements == []
