@@ -28,6 +28,7 @@ from opus_magnum_sym.render.colors import (
     MANIPULATOR,
     PROGRAM_BG,
     PROGRAM_LABEL,
+    SALT_TRANSMUTER,
 )
 from opus_magnum_sym.render.geometry import hex_vertices
 from opus_magnum_sym.render.layout import HexLayout
@@ -224,6 +225,16 @@ class BoardRenderer:
                         2,
                     )
 
+                elif comp == ComponentType.SALT_TRANSMUTER:
+                    radius = int(self.hex_size * 0.4)
+                    triangle = [
+                        (cx, cy - radius),
+                        (cx + radius, cy + radius),
+                        (cx - radius, cy + radius),
+                    ]
+                    pygame.draw.polygon(self.screen, SALT_TRANSMUTER, triangle)
+                    pygame.draw.polygon(self.screen, (240, 220, 255), triangle, 1)
+
     # link lines between connected entrances/exits
     def _draw_connections(self):
         entrypoints = self.sim.entrypoints
@@ -401,6 +412,7 @@ class BoardRenderer:
                 ComponentType.EXIT,
                 ComponentType.CONNECTOR,
                 ComponentType.DISCONNECTOR,
+                ComponentType.SALT_TRANSMUTER,
             )
         }
         if not components:
