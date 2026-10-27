@@ -19,6 +19,7 @@ _SHAPE_COMPONENT_TYPES = frozenset(
         ComponentType.EXIT,
         ComponentType.CONNECTOR,
         ComponentType.DISCONNECTOR,
+        ComponentType.SALT_TRANSMUTER,
     }
 )
 
@@ -166,6 +167,15 @@ for _tpl in (
     _straight_template("exit_straight_2", ComponentType.EXIT),
 ):
     register_blueprint(_tpl)
+
+register_blueprint(
+    ShapeTemplate(
+        name="salt_transmuter",
+        comp_type=ComponentType.SALT_TRANSMUTER,
+        cells=(ShapeCell(offset=Hex(0, 0)),),
+        links=(),
+    )
+)
 
 for _spec in (
     ManipulatorSpec("arm", 1, False, 1, 6, implemented=True),

@@ -117,6 +117,7 @@ class Simulator:
             ComponentType.EXIT,
             ComponentType.CONNECTOR,
             ComponentType.DISCONNECTOR,
+            ComponentType.SALT_TRANSMUTER,
         }:
             self.entrypoints[new_id] = comp
         else:
