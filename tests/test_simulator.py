@@ -92,6 +92,53 @@ def test_arm_moves_atom_to_exit():
     assert sim.board.get_atom(Hex(3, 2)) is None
 
 
+def test_arm_preserves_atom_type_when_moving():
+    sim = _flow_sim(exit_pos=Hex(5, 5))
+    arm_id = 2
+    sim.assign_step_action(arm_id, 1, StepActionType.ROTATE_CCLW)
+    sim.assign_step_action(arm_id, 2, StepActionType.GRAB)
+    sim.assign_step_action(arm_id, 3, StepActionType.ROTATE_CLW)
+    sim.assign_step_action(arm_id, 4, StepActionType.RELEASE)
+
+    for _ in range(5):
+        sim.next_step()
+
+    atom = sim.board.get_atom(Hex(2, 4))
+    assert atom is not None
+    assert atom.type is AtomType.BASIC
+
+
+def test_entrance_spawns_non_basic_atom_type():
+    sim = Simulator((6, 6))
+    sim.add_component(Hex(2, 3), ComponentType.ENTRANCE, atom_type=AtomType.FIRE)
+    sim.add_component(Hex(5, 5), ComponentType.EXIT, atom_type=AtomType.FIRE)
+
+    sim.next_step()
+
+    atom = sim.board.get_atom(Hex(2, 3))
+    assert atom is not None
+    assert atom.type is AtomType.FIRE
+
+
+def test_exit_consumes_only_matching_atom_type():
+    sim = Simulator((6, 6))
+    sim.add_component(Hex(0, 0), ComponentType.ENTRANCE, atom_type=AtomType.WATER)
+    water_exit_id = 1
+    fire_exit_id = 2
+    sim.add_component(Hex(3, 2), ComponentType.EXIT, atom_type=AtomType.WATER)
+    sim.add_component(Hex(5, 5), ComponentType.EXIT, atom_type=AtomType.FIRE)
+    sim.board.place_atom(Hex(3, 2), Atom(AtomType.WATER))
+    sim.board.place_atom(Hex(5, 5), Atom(AtomType.WATER))
+
+    sim.next_step()
+
+    assert sim.board.get_atom(Hex(3, 2)) is None
+    assert level_counter.finished({water_exit_id}) == 1
+    assert sim.board.get_atom(Hex(5, 5)) is not None
+    assert level_counter.finished({fire_exit_id}) == 0
+    assert level_counter.total_finished() == 1
+
+
 def test_arm_moves_atom_between_cells():
     sim = _flow_sim(exit_pos=Hex(5, 5))  # exit far away, never consumed
     arm_id = 2
