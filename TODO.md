@@ -14,7 +14,7 @@
     - [x] Ensure enter/exit apply change on atom above only within correct step.
     - ...
 - [ ] Composed multi hex components (predefined shapes, rather than freestyle).
-    - [ ] Pre-defined entrances and exits placement
+    - [ ] Pre-defined entrances and exits placement [Level completion logic]
         - [ ] Way of describing such shapes (and possibly "finding root"?)
     - [ ] Fixed shapes of components.
         - [ ] Various shape connectors.
@@ -81,4 +81,6 @@
 - ...
 - Component signature (`.holding` is defined only for arm etc.) (generics?)
 - REPL's `!save` seem to lose connections?
+
+- Make level separate entity, with separate counters and per-level defined entrances (instead of just `straight_2`)
 
