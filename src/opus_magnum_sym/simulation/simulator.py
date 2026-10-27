@@ -6,7 +6,13 @@ import opus_magnum_sym.elements.env.index_manager as im
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board import Board, Direction, Hex
-from opus_magnum_sym.elements.components import ComponentType, ManipulatorSpec, ShapeTemplate, get_blueprint
+from opus_magnum_sym.elements.components import (
+    ComponentSpec,
+    ComponentType,
+    ManipulatorSpec,
+    ShapeTemplate,
+    get_blueprint,
+)
 from opus_magnum_sym.elements.components.components_index import get_component_type
 from opus_magnum_sym.elements.components.connections import ConnectionGraph
 from opus_magnum_sym.elements.env import level_counter
@@ -118,6 +124,7 @@ class Simulator:
             ComponentType.CONNECTOR,
             ComponentType.DISCONNECTOR,
             ComponentType.SALT_TRANSMUTER,
+            ComponentType.DUPLICATION_GLYPH,
         }:
             self.entrypoints[new_id] = comp
         else:
@@ -204,6 +211,8 @@ class Simulator:
 
         if isinstance(blueprint, ManipulatorSpec):
             return self._place_manipulator(blueprint, name, pos, rotation, overrides)
+        if isinstance(blueprint, ComponentSpec):
+            return self._place_component(blueprint, name, pos, rotation, overrides)
         return self._place_shape(blueprint, name, pos, rotation, overrides)
 
     def _place_manipulator(
@@ -238,6 +247,32 @@ class Simulator:
         comp_type = ComponentType.ARM_RETR if blueprint.extendable else ComponentType.ARM
         before = set(self.components) | set(self.entrypoints)
         self.add_component(pos, comp_type, spec=blueprint, rotation=rotation, **overrides)
+        (comp_id,) = (set(self.components) | set(self.entrypoints)) - before
+
+        record = PlacementRecord(
+            blueprint=name,
+            pos=pos,
+            rotation=rotation,
+            component_ids=(comp_id,),
+            links=(),
+        )
+        self.placements.append(record)
+        return record
+
+    def _place_component(
+        self,
+        blueprint: ComponentSpec,
+        name: str,
+        pos: Hex,
+        rotation: int,
+        overrides: dict,
+    ) -> PlacementRecord:
+        if overrides:
+            msg = f"Blueprint {name!r} does not accept overrides: {sorted(overrides)}."
+            raise SimulationRuntimeError(msg, step=self.step)
+
+        before = set(self.components) | set(self.entrypoints)
+        self.add_component(pos, blueprint.comp_type, rotation=rotation)
         (comp_id,) = (set(self.components) | set(self.entrypoints)) - before
 
         record = PlacementRecord(
