@@ -135,6 +135,25 @@ def test_rotation_validation():
         assert record.rotation == rotation
 
 
+@pytest.mark.parametrize(("name", "allowed"), [
+    ("connector_tri", {0, 2, 4}),
+    ("connector_tri_odd", {1, 3, 5}),
+])
+def test_y_template_accepts_all_and_only_its_rotations(name, allowed):
+    for rotation in range(6):
+        sim = _make_sim()
+        if rotation in allowed:
+            record = sim.place(name, Hex(3, 3), rotation=rotation, atom_type=AtomType.SALT)
+            assert record.rotation == rotation
+            # Every allowed placement covers the full 4-cell Y: origin + 3 beams.
+            positions = {sim.entrypoints[cid].pos for cid in record.component_ids}
+            assert len(positions) == 4
+        else:
+            with pytest.raises(SimulationRuntimeError, match="rotation"):
+                sim.place(name, Hex(3, 3), rotation=rotation, atom_type=AtomType.SALT)
+            assert sim.placements == []
+
+
 def test_overrides_reach_every_cell():
     sim = _make_sim()
     record = sim.place("connector_tri", Hex(3, 3), rotation=0, atom_type=AtomType.SALT)
@@ -266,18 +285,23 @@ def test_y_template_rotation_symmetry():
             for comp in (sim.entrypoints[cid] for cid in record.component_ids)
         } - {Hex(0, 0)}
 
+    # Each template's allowed rotations all yield the same self-consistent beam
+    # set: a Y with 120-degree rotational symmetry around its origin. Rotating
+    # a Y by two steps maps its beams onto themselves.
     even_sets = [rel_cells("connector_tri", r, Hex(2 + i * 2, 2)) for i, r in enumerate((0, 2, 4))]
     assert even_sets[0] == even_sets[1] == even_sets[2]
 
     odd_sets = [rel_cells("connector_tri_odd", r, Hex(2 + i * 2, 6)) for i, r in enumerate((1, 3, 5))]
     assert odd_sets[0] == odd_sets[1] == odd_sets[2]
 
+    # Each template refuses the other's rotations (the "impossible" rotations
+    # for that parity-pinned variant).
     for r in (0, 2, 4):
         with pytest.raises(SimulationRuntimeError, match="rotation"):
             sim.place("connector_tri_odd", Hex(1, 1), rotation=r, atom_type=AtomType.SALT)
-
-    # Odd-Y ({1,3,5} arms) differs from even-Y ({0,2,4} arms).
-    assert even_sets[0] != odd_sets[0]
+    for r in (1, 3, 5):
+        with pytest.raises(SimulationRuntimeError, match="rotation"):
+            sim.place("connector_tri", Hex(1, 1), rotation=r, atom_type=AtomType.SALT)
 
 
 def test_place_rejects_component_occupied_cell():
