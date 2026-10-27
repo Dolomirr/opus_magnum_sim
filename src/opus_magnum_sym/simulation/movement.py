@@ -16,18 +16,22 @@ class MovementKind(Enum):
     """whole arm rotates around the base"""
     MOLECULE_PIVOT = auto()
     """molecule rotates in place around the hand"""
+    HAND_SLIDE = auto()
+    """held molecule slides along the arm axis (extend/retract)"""
 
 
 @dataclass
 class Movement:
     """
-    Records one arm action that rotates held molecule:
+    Records one arm action that moves held molecule:
 
     - arm swinging around its base (`ARM_SWING`)
     - molecule rotating in place around the hand (`MOLECULE_PIVOT`)
+    - hand sliding along the arm axis (`HAND_SLIDE`)
 
-    It captures this pivot, 60° rotation, and every held atom with its cell pre-move.
-    Interpolation maps `t` in [0, 1] to atom's xy position along movement arc.
+    It captures pivot/axis, 60° rotation (or linear slide offset), and every
+    held atom with its cell pre-move. Interpolation maps `t` in [0, 1] to the
+    atom's xy position along the movement arc/line.
     """
 
     owner_id: int
@@ -42,6 +46,7 @@ class Movement:
         Return the xy position of the atom that started at `cell` at progress `t`.
 
         Delta of hex's pivoting mapped to xy, rotated and added to the pivot's xy *center*.
+        `HAND_SLIDE` instead interpolates linearly from `cell` to `cell + slide_delta`.
         """
         if self.kind is MovementKind.HAND_SLIDE:
             start = hex_to_xy(cell)
