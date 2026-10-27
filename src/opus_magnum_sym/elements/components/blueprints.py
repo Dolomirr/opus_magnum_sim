@@ -130,10 +130,10 @@ def _beam(rotation: int, **kwargs) -> ShapeCell:
 def _y_template(
     name: str,
     comp_type: ComponentType,
-    rotations: frozenset[int],
+    allowed_rotations: frozenset[int],
     implemented: bool = True,
 ) -> ShapeTemplate:
-    beams = tuple(_beam(r) for r in sorted(rotations))
+    beams = tuple(_beam(r) for r in (0, 2, 4))
     cells = (ShapeCell(offset=Hex(0, 0)), *beams)
     links = tuple((0, i) for i in range(1, len(cells)))
     return ShapeTemplate(
@@ -142,7 +142,7 @@ def _y_template(
         cells=cells,
         links=links,
         implemented=implemented,
-        allowed_rotations=rotations,
+        allowed_rotations=allowed_rotations,
     )
 
 
