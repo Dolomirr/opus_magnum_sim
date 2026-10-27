@@ -3,10 +3,12 @@ from typing import cast
 import pygame
 
 from opus_magnum_sym.elements.actions.actions import StepActionType
+from opus_magnum_sym.elements.atoms.atom import Atom
 from opus_magnum_sym.elements.components import Manipulator
 from opus_magnum_sym.elements.components.base_component import ComponentType
 from opus_magnum_sym.render.colors import (
     ATOM,
+    ATOM_COLORS,
     BACKGROUND,
     BOND,
     CELL_BORDER,
@@ -264,12 +266,18 @@ class BoardRenderer:
 
                 pygame.draw.line(self.screen, BOND, (ax, ay), (bx, by), 3)
 
+    @staticmethod
+    def _atom_color(atom: Atom) -> tuple[int, int, int]:
+        return ATOM_COLORS.get(atom.type.name, ATOM)
+
     # objects (atoms)
     def _draw_objects(self):
-        for cell in self.board.atoms:
+        for cell, atom in self.board.atoms.items():
             cx, cy = self.layout.hex_to_pixel(cell.r, cell.s)
             cx += self.offset_x
             cy += self.offset_y
+
+            color = self._atom_color(atom)
 
             # outer glow
             pygame.draw.circle(
@@ -282,7 +290,7 @@ class BoardRenderer:
             # inner core
             pygame.draw.circle(
                 self.screen,
-                ATOM,
+                color,
                 (cx, cy),
                 int(self.hex_size * 0.3),
             )
@@ -353,10 +361,12 @@ class BoardRenderer:
                     self.hex_size // 7,
                 )
 
-                # mini held atom
+                # mini held atom colored by the atom at the hand
+                held_atom = comp.holding.get(comp.get_hand_pos)
+                mini_color = self._atom_color(held_atom) if held_atom is not None else (255, 220, 220)
                 pygame.draw.circle(
                     self.screen,
-                    (255, 220, 220),
+                    mini_color,
                     (int(hx), int(hy)),
                     self.hex_size // 10,
                 )
