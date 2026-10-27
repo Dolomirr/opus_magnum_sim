@@ -4,7 +4,7 @@ import pygame
 
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import Atom, AtomType
-from opus_magnum_sym.elements.components import Manipulator
+from opus_magnum_sym.elements.components import DuplicationGlyph, Manipulator
 from opus_magnum_sym.elements.components.base_component import ComponentType
 from opus_magnum_sym.render.colors import (
     ATOM,
@@ -79,6 +79,7 @@ class BoardRenderer:
 
         try:
             self._draw_grid()
+            self._draw_glyph_links()
             self._draw_components()
             self._draw_connections()
             self._draw_atom_bonds()
@@ -175,11 +176,7 @@ class BoardRenderer:
                 elif comp == ComponentType.ENTRANCE:
                     comp_id = int(self.board.components_ids[r, s])
                     comp_obj = self.sim.entrypoints.get(comp_id)
-                    color = (
-                        self._atom_type_color(comp_obj.atom_type)
-                        if comp_obj is not None
-                        else ENTRANCE
-                    )
+                    color = self._atom_type_color(comp_obj.atom_type) if comp_obj is not None else ENTRANCE
                     half = int(self.hex_size * 0.35)
                     rect = pygame.Rect(cx - half, cy - half, 2 * half, 2 * half)
                     pygame.draw.rect(self.screen, color, rect)
@@ -188,11 +185,7 @@ class BoardRenderer:
                 elif comp == ComponentType.EXIT:
                     comp_id = int(self.board.components_ids[r, s])
                     comp_obj = self.sim.entrypoints.get(comp_id)
-                    color = (
-                        self._atom_type_color(comp_obj.atom_type)
-                        if comp_obj is not None
-                        else EXIT
-                    )
+                    color = self._atom_type_color(comp_obj.atom_type) if comp_obj is not None else EXIT
                     radius = int(self.hex_size * 0.47)
                     diamond = [
                         (cx, cy - radius),
@@ -264,6 +257,37 @@ class BoardRenderer:
             color = DUPLICATION_GLYPH_EXEMPLAR
         pygame.draw.polygon(self.screen, color, points)
         pygame.draw.polygon(self.screen, (240, 240, 240), points, 1)
+
+    # bands joining the cells of multi-cell glyph into one shape
+    def _draw_glyph_links(self):
+        for comp in self.sim.entrypoints.values():
+            if not isinstance(comp, DuplicationGlyph):
+                continue
+
+            ax, ay = self.layout.hex_to_pixel(comp.transmuter_pos.r, comp.transmuter_pos.s)
+            ax += self.offset_x
+            ay += self.offset_y
+            bx, by = self.layout.hex_to_pixel(comp.exemplar_pos.r, comp.exemplar_pos.s)
+            bx += self.offset_x
+            by += self.offset_y
+            mx, my = (ax + bx) / 2, (ay + by) / 2
+
+            width = max(4, int(self.hex_size * 0.3))
+            pygame.draw.line(self.screen, (240, 240, 240), (ax, ay), (bx, by), width + 4)
+            pygame.draw.line(
+                self.screen,
+                DUPLICATION_GLYPH_TRANSMUTER,
+                (ax, ay),
+                (mx, my),
+                width,
+            )
+            pygame.draw.line(
+                self.screen,
+                DUPLICATION_GLYPH_EXEMPLAR,
+                (mx, my),
+                (bx, by),
+                width,
+            )
 
     # link lines between connected entrances/exits
     def _draw_connections(self):
