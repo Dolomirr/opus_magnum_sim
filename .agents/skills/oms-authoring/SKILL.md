@@ -189,5 +189,6 @@ just run examples/my_level.oms 30
   links, `# id n` comments, section comments, and the leading blank line. Treat
   hand-written files as the source of truth for style and connections.
 - `connection` is the only link keyword; there is no `disconnect` alias (use `disconnection`).
-- Only `AtomType.BASIC` exists; bond/type patterns beyond "covers the exit group exactly"
-  are not yet verified.
+- `AtomType` now includes `basic`, `fire`, `water`, `earth`, `air`, `salt`, and `metal`.
+  Exits consume only atoms of their configured type; bond/type patterns beyond
+  "covers the exit group exactly" are not yet verified.
