@@ -3,7 +3,7 @@ Movement model for spatial collision detection.
 
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, auto
 
 from opus_magnum_sym.elements.atoms.atom import Atom
@@ -35,6 +35,7 @@ class Movement:
     pivot: Hex
     rotation_steps: int
     atoms: list[tuple[Hex, Atom]]  # (pre-move cell, atom instance)
+    slide_delta: Hex = field(default_factory=lambda: Hex(0, 0))  # linear offset for HAND_SLIDE
 
     def atom_xy(self, cell: Hex, t: float) -> tuple[float, float]:
         """
@@ -42,6 +43,13 @@ class Movement:
 
         Delta of hex's pivoting mapped to xy, rotated and added to the pivot's xy *center*.
         """
+        if self.kind is MovementKind.HAND_SLIDE:
+            start = hex_to_xy(cell)
+            end = hex_to_xy(Hex(cell.r + self.slide_delta.r, cell.s + self.slide_delta.s))
+            return (
+                start[0] + (end[0] - start[0]) * t,
+                start[1] + (end[1] - start[1]) * t,
+            )
         pivot_xy = hex_to_xy(self.pivot)
         atom_center = hex_to_xy(cell)
         offset = (atom_center[0] - pivot_xy[0], atom_center[1] - pivot_xy[1])

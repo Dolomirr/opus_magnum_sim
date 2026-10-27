@@ -6,6 +6,7 @@ from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.actions.base_action import ActionAssignmentError
 from opus_magnum_sym.elements.atoms.atom import Atom
 from opus_magnum_sym.elements.board.directions import Direction
+from opus_magnum_sym.elements.board.hex import Hex
 from opus_magnum_sym.elements.components.base_component import Component, ComponentAssignmentError, ComponentType
 from opus_magnum_sym.elements.components.blueprints import ManipulatorSpec
 from opus_magnum_sym.simulation.collision import CollisionCategory, CollisionEvent
@@ -13,7 +14,7 @@ from opus_magnum_sym.simulation.errors import SimulationCollisionError
 from opus_magnum_sym.simulation.movement import Movement, MovementKind
 
 if TYPE_CHECKING:
-    from opus_magnum_sym.elements.board import Board, Hex
+    from opus_magnum_sym.elements.board import Board
 
 
 class Manipulator(Component):
@@ -240,8 +241,24 @@ class RetractableManipulator(Manipulator):
             new_holding = {direction.apply(pos, delta): atom for pos, atom in self.holding.items()}
             if not self._positions_free(board, new_holding):
                 return
+            self._record_slide(direction, delta, self.holding)
             self.holding = new_holding
         self.hand_length = new_length
+
+    def _record_slide(self, direction, delta: int, holding: dict[Hex, Atom]) -> None:
+        if self._movement_recorder is None:
+            return
+        dr, ds = direction.offset
+        self._movement_recorder.append(
+            Movement(
+                owner_id=self.idx,
+                kind=MovementKind.HAND_SLIDE,
+                pivot=self.pos,
+                rotation_steps=delta,
+                atoms=list(holding.items()),
+                slide_delta=Hex(dr * delta, ds * delta),
+            )
+        )
 
     def _extend(self, board: Board) -> None:
         self._translate(1, board)
