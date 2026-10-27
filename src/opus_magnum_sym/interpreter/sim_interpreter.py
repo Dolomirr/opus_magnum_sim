@@ -22,6 +22,7 @@ class SimInterpreter:
             "connection": self._handle_connection,
             "disconnection": self._handle_disconnection,
             "place": self._handle_place,
+            "p": self._handle_place,
         }
 
     def load_file(self, filepath):

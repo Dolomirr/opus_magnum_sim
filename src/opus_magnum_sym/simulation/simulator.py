@@ -4,6 +4,7 @@ from icecream import ic
 
 import opus_magnum_sym.elements.env.index_manager as im
 from opus_magnum_sym.elements.actions.actions import StepActionType
+from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board import Board, Direction, Hex
 from opus_magnum_sym.elements.components import ComponentType, ManipulatorSpec, ShapeTemplate, get_blueprint
 from opus_magnum_sym.elements.components.components_index import get_component_type
@@ -194,6 +195,10 @@ class Simulator:
             raise SimulationRuntimeError(msg, step=self.step) from exc
         if not blueprint.implemented:
             msg = f"Blueprint {name!r} is not implemented and cannot be placed."
+            raise SimulationRuntimeError(msg, step=self.step)
+
+        if overrides.get("atom_type") is AtomType.BASIC:
+            msg = f"Blueprint {name!r} cannot use atom_type 'basic'."
             raise SimulationRuntimeError(msg, step=self.step)
 
         if isinstance(blueprint, ManipulatorSpec):

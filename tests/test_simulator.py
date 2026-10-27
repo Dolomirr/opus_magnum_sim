@@ -139,6 +139,22 @@ def test_exit_consumes_only_matching_atom_type():
     assert level_counter.total_finished() == 1
 
 
+@pytest.mark.parametrize(
+    "name",
+    ["entrance_straight_2", "exit_straight_2", "connector_straight_2"],
+)
+def test_place_blueprint_rejects_basic(name):
+    sim = Simulator((6, 6))
+    with pytest.raises(SimulationRuntimeError, match="cannot use atom_type 'basic'"):
+        sim.place(name, Hex(2, 3), atom_type=AtomType.BASIC)
+
+
+def test_add_component_still_allows_basic():
+    sim = Simulator((6, 6))
+    sim.add_component(Hex(2, 3), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)
+    assert sim.entrypoints[0].atom_type is AtomType.BASIC
+
+
 def test_arm_moves_atom_between_cells():
     sim = _flow_sim(exit_pos=Hex(5, 5))  # exit far away, never consumed
     arm_id = 2
