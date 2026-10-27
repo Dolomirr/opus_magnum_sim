@@ -35,6 +35,7 @@ class ComponentType(IntEnum):
     CONNECTOR = 5
     DISCONNECTOR = 6
     SALT_TRANSMUTER = 7
+    DUPLICATION_GLYPH = 8
 
 
 @dataclass
