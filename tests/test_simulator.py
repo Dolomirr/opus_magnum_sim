@@ -92,6 +92,69 @@ def test_arm_moves_atom_to_exit():
     assert sim.board.get_atom(Hex(3, 2)) is None
 
 
+def test_arm_preserves_atom_type_when_moving():
+    sim = _flow_sim(exit_pos=Hex(5, 5))
+    arm_id = 2
+    sim.assign_step_action(arm_id, 1, StepActionType.ROTATE_CCLW)
+    sim.assign_step_action(arm_id, 2, StepActionType.GRAB)
+    sim.assign_step_action(arm_id, 3, StepActionType.ROTATE_CLW)
+    sim.assign_step_action(arm_id, 4, StepActionType.RELEASE)
+
+    for _ in range(5):
+        sim.next_step()
+
+    atom = sim.board.get_atom(Hex(2, 4))
+    assert atom is not None
+    assert atom.type is AtomType.BASIC
+
+
+def test_entrance_spawns_non_basic_atom_type():
+    sim = Simulator((6, 6))
+    sim.add_component(Hex(2, 3), ComponentType.ENTRANCE, atom_type=AtomType.FIRE)
+    sim.add_component(Hex(5, 5), ComponentType.EXIT, atom_type=AtomType.FIRE)
+
+    sim.next_step()
+
+    atom = sim.board.get_atom(Hex(2, 3))
+    assert atom is not None
+    assert atom.type is AtomType.FIRE
+
+
+def test_exit_consumes_only_matching_atom_type():
+    sim = Simulator((6, 6))
+    sim.add_component(Hex(0, 0), ComponentType.ENTRANCE, atom_type=AtomType.WATER)
+    water_exit_id = 1
+    fire_exit_id = 2
+    sim.add_component(Hex(3, 2), ComponentType.EXIT, atom_type=AtomType.WATER)
+    sim.add_component(Hex(5, 5), ComponentType.EXIT, atom_type=AtomType.FIRE)
+    sim.board.place_atom(Hex(3, 2), Atom(AtomType.WATER))
+    sim.board.place_atom(Hex(5, 5), Atom(AtomType.WATER))
+
+    sim.next_step()
+
+    assert sim.board.get_atom(Hex(3, 2)) is None
+    assert level_counter.finished({water_exit_id}) == 1
+    assert sim.board.get_atom(Hex(5, 5)) is not None
+    assert level_counter.finished({fire_exit_id}) == 0
+    assert level_counter.total_finished() == 1
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["entrance_straight_2", "exit_straight_2", "connector_straight_2"],
+)
+def test_place_blueprint_rejects_basic(name):
+    sim = Simulator((6, 6))
+    with pytest.raises(SimulationRuntimeError, match="cannot use atom_type 'basic'"):
+        sim.place(name, Hex(2, 3), atom_type=AtomType.BASIC)
+
+
+def test_add_component_still_allows_basic():
+    sim = Simulator((6, 6))
+    sim.add_component(Hex(2, 3), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)
+    assert sim.entrypoints[0].atom_type is AtomType.BASIC
+
+
 def test_arm_moves_atom_between_cells():
     sim = _flow_sim(exit_pos=Hex(5, 5))  # exit far away, never consumed
     arm_id = 2
@@ -529,6 +592,61 @@ def test_sweep_moving_collision_via_next_step():
     assert sim.collision.owner_ids == (2, 3)
     assert sim.collision.progress == 0.625
     assert sim.collision.cell == Hex(2, 3)
+
+
+def test_retractable_extend_sweeps_into_arm_base():
+    sim = Simulator((8, 8))
+    sim.add_component(Hex(0, 0), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)  # id 0
+    sim.add_component(Hex(7, 7), ComponentType.EXIT, atom_type=AtomType.BASIC)  # id 1
+    sim.add_component(Hex(3, 3), ComponentType.ARM_RETR, rotation=0, length=1)  # id 2, hand (2,4)
+    sim.add_component(Hex(1, 5), ComponentType.ARM)  # id 3, base on the extend endpoint
+    arm = 2
+    atom = Atom(AtomType.BASIC)
+    sim.board.place_atom(Hex(2, 4), atom)
+
+    sim.assign_step_action(arm, 1, StepActionType.GRAB)
+    sim.assign_step_action(arm, 2, StepActionType.EXTEND)  # (2,4) -> (1,5)
+
+    sim.next_step()  # step 0: spawn
+    sim.next_step()  # step 1: grab
+    with pytest.raises(SimulationCollisionError):
+        sim.next_step()  # step 2: extend sweeps into arm base
+
+    assert sim.collision is not None
+    assert sim.collision.category is CollisionCategory.SWEEP_ARM_BASE
+    assert sim.collision.cell == Hex(1, 5)
+    assert sim.collision.owner_ids == (2, 3)
+    assert sim.step == 2  # not incremented
+    # The slide commits its final pose before the sweep is detected (rotation semantics).
+    assert sim.components[arm].hand_length == 2
+    assert sim.components[arm].holding == {Hex(1, 5): atom}
+
+
+def test_retractable_retract_sweeps_into_arm_base():
+    sim = Simulator((8, 8))
+    sim.add_component(Hex(0, 0), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)  # id 0
+    sim.add_component(Hex(7, 7), ComponentType.EXIT, atom_type=AtomType.BASIC)  # id 1
+    sim.add_component(Hex(3, 3), ComponentType.ARM_RETR, rotation=0, length=2)  # id 2, hand (1,5)
+    sim.add_component(Hex(2, 4), ComponentType.ARM)  # id 3, base on the retract endpoint
+    arm = 2
+    atom = Atom(AtomType.BASIC)
+    sim.board.place_atom(Hex(1, 5), atom)
+
+    sim.assign_step_action(arm, 1, StepActionType.GRAB)
+    sim.assign_step_action(arm, 2, StepActionType.RETRACT)  # (1,5) -> (2,4)
+
+    sim.next_step()  # step 0: spawn
+    sim.next_step()  # step 1: grab
+    with pytest.raises(SimulationCollisionError):
+        sim.next_step()  # step 2: retract sweeps into arm base
+
+    assert sim.collision is not None
+    assert sim.collision.category is CollisionCategory.SWEEP_ARM_BASE
+    assert sim.collision.cell == Hex(2, 4)
+    assert sim.collision.owner_ids == (2, 3)
+    assert sim.step == 2
+    assert sim.components[arm].hand_length == 1
+    assert sim.components[arm].holding == {Hex(2, 4): atom}
 
 
 def test_reset_clears_collision():

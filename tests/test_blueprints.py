@@ -96,10 +96,18 @@ class TestBuiltins:
         assert spec.implemented is True
 
     def test_gated_presets_not_implemented(self):
-        for name in ("arm_piston", "arm_double", "arm_triple", "arm_hex"):
+        for name in ("arm_double", "arm_triple", "arm_hex"):
             spec = get_blueprint(name)
             assert isinstance(spec, ManipulatorSpec)
             assert spec.implemented is False
+
+    def test_arm_piston(self):
+        spec = get_blueprint("arm_piston")
+        assert isinstance(spec, ManipulatorSpec)
+        assert spec.arm_count == 1
+        assert spec.extendable is True
+        assert (spec.min_length, spec.max_length) == (1, 3)
+        assert spec.implemented is True
 
     def test_all_builtins_listed(self):
         names = {entry["name"] for entry in list_blueprints()}
@@ -138,6 +146,21 @@ class TestBuiltins:
     def test_y_rotation_constraints(self):
         assert get_blueprint("connector_tri").allowed_rotations == frozenset({0, 2, 4})
         assert get_blueprint("connector_tri_odd").allowed_rotations == frozenset({1, 3, 5})
+
+    def test_y_variant_beam_offsets_distinct_and_complementary(self):
+        even = get_blueprint("connector_tri")
+        odd = get_blueprint("connector_tri_odd")
+        even_beams = {cell.offset for cell in even.cells if cell.offset != Hex(0, 0)}
+        odd_beams = {cell.offset for cell in odd.cells if cell.offset != Hex(0, 0)}
+
+        # The two variants pin the Y at different arm directions.
+        assert even_beams != odd_beams
+        # Their beam sets are disjoint (no shared beam offset).
+        assert even_beams.isdisjoint(odd_beams)
+        # Together their beams cover every direction the origin touches on the
+        # hex: all six rotations appear across the two variants.
+        expected_beams = {Direction().from_rotation(r).apply(Hex(0, 0)) for r in range(6)}
+        assert even_beams | odd_beams == expected_beams
 
     def test_straight_view(self):
         tpl = get_blueprint("connector_straight_2")

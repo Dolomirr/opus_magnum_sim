@@ -463,7 +463,7 @@ def test_dsl_component_kwargs():
 def test_dsl_place_shape():
     sim = Simulator((10, 10))
     interp = SimInterpreter(sim)
-    interp.evaluate_line("place connector_tri 4 4 rotation=0 atom_type=basic")
+    interp.evaluate_line("place connector_tri 4 4 rotation=0 atom_type=salt")
 
     assert len(sim.placements) == 1
     record = sim.placements[0]
@@ -473,7 +473,7 @@ def test_dsl_place_shape():
     assert len(record.links) == 3
     # every placed cell is a CONNECTOR with the atom_type override
     for comp_id in record.component_ids:
-        assert sim.entrypoints[comp_id].atom_type == AtomType.BASIC
+        assert sim.entrypoints[comp_id].atom_type == AtomType.SALT
 
 
 def test_dsl_place_arm_and_gated():
@@ -493,10 +493,34 @@ def test_dsl_place_arm_and_gated():
     assert len(sim.placements) == 1
 
 
+def test_dsl_arm_piston_extend_retract_actions():
+    sim = Simulator((8, 8))
+    sim.add_component(Hex(0, 0), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)
+    sim.add_component(Hex(7, 7), ComponentType.EXIT, atom_type=AtomType.BASIC)
+    interp = SimInterpreter(sim)
+
+    interp.evaluate_line("place arm_piston 3 3 length=1")
+    (arm_id,) = sim.placements[0].component_ids
+    interp.evaluate_line(f"action {arm_id} 1 extend")
+    interp.evaluate_line(f"action {arm_id} 2 retract")
+
+    arm = sim.components[arm_id]
+    assert arm.type is ComponentType.ARM_RETR
+    assert arm.get_step_action(1) is StepActionType.EXTEND
+    assert arm.get_step_action(2) is StepActionType.RETRACT
+
+    sim.next_step()  # step 0: entrance spawns
+    sim.next_step()  # step 1: extend
+    assert arm.hand_length == 2
+
+    sim.next_step()  # step 2: retract
+    assert arm.hand_length == 1
+
+
 def test_place_full_delivery_flow():
     sim = Simulator((6, 6))
-    sim.place("entrance_straight_2", Hex(2, 3), rotation=1, atom_type=AtomType.BASIC)
-    sim.place("exit_straight_2", Hex(3, 2), rotation=2, atom_type=AtomType.BASIC)
+    sim.place("entrance_straight_2", Hex(2, 3), rotation=1, atom_type=AtomType.SALT)
+    sim.place("exit_straight_2", Hex(3, 2), rotation=2, atom_type=AtomType.SALT)
     arm_record = sim.place("arm", Hex(3, 3))
     (arm_id,) = arm_record.component_ids
 
@@ -521,8 +545,8 @@ def test_place_full_delivery_flow():
 def test_dsl_place_full_flow():
     dsl = Simulator((6, 6))
     interp = SimInterpreter(dsl)
-    interp.evaluate_line("place entrance_straight_2 2 3 rotation=1 atom_type=basic")
-    interp.evaluate_line("place exit_straight_2 3 2 rotation=2 atom_type=basic")
+    interp.evaluate_line("place entrance_straight_2 2 3 rotation=1 atom_type=salt")
+    interp.evaluate_line("place exit_straight_2 3 2 rotation=2 atom_type=salt")
     interp.evaluate_line("place arm 3 3")
     # ids allocate sequentially from 0: entrance pair -> 0,1; exit pair -> 2,3; arm -> 4
     for line in (
@@ -541,8 +565,8 @@ def test_dsl_place_full_flow():
 
     # API-level run of the identical scenario, for board-state interop check.
     api = Simulator((6, 6))
-    api.place("entrance_straight_2", Hex(2, 3), rotation=1, atom_type=AtomType.BASIC)
-    api.place("exit_straight_2", Hex(3, 2), rotation=2, atom_type=AtomType.BASIC)
+    api.place("entrance_straight_2", Hex(2, 3), rotation=1, atom_type=AtomType.SALT)
+    api.place("exit_straight_2", Hex(3, 2), rotation=2, atom_type=AtomType.SALT)
     arm_record = api.place("arm", Hex(3, 3))
     (arm_id,) = arm_record.component_ids
     api.assign_step_action(arm_id, 1, StepActionType.GRAB)

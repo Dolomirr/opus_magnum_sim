@@ -34,6 +34,8 @@ class ComponentType(IntEnum):
     TRANSPORTER = 4
     CONNECTOR = 5
     DISCONNECTOR = 6
+    SALT_TRANSMUTER = 7
+    DUPLICATION_GLYPH = 8
 
 
 @dataclass

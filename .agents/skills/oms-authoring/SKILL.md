@@ -1,6 +1,6 @@
 ---
 name: oms-authoring
-description: Author and style `.oms` Opus Magnum puzzle/solution scripts — DSL commands and tokens, component-ID allocation, arm hand positioning, required house style (leading blank line, context comment, sections, `# id n` tags), and the validate/run/save workflow.
+description: Author and style `.oms` Opus Magnum puzzle/solution scripts — DSL commands and tokens, component-ID allocation, arm hand positioning, required house style (leading blank line, context comment, sections, `# id n` tags), demo-file conventions (idle gaps in programs, loose atoms/molecules left for the viewer), and the validate/run/save workflow.
 ---
 
 # Authoring `.oms` Solution Scripts
@@ -66,7 +66,8 @@ for shapes, their `connection` links) in a single line. `<blueprint>` is a name 
 `rotation=R` rotates the whole shape around the origin cell; some shapes restrict the
 allowed rotations (e.g. the Y shapes only accept {0,2,4} or {1,3,5}). Remaining
 `key=value` pairs merge onto every placed cell — `atom_type=` reaches all cells of a
-connector/entrance/exit shape.
+connector/entrance/exit shape. Note: `place` rejects `atom_type=basic` ("cannot use
+atom_type 'basic'"); for basic atoms build the shape from `comp` lines plus `connection`.
 
 ## Component kwargs
 
@@ -147,6 +148,60 @@ Follow these rules for every new `.oms` file:
 These rules are cosmetic; the parser ignores blank lines and comments. They exist for
 human and agent readability.
 
+## Demonstration files (feature / component demos)
+
+An example written to demonstrate a feature or component is meant to be *watched* in the
+pygame viewer, not scored. Unless the user explicitly asks for a minimal or tightly packed
+program, every demo `.oms` file follows the house style **plus** these defaults:
+
+1. **Leave gaps in every program.** Never schedule actions on consecutive steps. A gap is
+   simply an unassigned step index — the component executes `NONE` there and the viewer gets a
+   frame where the previous pose is readable. Leave at least two idle steps between meaningful
+   actions: `1 grab`, `4 rotate_cclw`, `7 rotate_cclw`, `10 release` instead of `1, 2, 3, 4`.
+   Do not pad gaps with `none` lines; skip the step number.
+2. **Keep at least one loose atom or molecule on the board.** A demo that funnels every atom
+   into an exit ends on an empty board and shows nothing. Always leave something unclaimed:
+   - an extra entrance outside every arm's reach (its atom spawns and stays);
+   - an arm that grabs a molecule and releases it on open board instead of into an exit;
+   - two adjacent `entrance` lines joined with `connection` — linked entrances bond their
+     spawned atoms, so a bonded 2-atom molecule sits on the board.
+3. **Show molecules, not just atoms.** Bonds are rendered, so atoms only look like a molecule
+   when they are actually bonded: linked entrances, linked `connector` glyphs, or an arm that
+   grabs a bonded group. Unbonded neighbours read as separate atoms.
+4. **Keep the file runnable.** `validate`/`run` require one entrance and one exit, so keep an
+   exit even if the demo never delivers to it. Loose atoms must not cover an exit's group cells,
+   or the exit consumes them.
+5. **Comment the leftovers.** One dry comment on the block that produces the spare
+   atom/molecule, e.g. `# spare molecule stays for visualization`.
+6. **Size the run past the last action.** `run <file> N` / `!run N` must reach the last
+   scheduled step plus a few idle steps, otherwise the final pose never renders
+   (last action at 10 → `--steps 16`).
+
+Example of the pattern (idle gaps plus a bonded molecule left on the board):
+
+```text
+
+# demo: linked entrances spawn a bonded 2-atom molecule; the arm grabs it and leaves it on open board
+
+# exit is required by validate/run; nothing is delivered here
+comp 1 1 exit atom_type=basic # id 0
+
+# linked entrances bond their spawned atoms into one molecule
+comp 5 4 entrance atom_type=basic # id 1
+comp 4 5 entrance atom_type=basic # id 2
+connection 1 2
+
+comp 5 5 arm rotation=4 # id 3 (hand at (5,4))
+
+# two idle steps between phases
+action 3 1 grab
+action 3 4 rotate_cclw
+action 3 7 release
+```
+
+The canonical template below packs its actions on consecutive steps; that pacing is fine for a
+syntax reference but must not be copied into a demo file.
+
 ## Canonical template
 
 See `templates/basic.oms`, reproduced here:
@@ -189,5 +244,6 @@ just run examples/my_level.oms 30
   links, `# id n` comments, section comments, and the leading blank line. Treat
   hand-written files as the source of truth for style and connections.
 - `connection` is the only link keyword; there is no `disconnect` alias (use `disconnection`).
-- Only `AtomType.BASIC` exists; bond/type patterns beyond "covers the exit group exactly"
-  are not yet verified.
+- `AtomType` now includes `basic`, `fire`, `water`, `earth`, `air`, `salt`, and `metal`.
+  Exits consume only atoms of their configured type; bond/type patterns beyond
+  "covers the exit group exactly" are not yet verified.

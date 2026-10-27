@@ -19,6 +19,7 @@ _SHAPE_COMPONENT_TYPES = frozenset(
         ComponentType.EXIT,
         ComponentType.CONNECTOR,
         ComponentType.DISCONNECTOR,
+        ComponentType.SALT_TRANSMUTER,
     }
 )
 
@@ -72,6 +73,20 @@ class ShapeTemplate:
 
 
 @dataclass(frozen=True)
+class ComponentSpec:
+    """
+    Single multi-cell component blueprint (e.g. duplication glyph).
+
+    Placed as one component occupying its full footprint rather than as a group
+    of linked single-cell components.
+    """
+
+    name: str
+    comp_type: ComponentType
+    implemented: bool = True
+
+
+@dataclass(frozen=True)
 class ManipulatorSpec:
     """
     Capability descriptor for arm variant.
@@ -93,10 +108,10 @@ class ManipulatorSpec:
             )
 
 
-_blueprints: dict[str, ShapeTemplate | ManipulatorSpec] = {}
+_blueprints: dict[str, ShapeTemplate | ManipulatorSpec | ComponentSpec] = {}
 
 
-def register_blueprint(blueprint: ShapeTemplate | ManipulatorSpec) -> None:
+def register_blueprint(blueprint: ShapeTemplate | ManipulatorSpec | ComponentSpec) -> None:
     """
     Register blueprint.
     Raises ``ValueError`` on duplicated name.
@@ -106,7 +121,7 @@ def register_blueprint(blueprint: ShapeTemplate | ManipulatorSpec) -> None:
     _blueprints[blueprint.name] = blueprint
 
 
-def get_blueprint(name: str) -> ShapeTemplate | ManipulatorSpec:
+def get_blueprint(name: str) -> ShapeTemplate | ManipulatorSpec | ComponentSpec:
     """
     Return the blueprint registered under gven name.
     """
@@ -130,10 +145,10 @@ def _beam(rotation: int, **kwargs) -> ShapeCell:
 def _y_template(
     name: str,
     comp_type: ComponentType,
-    allowed_rotations: frozenset[int],
+    beam_rotations: tuple[int, ...],
     implemented: bool = True,
 ) -> ShapeTemplate:
-    beams = tuple(_beam(r) for r in (0, 2, 4))
+    beams = tuple(_beam(r) for r in beam_rotations)
     cells = (ShapeCell(offset=Hex(0, 0)), *beams)
     links = tuple((0, i) for i in range(1, len(cells)))
     return ShapeTemplate(
@@ -142,7 +157,7 @@ def _y_template(
         cells=cells,
         links=links,
         implemented=implemented,
-        allowed_rotations=allowed_rotations,
+        allowed_rotations=frozenset(beam_rotations),
     )
 
 
@@ -160,16 +175,33 @@ def _straight_template(name: str, comp_type: ComponentType) -> ShapeTemplate:
 
 for _tpl in (
     _straight_template("connector_straight_2", ComponentType.CONNECTOR),
-    _y_template("connector_tri", ComponentType.CONNECTOR, frozenset({0, 2, 4})),
-    _y_template("connector_tri_odd", ComponentType.CONNECTOR, frozenset({1, 3, 5})),
+    _y_template("connector_tri", ComponentType.CONNECTOR, (0, 2, 4)),
+    _y_template("connector_tri_odd", ComponentType.CONNECTOR, (1, 3, 5)),
     _straight_template("entrance_straight_2", ComponentType.ENTRANCE),
     _straight_template("exit_straight_2", ComponentType.EXIT),
 ):
     register_blueprint(_tpl)
 
+register_blueprint(
+    ShapeTemplate(
+        name="salt_transmuter",
+        comp_type=ComponentType.SALT_TRANSMUTER,
+        cells=(ShapeCell(offset=Hex(0, 0)),),
+        links=(),
+    )
+)
+
+register_blueprint(
+    ComponentSpec(
+        name="glyph_duplication",
+        comp_type=ComponentType.DUPLICATION_GLYPH,
+        implemented=True,
+    )
+)
+
 for _spec in (
     ManipulatorSpec("arm", 1, False, 1, 6, implemented=True),
-    ManipulatorSpec("arm_piston", 1, True, 1, 6, implemented=False),
+    ManipulatorSpec("arm_piston", 1, True, 1, 3, implemented=True),
     ManipulatorSpec("arm_double", 2, False, 1, 6, implemented=False),
     ManipulatorSpec("arm_triple", 3, False, 1, 6, implemented=False),
     ManipulatorSpec("arm_hex", 6, False, 1, 6, implemented=False),

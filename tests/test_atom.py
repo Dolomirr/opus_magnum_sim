@@ -11,6 +11,17 @@ def test_default_connections_are_empty():
     assert all(slot is None for slot in atom.connections)
 
 
+def test_all_atom_types_exist():
+    assert AtomType.NONE.value == 0
+    assert AtomType.BASIC.value == 1
+    assert AtomType.FIRE.value == 2
+    assert AtomType.WATER.value == 3
+    assert AtomType.EARTH.value == 4
+    assert AtomType.AIR.value == 5
+    assert AtomType.SALT.value == 6
+    assert AtomType.METAL.value == 7
+
+
 def test_connect_mirrors_opposite_slot():
     a = Atom(AtomType.BASIC)
     b = Atom(AtomType.BASIC)

@@ -3,9 +3,10 @@ import pytest  # noqa: INP001
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.actions.base_action import ActionAssignmentError
 from opus_magnum_sym.elements.atoms.atom import Atom, AtomType
+from opus_magnum_sym.elements.atoms.molecule import collect_molecule
 from opus_magnum_sym.elements.board import Board, Hex
-from opus_magnum_sym.elements.components import Manipulator, ManipulatorSpec
-from opus_magnum_sym.elements.components.base_component import ComponentAssignmentError
+from opus_magnum_sym.elements.components import Manipulator, ManipulatorSpec, RetractableManipulator
+from opus_magnum_sym.elements.components.base_component import ComponentAssignmentError, ComponentType
 from opus_magnum_sym.simulation.collision import CollisionCategory
 from opus_magnum_sym.simulation.errors import SimulationCollisionError
 from opus_magnum_sym.simulation.movement import Movement, MovementKind
@@ -474,3 +475,170 @@ def test_extend_on_spec_extendable_arm_still_raises():
 
     with pytest.raises(ActionAssignmentError):
         arm.execute_step(Board(5, 5), 0)
+
+
+# ---------------------------------------------------------------------------
+# Retractable manipulator (extend / retract)
+# ---------------------------------------------------------------------------
+
+
+def _retractable_before_atom():
+    """Retractable arm at (3,3) rotation 0 (hand -> (2,4)) with an atom at the hand."""
+    board = Board(8, 8)
+    arm = RetractableManipulator(idx=0, pos=Hex(3, 3), rotation=0)
+    atom = Atom(AtomType.BASIC)
+    board.place_atom(Hex(2, 4), atom)
+    return board, arm, atom
+
+
+def test_retractable_default_spec():
+    arm = RetractableManipulator(idx=0, pos=Hex(3, 3))
+
+    assert arm.type is ComponentType.ARM_RETR
+    assert arm.spec.name == "arm_piston"
+    assert arm.spec.extendable is True
+    assert (arm.spec.min_length, arm.spec.max_length) == (1, 3)
+
+
+def test_extend_without_holding_moves_hand():
+    board = Board(8, 8)
+    arm = RetractableManipulator(idx=0, pos=Hex(3, 3), rotation=0)
+
+    arm.assign_step_action(0, StepActionType.EXTEND)
+    arm.execute_step(board, 0)
+
+    assert arm.hand_length == 2
+    assert arm.get_hand_pos == Hex(1, 5)
+
+
+def test_extend_moves_held_atom():
+    board, arm, atom = _retractable_before_atom()
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+
+    arm.assign_step_action(1, StepActionType.EXTEND)
+    arm.execute_step(board, 1)
+
+    assert arm.hand_length == 2
+    assert arm.holding == {Hex(1, 5): atom}
+
+
+def test_retract_moves_held_atom_back():
+    board, arm, atom = _retractable_before_atom()
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+    arm.assign_step_action(1, StepActionType.EXTEND)
+    arm.execute_step(board, 1)
+
+    arm.assign_step_action(2, StepActionType.RETRACT)
+    arm.execute_step(board, 2)
+
+    assert arm.hand_length == 1
+    assert arm.holding == {Hex(2, 4): atom}
+
+
+def test_extend_at_max_length_is_noop():
+    board = Board(8, 8)
+    arm = RetractableManipulator(idx=0, pos=Hex(3, 3), rotation=0, length=3)
+
+    arm.assign_step_action(0, StepActionType.EXTEND)
+    arm.execute_step(board, 0)
+
+    assert arm.hand_length == 3
+
+
+def test_retract_at_min_length_is_noop():
+    board, arm, _atom = _retractable_before_atom()
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+
+    arm.assign_step_action(1, StepActionType.RETRACT)
+    arm.execute_step(board, 1)
+
+    assert arm.hand_length == 1
+    assert arm.holding == {Hex(2, 4): _atom}
+
+
+def test_extend_blocked_by_occupied_cell():
+    board, arm, atom = _retractable_before_atom()
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+
+    blocker = Atom(AtomType.BASIC)
+    board.place_atom(Hex(1, 5), blocker)
+
+    arm.assign_step_action(1, StepActionType.EXTEND)
+    with pytest.raises(SimulationCollisionError) as excinfo:
+        arm.execute_step(board, 1)
+
+    assert arm.hand_length == 1
+    assert arm.holding == {Hex(2, 4): atom}
+    assert board.get_atom(Hex(1, 5)) is blocker
+    assert excinfo.value.event.category is CollisionCategory.ENDPOINT_OVERLAP
+    assert excinfo.value.event.cell == Hex(1, 5)
+
+
+def test_retract_blocked_by_occupied_cell():
+    board, arm, atom = _retractable_before_atom()
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+    arm.assign_step_action(1, StepActionType.EXTEND)
+    arm.execute_step(board, 1)  # hand_length 2, atom now at (1, 5)
+
+    blocker = Atom(AtomType.BASIC)
+    board.place_atom(Hex(2, 4), blocker)
+
+    arm.assign_step_action(2, StepActionType.RETRACT)
+    with pytest.raises(SimulationCollisionError) as excinfo:
+        arm.execute_step(board, 2)
+
+    assert arm.hand_length == 2
+    assert arm.holding == {Hex(1, 5): atom}
+    assert board.get_atom(Hex(2, 4)) is blocker
+    assert excinfo.value.event.category is CollisionCategory.ENDPOINT_OVERLAP
+    assert excinfo.value.event.cell == Hex(2, 4)
+
+
+def _retractable_before_molecule():
+    """Retractable arm at (3,3) rotation 0 (hand -> (2,4)) with a bonded pair at (2,4)-(2,5)."""
+    board = Board(8, 8)
+    arm = RetractableManipulator(idx=0, pos=Hex(3, 3), rotation=0)
+    a = Atom(AtomType.BASIC)
+    b = Atom(AtomType.BASIC)
+    board.place_atom(Hex(2, 4), a)
+    board.place_atom(Hex(2, 5), b)
+    board.connect_atoms(Hex(2, 4), Hex(2, 5))
+    return board, arm, a, b
+
+
+def test_extend_preserves_molecule():
+    board, arm, a, b = _retractable_before_molecule()
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+    assert arm.holding == {Hex(2, 4): a, Hex(2, 5): b}
+
+    arm.assign_step_action(1, StepActionType.EXTEND)
+    arm.execute_step(board, 1)
+
+    assert arm.hand_length == 2
+    assert arm.holding == {Hex(1, 5): a, Hex(1, 6): b}
+    assert collect_molecule(a) == {a, b}
+    assert a.connection_at(1) is b
+    assert b.connection_at(4) is a
+
+
+def test_retract_preserves_molecule():
+    board, arm, a, b = _retractable_before_molecule()
+    arm.assign_step_action(0, StepActionType.GRAB)
+    arm.execute_step(board, 0)
+    arm.assign_step_action(1, StepActionType.EXTEND)
+    arm.execute_step(board, 1)
+
+    arm.assign_step_action(2, StepActionType.RETRACT)
+    arm.execute_step(board, 2)
+
+    assert arm.hand_length == 1
+    assert arm.holding == {Hex(2, 4): a, Hex(2, 5): b}
+    assert collect_molecule(a) == {a, b}
+    assert a.connection_at(1) is b
+    assert b.connection_at(4) is a

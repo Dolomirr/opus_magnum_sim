@@ -6,6 +6,7 @@ from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.actions.base_action import ActionAssignmentError
 from opus_magnum_sym.elements.atoms.atom import Atom
 from opus_magnum_sym.elements.board.directions import Direction
+from opus_magnum_sym.elements.board.hex import Hex
 from opus_magnum_sym.elements.components.base_component import Component, ComponentAssignmentError, ComponentType
 from opus_magnum_sym.elements.components.blueprints import ManipulatorSpec
 from opus_magnum_sym.simulation.collision import CollisionCategory, CollisionEvent
@@ -13,10 +14,12 @@ from opus_magnum_sym.simulation.errors import SimulationCollisionError
 from opus_magnum_sym.simulation.movement import Movement, MovementKind
 
 if TYPE_CHECKING:
-    from opus_magnum_sym.elements.board import Board, Hex
+    from opus_magnum_sym.elements.board import Board
 
 
 class Manipulator(Component):
+    _component_type = ComponentType.ARM
+
     def __init__(
         self,
         idx: int,
@@ -27,7 +30,7 @@ class Manipulator(Component):
     ) -> None:
         super().__init__(
             idx=idx,
-            type=ComponentType.ARM,
+            type=self._component_type,
             pos=pos,
             rotation=rotation,
         )
@@ -40,10 +43,7 @@ class Manipulator(Component):
                 max_length=6,
             )
         if spec.arm_count != 1:
-            msg = (
-                f"Manipulator does not support arm_count={spec.arm_count}; "
-                "only single-arm behavior is implemented."
-            )
+            msg = f"Manipulator does not support arm_count={spec.arm_count}; only single-arm behavior is implemented."
             raise ComponentAssignmentError(msg, ComponentType.ARM)
         if not spec.min_length <= length <= spec.max_length:
             msg = (
@@ -143,11 +143,11 @@ class Manipulator(Component):
         for atom in self.holding.values():
             atom.rotate_connections(rotation)
 
-    def _extend(self) -> None:
+    def _extend(self, board: Board) -> None:
         msg = "Assigned EXTEND action to component that does not support this action."
         raise ActionAssignmentError(msg, self.type, self.idx)
 
-    def _retract(self) -> None:
+    def _retract(self, board: Board) -> None:
         msg = "Assigned RETRACT action to component that does not support this action."
         raise ActionAssignmentError(msg, self.type, self.idx)
 
@@ -188,9 +188,9 @@ class Manipulator(Component):
             case StepActionType.ROTATE_MOLECULE_CCLW:
                 self._rotate_molecule(-1, board)
             case StepActionType.EXTEND:
-                self._extend()
+                self._extend(board)
             case StepActionType.RETRACT:
-                self._retract()
+                self._retract(board)
             case StepActionType.GRAB:
                 self._grab(board)
             case StepActionType.RELEASE:
@@ -199,3 +199,69 @@ class Manipulator(Component):
             case _:
                 msg = f"Invalid action assigned to component of type manipulator: {action_type} {self.idx}"
                 raise ActionAssignmentError(msg, self.type, self.idx)
+
+
+class RetractableManipulator(Manipulator):
+    """
+    Manipulator with an extendable arm whose hand slides along its rotation axis.
+
+    Length ranges over `spec.min_length .. spec.max_length`. Extend moves the
+    hand (and any held molecule) one cell further from the base; retract moves
+    it one cell closer. The base cell stays fixed.
+    """
+
+    _component_type = ComponentType.ARM_RETR
+
+    def __init__(
+        self,
+        idx: int,
+        pos: Hex,
+        rotation: int = 0,
+        length: int = 1,
+        spec: ManipulatorSpec | None = None,
+    ) -> None:
+        if spec is None:
+            spec = ManipulatorSpec(
+                name="arm_piston",
+                arm_count=1,
+                extendable=True,
+                min_length=1,
+                max_length=3,
+            )
+        super().__init__(idx=idx, pos=pos, rotation=rotation, length=length, spec=spec)
+
+    def _translate(self, delta: int, board: Board) -> None:
+        new_length = self.hand_length + delta
+        if not self.spec.min_length <= new_length <= self.spec.max_length:
+            return
+        direction = Direction().from_rotation(self.rotation)
+        if self.holding:
+            if self._held_by_other_arm():
+                return
+            new_holding = {direction.apply(pos, delta): atom for pos, atom in self.holding.items()}
+            if not self._positions_free(board, new_holding):
+                return
+            self._record_slide(direction, delta, self.holding)
+            self.holding = new_holding
+        self.hand_length = new_length
+
+    def _record_slide(self, direction, delta: int, holding: dict[Hex, Atom]) -> None:
+        if self._movement_recorder is None:
+            return
+        dr, ds = direction.offset
+        self._movement_recorder.append(
+            Movement(
+                owner_id=self.idx,
+                kind=MovementKind.HAND_SLIDE,
+                pivot=self.pos,
+                rotation_steps=delta,
+                atoms=list(holding.items()),
+                slide_delta=Hex(dr * delta, ds * delta),
+            )
+        )
+
+    def _extend(self, board: Board) -> None:
+        self._translate(1, board)
+
+    def _retract(self, board: Board) -> None:
+        self._translate(-1, board)

@@ -1,0 +1,38 @@
+
+# Demonstrates the salt transmuter: a loose fire atom and a loose water atom are
+# each carried onto a transmuter cell, where they turn into salt, then delivered
+# to a salt exit. Idle steps are left between moves so the color change is visible.
+
+# Lane 1: fire entrance at (1,3); arm (id 1) rotation 0 has its hand there.
+comp 1 3 entrance atom_type=fire   # id 0
+comp 2 2 arm                       # id 1
+
+# Lane 2: water entrance at (6,3); arm (id 3) rotation 0 has its hand there.
+comp 6 3 entrance atom_type=water  # id 2
+comp 7 2 arm                       # id 3
+
+# Salt exits consume the transformed atoms.
+comp 3 1 exit atom_type=salt       # id 4
+comp 8 1 exit atom_type=salt       # id 5
+
+# Salt transmuters (single cell; rotation has no effect).
+place salt_transmuter 2 3          # id 6
+place salt_transmuter 7 3          # id 7
+
+# Arm A: entrance (1,3) -> transmuter (2,3) -> exit (3,2).
+# After the grab the entrance re-spawns a spare fire atom that stays fire,
+# because it never rests on the transmuter.
+action 1 2 grab
+action 1 4 rotate_clw
+action 1 6 release
+action 1 8 grab
+action 1 10 rotate_clw
+action 1 12 release
+
+# Arm B: entrance (6,3) -> transmuter (7,3) -> exit (8,2).
+action 3 2 grab
+action 3 4 rotate_clw
+action 3 6 release
+action 3 8 grab
+action 3 10 rotate_clw
+action 3 12 release

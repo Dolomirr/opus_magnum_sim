@@ -1,0 +1,46 @@
+
+# demo: the duplication glyph copies the fire atom on its exemplar cell onto salt
+# parked on its transmuter cell, and keeps the exemplar in place for a second copy
+
+# exit is required by validate/run; no copy is delivered here
+comp 1 8 exit atom_type=fire     # id 0
+
+# fire entrance feeds the exemplar cell, then leaves a spare atom behind
+comp 5 5 entrance atom_type=fire # id 1
+comp 6 4 arm rotation=0          # id 2 (hand at (5,5))
+
+# salt entrance feeds the transmuter cell
+comp 3 5 entrance atom_type=salt # id 3
+comp 3 4 arm rotation=1          # id 4 (hand at (3,5))
+
+# transmuter at (4,4), exemplar at (5,4)
+place glyph_duplication 4 4 rotation=2 # id 5
+
+# salt arm: salt waits on the transmuter until fire reaches the exemplar
+action 4 2 grab
+action 4 5 rotate_clw
+action 4 8 release
+
+# exemplar arm: deliver fire, then park out of the way
+action 2 11 grab
+action 2 14 rotate_cclw
+action 2 17 release
+action 2 20 rotate_cclw
+
+# salt arm: first copy off the glyph, then a second salt from the respawn
+action 4 20 grab
+action 4 23 rotate_clw
+action 4 26 rotate_clw
+action 4 29 release
+action 4 32 rotate_cclw
+action 4 35 rotate_cclw
+action 4 38 rotate_cclw
+action 4 41 grab
+action 4 44 rotate_clw
+action 4 47 release
+action 4 50 grab
+action 4 53 rotate_clw
+action 4 56 release
+action 4 59 rotate_cclw
+
+# last scheduled step is 59; run with --steps 64 to see the final pose

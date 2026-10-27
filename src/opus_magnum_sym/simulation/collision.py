@@ -121,7 +121,7 @@ def _collect_static_colliders(
 
     component_colliders: list[_StaticCollider] = []
     for comp in components:
-        if comp.type == ComponentType.ARM:
+        if comp.type in (ComponentType.ARM, ComponentType.ARM_RETR):
             component_colliders.extend(
                 _StaticCollider(hex_to_xy(cell), ARM_BASE_RADIUS, StaticKind.ARM_BASE, comp.idx, cell)
                 for cell in comp.footprint()
