@@ -1,0 +1,20 @@
+
+# reference layout of every high-level `place` blueprint on one board
+
+# Entrance and exit pairs (also satisfy run/validate; the entrance pair spawns a
+# loose bonded molecule on step 0 so it can be seen before anything moves).
+place entrance_straight_2 2 3 rotation=1 atom_type=basic   # ids 0,1    -> (2,3),(2,4)
+place exit_straight_2 6 3 rotation=1 atom_type=basic       # ids 2,3    -> (6,3),(6,4)
+
+# Connector shapes. Glyphs only here: atoms must be dropped on them to bond
+# (see place_connector.oms). connector_tri is a 4-cell Y; connector_tri_odd is
+# the mirrored Y and only accepts odd rotations.
+place connector_straight_2 4 3 rotation=1 atom_type=basic  # ids 4,5    -> (4,3),(4,4)
+place connector_tri 2 6 rotation=0 atom_type=basic         # ids 6..9   -> (2,6),(1,7),(3,6),(2,5)
+place connector_tri_odd 5 6 rotation=1 atom_type=basic     # ids 10..13 -> (5,6),(5,7),(6,5),(4,6)
+
+# Manipulator-spec blueprint: basic arm, length defaults to 1.
+place arm 4 5                                              # id 14      -> (4,5)
+
+# No actions scheduled: the entrance pair above spawns a bonded molecule on
+# step 0 and it sits loose across every subsequent empty step.

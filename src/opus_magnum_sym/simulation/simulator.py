@@ -5,7 +5,7 @@ from icecream import ic
 import opus_magnum_sym.elements.env.index_manager as im
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.board import Board, Direction, Hex
-from opus_magnum_sym.elements.components import ComponentType
+from opus_magnum_sym.elements.components import ComponentType, ManipulatorSpec, ShapeTemplate, get_blueprint
 from opus_magnum_sym.elements.components.components_index import get_component_type
 from opus_magnum_sym.elements.components.connections import ConnectionGraph
 from opus_magnum_sym.elements.env import level_counter
@@ -13,6 +13,7 @@ from opus_magnum_sym.logging import logger
 from opus_magnum_sym.simulation.collision import CollisionEvent, detect_collision
 from opus_magnum_sym.simulation.errors import SimulationCollisionError, SimulationRuntimeError
 from opus_magnum_sym.simulation.movement import Movement
+from opus_magnum_sym.simulation.placement import PlacementRecord
 
 if TYPE_CHECKING:
     from opus_magnum_sym.elements.components.base_component import Component
@@ -27,6 +28,7 @@ class Simulator:
         self.connections = ConnectionGraph()
         self.step = 0
         self.collision: CollisionEvent | None = None
+        self.placements: list[PlacementRecord] = []
 
     def _verify_init_state(self):
         # TODO: create more granular verification if needed
@@ -184,6 +186,125 @@ class Simulator:
         self.im.free(comp_id)
         self._refresh_groups()
 
+    def place(self, name: str, pos: Hex, rotation: int = 0, **overrides) -> PlacementRecord:
+        try:
+            blueprint = get_blueprint(name)
+        except KeyError as exc:
+            msg = f"Unknown blueprint {name!r}."
+            raise SimulationRuntimeError(msg, step=self.step) from exc
+        if not blueprint.implemented:
+            msg = f"Blueprint {name!r} is not implemented and cannot be placed."
+            raise SimulationRuntimeError(msg, step=self.step)
+
+        if isinstance(blueprint, ManipulatorSpec):
+            return self._place_manipulator(blueprint, name, pos, rotation, overrides)
+        return self._place_shape(blueprint, name, pos, rotation, overrides)
+
+    def _place_manipulator(
+        self,
+        blueprint: ManipulatorSpec,
+        name: str,
+        pos: Hex,
+        rotation: int,
+        overrides: dict,
+    ) -> PlacementRecord:
+        spec_fields = {
+            "name",
+            "arm_count",
+            "extendable",
+            "min_length",
+            "max_length",
+            "implemented",
+        }
+        for key in spec_fields:
+            if key in overrides:
+                msg = f"{key!r} is defined by blueprint {name!r} and cannot be overridden at placement."
+                raise SimulationRuntimeError(msg, step=self.step)
+
+        length = overrides.get("length", 1)
+        if not blueprint.min_length <= length <= blueprint.max_length:
+            msg = (
+                f"length {length} out of bounds for blueprint {name!r}: "
+                f"require {blueprint.min_length} <= length <= {blueprint.max_length}"
+            )
+            raise SimulationRuntimeError(msg, step=self.step)
+
+        before = set(self.components) | set(self.entrypoints)
+        self.add_component(pos, ComponentType.ARM, spec=blueprint, rotation=rotation, **overrides)
+        (comp_id,) = (set(self.components) | set(self.entrypoints)) - before
+
+        record = PlacementRecord(
+            blueprint=name,
+            pos=pos,
+            rotation=rotation,
+            component_ids=(comp_id,),
+            links=(),
+        )
+        self.placements.append(record)
+        return record
+
+    def _place_shape(
+        self,
+        blueprint: ShapeTemplate,
+        name: str,
+        pos: Hex,
+        rotation: int,
+        overrides: dict,
+    ) -> PlacementRecord:
+        if blueprint.allowed_rotations is not None and rotation not in blueprint.allowed_rotations:
+            msg = f"Blueprint {name!r} does not allow rotation {rotation}."
+            raise SimulationRuntimeError(msg, step=self.step)
+
+        cells = [
+            Hex(
+                pos.r + cell.offset.rotate_around(Hex(0, 0), rotation).r,
+                pos.s + cell.offset.rotate_around(Hex(0, 0), rotation).s,
+            )
+            for cell in blueprint.cells
+        ]
+        for cell in cells:
+            if not self.board.in_bounds(cell) or not self.board.free_to_place(cell):
+                msg = f"Cannot place blueprint {name!r}: cell ({cell.r}, {cell.s}) is occupied or out of bounds."
+                raise SimulationRuntimeError(msg, step=self.step)
+
+        placed_ids: list[int] = []
+        try:
+            for cell, template_cell in zip(cells, blueprint.cells, strict=True):
+                kwargs = {**template_cell.kwargs, **overrides}
+                before = set(self.components) | set(self.entrypoints)
+                self.add_component(cell, blueprint.comp_type, **kwargs)
+                (comp_id,) = (set(self.components) | set(self.entrypoints)) - before
+                placed_ids.append(comp_id)
+        except Exception:
+            for comp_id in reversed(placed_ids):
+                self.remove_component(comp_id)
+            raise
+
+        links: list[tuple[int, int]] = []
+        for a, b in blueprint.links:
+            id_a, id_b = placed_ids[a], placed_ids[b]
+            if not self.connect_components(id_a, id_b):
+                for comp_id in reversed(placed_ids):
+                    self.remove_component(comp_id)
+                msg = f"Blueprint {name!r} defines an invalid link between cells {a} and {b}."
+                raise SimulationRuntimeError(msg, step=self.step)
+            links.append((id_a, id_b))
+
+        record = PlacementRecord(
+            blueprint=name,
+            pos=pos,
+            rotation=rotation,
+            component_ids=tuple(placed_ids),
+            links=tuple(links),
+        )
+        self.placements.append(record)
+        return record
+
+    def remove_placement(self, record: PlacementRecord) -> None:
+        for comp_id in record.component_ids:
+            self.remove_component(comp_id)
+        self.placements.remove(record)
+
     def reset(self) -> None:
         self.board.clear()
         self.components.clear()
@@ -191,5 +312,6 @@ class Simulator:
         self.connections = ConnectionGraph()
         self.step = 0
         self.collision = None
+        self.placements.clear()
         self.im.reset()
         level_counter.reset()

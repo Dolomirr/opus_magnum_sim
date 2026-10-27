@@ -1,9 +1,11 @@
 import pytest  # noqa: INP001
 
 from opus_magnum_sym.elements.actions.actions import StepActionType
+from opus_magnum_sym.elements.actions.base_action import ActionAssignmentError
 from opus_magnum_sym.elements.atoms.atom import Atom, AtomType
 from opus_magnum_sym.elements.board import Board, Hex
-from opus_magnum_sym.elements.components import Manipulator
+from opus_magnum_sym.elements.components import Manipulator, ManipulatorSpec
+from opus_magnum_sym.elements.components.base_component import ComponentAssignmentError
 from opus_magnum_sym.simulation.collision import CollisionCategory
 from opus_magnum_sym.simulation.errors import SimulationCollisionError
 from opus_magnum_sym.simulation.movement import Movement, MovementKind
@@ -432,3 +434,43 @@ def test_no_recorder_by_default():
     arm.execute_step(board, 1)  # no movement_recorder -> must not crash
 
     assert arm.holding == {Hex(1, 2): atom}
+
+
+def test_default_spec_attached():
+    arm = Manipulator(idx=0, pos=Hex(1, 1))
+
+    assert arm.spec == ManipulatorSpec("arm", arm_count=1, extendable=False, min_length=1, max_length=6)
+
+
+def test_explicit_equivalent_spec_accepted():
+    spec = ManipulatorSpec("arm", arm_count=1, extendable=False, min_length=1, max_length=6)
+    arm = Manipulator(idx=0, pos=Hex(1, 1), spec=spec)
+
+    assert arm.spec is spec
+
+
+def test_multi_arm_spec_rejected():
+    spec = ManipulatorSpec("arm_triple", arm_count=3, extendable=False, min_length=1, max_length=6)
+    with pytest.raises(ComponentAssignmentError):
+        Manipulator(idx=0, pos=Hex(1, 1), spec=spec)
+
+
+def test_length_below_bounds_rejected():
+    spec = ManipulatorSpec("arm", arm_count=1, extendable=False, min_length=2, max_length=4)
+    with pytest.raises(ComponentAssignmentError):
+        Manipulator(idx=0, pos=Hex(1, 1), length=1, spec=spec)
+
+
+def test_length_above_bounds_rejected():
+    spec = ManipulatorSpec("arm", arm_count=1, extendable=False, min_length=1, max_length=2)
+    with pytest.raises(ComponentAssignmentError):
+        Manipulator(idx=0, pos=Hex(1, 1), length=3, spec=spec)
+
+
+def test_extend_on_spec_extendable_arm_still_raises():
+    spec = ManipulatorSpec("arm_piston", arm_count=1, extendable=True, min_length=1, max_length=6)
+    arm = Manipulator(idx=0, pos=Hex(1, 1), spec=spec)
+    arm.assign_step_action(0, StepActionType.EXTEND)
+
+    with pytest.raises(ActionAssignmentError):
+        arm.execute_step(Board(5, 5), 0)

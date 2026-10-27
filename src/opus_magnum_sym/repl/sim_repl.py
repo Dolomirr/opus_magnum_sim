@@ -13,7 +13,7 @@ from prompt_toolkit.document import Document
 from prompt_toolkit.history import FileHistory
 
 from opus_magnum_sym.elements.actions.actions import StepActionType
-from opus_magnum_sym.elements.components import ComponentType
+from opus_magnum_sym.elements.components import ComponentType, list_blueprints
 from opus_magnum_sym.interpreter import SimInterpreter
 from opus_magnum_sym.render.null_renderer import NullRenderer
 from opus_magnum_sym.render.renderer import BoardRenderer
@@ -135,6 +135,8 @@ class ReplCompleter(Completer):
                 candidates = [a.name.lower() for a in StepActionType]
         elif cmd in {"remove", "rm"} and arg_index == 0:
             candidates = self._component_ids()
+        elif cmd == "place" and arg_index == 0:
+            candidates = [bp["name"] for bp in list_blueprints()]
 
         for cand in candidates:
             if cand.startswith(lw):

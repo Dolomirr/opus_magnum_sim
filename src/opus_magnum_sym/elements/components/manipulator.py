@@ -6,7 +6,8 @@ from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.actions.base_action import ActionAssignmentError
 from opus_magnum_sym.elements.atoms.atom import Atom
 from opus_magnum_sym.elements.board.directions import Direction
-from opus_magnum_sym.elements.components.base_component import Component, ComponentType
+from opus_magnum_sym.elements.components.base_component import Component, ComponentAssignmentError, ComponentType
+from opus_magnum_sym.elements.components.blueprints import ManipulatorSpec
 from opus_magnum_sym.simulation.collision import CollisionCategory, CollisionEvent
 from opus_magnum_sym.simulation.errors import SimulationCollisionError
 from opus_magnum_sym.simulation.movement import Movement, MovementKind
@@ -16,13 +17,41 @@ if TYPE_CHECKING:
 
 
 class Manipulator(Component):
-    def __init__(self, idx: int, pos: Hex, rotation: int = 0, length: int = 1) -> None:
+    def __init__(
+        self,
+        idx: int,
+        pos: Hex,
+        rotation: int = 0,
+        length: int = 1,
+        spec: ManipulatorSpec | None = None,
+    ) -> None:
         super().__init__(
             idx=idx,
             type=ComponentType.ARM,
             pos=pos,
             rotation=rotation,
         )
+        if spec is None:
+            spec = ManipulatorSpec(
+                name="arm",
+                arm_count=1,
+                extendable=False,
+                min_length=1,
+                max_length=6,
+            )
+        if spec.arm_count != 1:
+            msg = (
+                f"Manipulator does not support arm_count={spec.arm_count}; "
+                "only single-arm behavior is implemented."
+            )
+            raise ComponentAssignmentError(msg, ComponentType.ARM)
+        if not spec.min_length <= length <= spec.max_length:
+            msg = (
+                f"length {length} out of bounds for spec {spec.name!r}: "
+                f"require {spec.min_length} <= length <= {spec.max_length}"
+            )
+            raise ComponentAssignmentError(msg, ComponentType.ARM)
+        self.spec = spec
         self.hand_length: int = length  # TODO: check correct length
         # absolute cells of the currently held molecule
         self.holding: dict[Hex, Atom] | None = None

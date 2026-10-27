@@ -1,0 +1,27 @@
+
+# disconnector component breaks the bond of a delivered molecule
+
+# Linked disconnectors at (3,4) and (4,3), wired with the `connection` command.
+comp 3 4 disconnector atom_type=basic   # id 0
+comp 4 3 disconnector atom_type=basic   # id 1
+connection 0 1
+
+# Stray exit so run/validate succeed; never reached.
+comp 9 9 exit atom_type=basic           # id 2
+
+# Linked entrance pair spawns a bonded 2-atom molecule on step 0.
+place entrance_straight_2 2 3 rotation=1 atom_type=basic   # ids 3,4 -> (2,3),(2,4)
+
+# Arm at (3,3), rotation 0 -> hand over the entrance beam (2,4).
+place arm 3 3                           # id 5
+
+# Step 1 is empty: the bonded pair sits loose on the entrance.
+# Grab, then two clockwise swings carry the pair onto the disconnectors.
+action 5 2 grab
+action 5 3 rotate_clw
+action 5 4 rotate_clw
+action 5 5 release
+
+# After step 5 the disconnectors break the bond, leaving two loose single atoms
+# on (3,4)/(4,3) for the empty steps that follow. The entrance respawns a fresh
+# bonded pair alongside them.

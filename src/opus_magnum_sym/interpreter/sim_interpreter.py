@@ -21,6 +21,7 @@ class SimInterpreter:
             "rm": self._handle_remove,
             "connection": self._handle_connection,
             "disconnection": self._handle_disconnection,
+            "place": self._handle_place,
         }
 
     def load_file(self, filepath):
@@ -99,3 +100,23 @@ class SimInterpreter:
         id_b = int(args[1])
         if not self.sim.disconnect_components(id_a, id_b):
             print(f"Failed to disconnect components {id_a} and {id_b}")
+
+    def _handle_place(self, args):
+        # blueprint_name, x, y, [rotation=R] [key=value ...]
+        name = args[0]
+        x, y = int(args[1]), int(args[2])
+
+        rotation = 0
+        kwargs = {}
+        for arg in args[3:]:
+            key, value = arg.split("=", 1)
+            if key == "atom_type":
+                kwargs[key] = getattr(AtomType, value.upper())
+            elif key == "rotation":
+                rotation = int(value)
+            elif key == "length":
+                kwargs[key] = int(value)
+            else:
+                kwargs[key] = value
+
+        self.sim.place(name, Hex(x, y), rotation=rotation, **kwargs)

@@ -132,6 +132,12 @@ class MetaInterpreter:
             if comp.programm:
                 actions = ", ".join(f"{step}:{action.name.lower()}" for step, action in sorted(comp.programm.items()))
                 print(f"    actions: {actions}")
+        for record in self.repl.sim.placements:
+            ids = ", ".join(str(i) for i in record.component_ids)
+            print(
+                f"placement {record.blueprint} at {record.pos} "
+                f"rotation={record.rotation} ids=[{ids}]"
+            )
 
     def _history(self, args: list[str]) -> None:
         n = 20
@@ -236,6 +242,7 @@ class MetaInterpreter:
                 [
                     "DSL commands:",
                     "  comp <x> <y> <type> [key=value ...]",
+                    "  place <blueprint> <x> <y> [rotation=R] [key=value ...]",
                     "  action <comp_id> <step> <action_type>  (use 'none' to clear)",
                     "  remove <comp_id>                       (alias: rm)",
                     "Meta commands:",
