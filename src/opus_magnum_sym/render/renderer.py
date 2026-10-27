@@ -3,7 +3,7 @@ from typing import cast
 import pygame
 
 from opus_magnum_sym.elements.actions.actions import StepActionType
-from opus_magnum_sym.elements.atoms.atom import Atom
+from opus_magnum_sym.elements.atoms.atom import Atom, AtomType
 from opus_magnum_sym.elements.components import Manipulator
 from opus_magnum_sym.elements.components.base_component import ComponentType
 from opus_magnum_sym.render.colors import (
@@ -170,12 +170,26 @@ class BoardRenderer:
                     )
 
                 elif comp == ComponentType.ENTRANCE:
+                    comp_id = int(self.board.components_ids[r, s])
+                    comp_obj = self.sim.entrypoints.get(comp_id)
+                    color = (
+                        self._atom_type_color(comp_obj.atom_type)
+                        if comp_obj is not None
+                        else ENTRANCE
+                    )
                     half = int(self.hex_size * 0.35)
                     rect = pygame.Rect(cx - half, cy - half, 2 * half, 2 * half)
-                    pygame.draw.rect(self.screen, ENTRANCE, rect)
+                    pygame.draw.rect(self.screen, color, rect)
                     pygame.draw.rect(self.screen, (240, 255, 240), rect, 1)
 
                 elif comp == ComponentType.EXIT:
+                    comp_id = int(self.board.components_ids[r, s])
+                    comp_obj = self.sim.entrypoints.get(comp_id)
+                    color = (
+                        self._atom_type_color(comp_obj.atom_type)
+                        if comp_obj is not None
+                        else EXIT
+                    )
                     radius = int(self.hex_size * 0.47)
                     diamond = [
                         (cx, cy - radius),
@@ -183,7 +197,7 @@ class BoardRenderer:
                         (cx, cy + radius),
                         (cx - radius, cy),
                     ]
-                    pygame.draw.polygon(self.screen, EXIT, diamond)
+                    pygame.draw.polygon(self.screen, color, diamond)
                     pygame.draw.polygon(self.screen, (255, 240, 240), diamond, 1)
 
                 elif comp == ComponentType.CONNECTOR:
@@ -268,7 +282,11 @@ class BoardRenderer:
 
     @staticmethod
     def _atom_color(atom: Atom) -> tuple[int, int, int]:
-        return ATOM_COLORS.get(atom.type.name, ATOM)
+        return BoardRenderer._atom_type_color(atom.type)
+
+    @staticmethod
+    def _atom_type_color(atom_type: AtomType) -> tuple[int, int, int]:
+        return ATOM_COLORS.get(atom_type.name, ATOM)
 
     # objects (atoms)
     def _draw_objects(self):
