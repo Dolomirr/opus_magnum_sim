@@ -10,7 +10,7 @@ from .blueprints import (
 )
 from .connector import Connector, Disconnector
 from .enter_exit import Enter, Exit
-from .manipulator import Manipulator
+from .manipulator import Manipulator, RetractableManipulator
 
 __all__ = [
     "ComponentType",
@@ -20,6 +20,7 @@ __all__ = [
     "Exit",
     "Manipulator",
     "ManipulatorSpec",
+    "RetractableManipulator",
     "ShapeCell",
     "ShapeTemplate",
     "get_blueprint",

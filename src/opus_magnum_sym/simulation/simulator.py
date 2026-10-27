@@ -234,8 +234,9 @@ class Simulator:
             )
             raise SimulationRuntimeError(msg, step=self.step)
 
+        comp_type = ComponentType.ARM_RETR if blueprint.extendable else ComponentType.ARM
         before = set(self.components) | set(self.entrypoints)
-        self.add_component(pos, ComponentType.ARM, spec=blueprint, rotation=rotation, **overrides)
+        self.add_component(pos, comp_type, spec=blueprint, rotation=rotation, **overrides)
         (comp_id,) = (set(self.components) | set(self.entrypoints)) - before
 
         record = PlacementRecord(

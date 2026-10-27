@@ -169,7 +169,7 @@ for _tpl in (
 
 for _spec in (
     ManipulatorSpec("arm", 1, False, 1, 6, implemented=True),
-    ManipulatorSpec("arm_piston", 1, True, 1, 6, implemented=False),
+    ManipulatorSpec("arm_piston", 1, True, 1, 3, implemented=True),
     ManipulatorSpec("arm_double", 2, False, 1, 6, implemented=False),
     ManipulatorSpec("arm_triple", 3, False, 1, 6, implemented=False),
     ManipulatorSpec("arm_hex", 6, False, 1, 6, implemented=False),

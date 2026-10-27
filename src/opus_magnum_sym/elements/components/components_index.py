@@ -1,9 +1,10 @@
 from opus_magnum_sym.elements.components import ComponentType, Connector, Disconnector, Enter, Exit
 from opus_magnum_sym.elements.components.base_component import Component, ComponentAssignmentError
-from opus_magnum_sym.elements.components.manipulator import Manipulator
+from opus_magnum_sym.elements.components.manipulator import Manipulator, RetractableManipulator
 
 _COMPONENT_MAP: dict[ComponentType, type[Component]] = {
     ComponentType.ARM: Manipulator,
+    ComponentType.ARM_RETR: RetractableManipulator,
     ComponentType.ENTRANCE: Enter,
     ComponentType.EXIT: Exit,
     ComponentType.CONNECTOR: Connector,
