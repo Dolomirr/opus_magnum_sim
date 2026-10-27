@@ -20,11 +20,11 @@
         - [ ] Various shape connectors.
         - [x] Snowflake manipulators
         - [ ] Destructors.
-- [ ] Atom connection.
+- [x] Atom connection.
     - [x] Generic multi hex components.
     - [x] Dynamic atoms IDs.
-        - [ ] Add generic types of atoms.
-    - [ ] Grabbed counter for each atom.
+        - [x] Add generic types of atoms.
+    - [x] Grabbed counter for each atom.
     - [x] Slots for direction, each holding value if connection in that direction exists.
     - [x] Grabbing logic should be moved to atoms (?).
     - [x] Moving molecules.
@@ -72,7 +72,7 @@
   - [ ] (?) Keyboard control.
   - [ ] (?) Interactive adding.
   - [x] Ctrl+C handling
-- [ ] ! Library usage
+- [ ] ! Library usage [Level completion logic]
 - [ ] In-between step visualization (optional ig).
     - Ghost-particles, after [Collision].
 
