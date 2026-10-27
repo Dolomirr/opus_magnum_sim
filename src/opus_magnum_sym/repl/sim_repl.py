@@ -13,6 +13,7 @@ from prompt_toolkit.document import Document
 from prompt_toolkit.history import FileHistory
 
 from opus_magnum_sym.elements.actions.actions import StepActionType
+from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.components import ComponentType, list_blueprints
 from opus_magnum_sym.interpreter import SimInterpreter
 from opus_magnum_sym.render.null_renderer import NullRenderer
@@ -118,6 +119,16 @@ class ReplCompleter(Completer):
     def _complete_dsl(self, text: str) -> Iterable[Completion]:
         tokens, word = self._parse(text)
         lw = word.lower()
+
+        # Complete keyword values like atom_type=fire
+        if "=" in word:
+            key, _, value = word.partition("=")
+            if key.lower() == "atom_type":
+                for cand in (t.name.lower() for t in AtomType if t != AtomType.NONE):
+                    if cand.startswith(value.lower()):
+                        yield Completion(cand, start_position=-len(value))
+            return
+
         if not tokens:
             for name in sorted(self.repl.interpreter.dispatch):
                 if name.startswith(lw):

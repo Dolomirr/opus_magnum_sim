@@ -5,6 +5,12 @@ from enum import IntEnum, auto
 class AtomType(IntEnum):
     NONE = 0
     BASIC = auto()
+    FIRE = auto()
+    WATER = auto()
+    EARTH = auto()
+    AIR = auto()
+    SALT = auto()
+    METAL = auto()
 
 
 class Atom:
