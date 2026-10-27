@@ -493,6 +493,30 @@ def test_dsl_place_arm_and_gated():
     assert len(sim.placements) == 1
 
 
+def test_dsl_arm_piston_extend_retract_actions():
+    sim = Simulator((8, 8))
+    sim.add_component(Hex(0, 0), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)
+    sim.add_component(Hex(7, 7), ComponentType.EXIT, atom_type=AtomType.BASIC)
+    interp = SimInterpreter(sim)
+
+    interp.evaluate_line("place arm_piston 3 3 length=1")
+    (arm_id,) = sim.placements[0].component_ids
+    interp.evaluate_line(f"action {arm_id} 1 extend")
+    interp.evaluate_line(f"action {arm_id} 2 retract")
+
+    arm = sim.components[arm_id]
+    assert arm.type is ComponentType.ARM_RETR
+    assert arm.get_step_action(1) is StepActionType.EXTEND
+    assert arm.get_step_action(2) is StepActionType.RETRACT
+
+    sim.next_step()  # step 0: entrance spawns
+    sim.next_step()  # step 1: extend
+    assert arm.hand_length == 2
+
+    sim.next_step()  # step 2: retract
+    assert arm.hand_length == 1
+
+
 def test_place_full_delivery_flow():
     sim = Simulator((6, 6))
     sim.place("entrance_straight_2", Hex(2, 3), rotation=1, atom_type=AtomType.SALT)

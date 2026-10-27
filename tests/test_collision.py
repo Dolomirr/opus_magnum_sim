@@ -201,3 +201,65 @@ def test_collision_error_message_and_event():
     assert "(2, 5)" in str(err)
     assert "0" in str(err)
     assert "3" in str(err)
+
+
+# ---------------------------------------------------------------------------
+# Hand slide (extend / retract) movement
+# ---------------------------------------------------------------------------
+
+
+def test_hand_slide_free_returns_none():
+    board = Board(8, 8)
+    arm = _arm(idx=0, pos=Hex(3, 3), length=1)
+    atom = Atom(AtomType.BASIC)
+    movement = Movement(
+        0,
+        MovementKind.HAND_SLIDE,
+        Hex(3, 3),
+        1,
+        [(Hex(2, 4), atom)],
+        slide_delta=Hex(-1, 1),
+    )
+
+    assert detect_collision(board, [arm], [movement], step=0) is None
+
+
+def test_hand_slide_into_arm_base_detected():
+    board = Board(7, 7)
+    arm = _arm(idx=0, pos=Hex(3, 3), length=1)
+    other_arm = _arm(idx=1, pos=Hex(1, 5))  # base on the slide endpoint
+    atom = Atom(AtomType.BASIC)
+    movement = Movement(
+        0,
+        MovementKind.HAND_SLIDE,
+        Hex(3, 3),
+        1,
+        [(Hex(2, 4), atom)],
+        slide_delta=Hex(-1, 1),  # (2,4) -> (1,5)
+    )
+
+    event = detect_collision(board, [arm, other_arm], [movement], step=0)
+
+    assert event is not None
+    assert event.category is CollisionCategory.SWEEP_ARM_BASE
+    assert event.cell == Hex(1, 5)
+    assert event.owner_ids == (0, 1)
+    assert event.progress == pytest.approx(0.5)
+
+
+def test_hand_slide_molecule_moves_rigidly():
+    # Two bonded atoms slide together; neither collides with the other's arc.
+    board = Board(8, 8)
+    arm = _arm(idx=0, pos=Hex(3, 3), length=1)
+    a = Atom(AtomType.BASIC)
+    b = Atom(AtomType.BASIC)
+    movement = Movement(
+        0,
+        MovementKind.HAND_SLIDE,
+        Hex(3, 3),
+        1,
+        [(Hex(2, 4), a), (Hex(2, 5), b)],
+        slide_delta=Hex(-1, 1),
+    )
+
+    assert detect_collision(board, [arm], [movement], step=0) is None

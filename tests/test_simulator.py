@@ -594,6 +594,61 @@ def test_sweep_moving_collision_via_next_step():
     assert sim.collision.cell == Hex(2, 3)
 
 
+def test_retractable_extend_sweeps_into_arm_base():
+    sim = Simulator((8, 8))
+    sim.add_component(Hex(0, 0), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)  # id 0
+    sim.add_component(Hex(7, 7), ComponentType.EXIT, atom_type=AtomType.BASIC)  # id 1
+    sim.add_component(Hex(3, 3), ComponentType.ARM_RETR, rotation=0, length=1)  # id 2, hand (2,4)
+    sim.add_component(Hex(1, 5), ComponentType.ARM)  # id 3, base on the extend endpoint
+    arm = 2
+    atom = Atom(AtomType.BASIC)
+    sim.board.place_atom(Hex(2, 4), atom)
+
+    sim.assign_step_action(arm, 1, StepActionType.GRAB)
+    sim.assign_step_action(arm, 2, StepActionType.EXTEND)  # (2,4) -> (1,5)
+
+    sim.next_step()  # step 0: spawn
+    sim.next_step()  # step 1: grab
+    with pytest.raises(SimulationCollisionError):
+        sim.next_step()  # step 2: extend sweeps into arm base
+
+    assert sim.collision is not None
+    assert sim.collision.category is CollisionCategory.SWEEP_ARM_BASE
+    assert sim.collision.cell == Hex(1, 5)
+    assert sim.collision.owner_ids == (2, 3)
+    assert sim.step == 2  # not incremented
+    # The slide commits its final pose before the sweep is detected (rotation semantics).
+    assert sim.components[arm].hand_length == 2
+    assert sim.components[arm].holding == {Hex(1, 5): atom}
+
+
+def test_retractable_retract_sweeps_into_arm_base():
+    sim = Simulator((8, 8))
+    sim.add_component(Hex(0, 0), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)  # id 0
+    sim.add_component(Hex(7, 7), ComponentType.EXIT, atom_type=AtomType.BASIC)  # id 1
+    sim.add_component(Hex(3, 3), ComponentType.ARM_RETR, rotation=0, length=2)  # id 2, hand (1,5)
+    sim.add_component(Hex(2, 4), ComponentType.ARM)  # id 3, base on the retract endpoint
+    arm = 2
+    atom = Atom(AtomType.BASIC)
+    sim.board.place_atom(Hex(1, 5), atom)
+
+    sim.assign_step_action(arm, 1, StepActionType.GRAB)
+    sim.assign_step_action(arm, 2, StepActionType.RETRACT)  # (1,5) -> (2,4)
+
+    sim.next_step()  # step 0: spawn
+    sim.next_step()  # step 1: grab
+    with pytest.raises(SimulationCollisionError):
+        sim.next_step()  # step 2: retract sweeps into arm base
+
+    assert sim.collision is not None
+    assert sim.collision.category is CollisionCategory.SWEEP_ARM_BASE
+    assert sim.collision.cell == Hex(2, 4)
+    assert sim.collision.owner_ids == (2, 3)
+    assert sim.step == 2
+    assert sim.components[arm].hand_length == 1
+    assert sim.components[arm].holding == {Hex(2, 4): atom}
+
+
 def test_reset_clears_collision():
     sim = _sweep_sim()
     arm_id = 2
