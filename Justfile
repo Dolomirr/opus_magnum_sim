@@ -22,6 +22,10 @@ validate file:
 test:
     uv run pytest
 
+# Run test suite with verbose logging
+test-verbose:
+    uv run pytest -vv
+
 # Run a single test file
 test-file file:
     uv run pytest {{file}}
