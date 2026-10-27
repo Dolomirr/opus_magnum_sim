@@ -11,6 +11,7 @@ from .blueprints import (
 from .connector import Connector, Disconnector
 from .enter_exit import Enter, Exit
 from .manipulator import Manipulator, RetractableManipulator
+from .salt_transmuter import SaltTransmuter
 
 __all__ = [
     "ComponentType",
@@ -21,6 +22,7 @@ __all__ = [
     "Manipulator",
     "ManipulatorSpec",
     "RetractableManipulator",
+    "SaltTransmuter",
     "ShapeCell",
     "ShapeTemplate",
     "get_blueprint",
