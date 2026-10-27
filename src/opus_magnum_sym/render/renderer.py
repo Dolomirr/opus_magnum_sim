@@ -19,6 +19,8 @@ from opus_magnum_sym.render.colors import (
     CONNECTION,
     CONNECTOR,
     DISCONNECTOR,
+    DUPLICATION_GLYPH_EXEMPLAR,
+    DUPLICATION_GLYPH_TRANSMUTER,
     ENTRANCE,
     EXIT,
     HAND,
@@ -235,6 +237,34 @@ class BoardRenderer:
                     pygame.draw.polygon(self.screen, SALT_TRANSMUTER, triangle)
                     pygame.draw.polygon(self.screen, (240, 220, 255), triangle, 1)
 
+                elif comp == ComponentType.DUPLICATION_GLYPH:
+                    self._draw_duplication_glyph(cx, cy, r, s)
+
+    def _draw_duplication_glyph(self, cx: float, cy: float, r: int, s: int):
+        comp_id = int(self.board.components_ids[r, s])
+        comp_obj = self.sim.entrypoints.get(comp_id)
+        is_transmuter = comp_obj is not None and (r, s) == (
+            comp_obj.pos.r,
+            comp_obj.pos.s,
+        )
+        radius = int(self.hex_size * 0.4)
+        if is_transmuter:
+            points = [
+                (cx, cy - radius),
+                (cx + radius, cy + radius),
+                (cx - radius, cy + radius),
+            ]
+            color = DUPLICATION_GLYPH_TRANSMUTER
+        else:
+            points = [
+                (cx, cy + radius),
+                (cx + radius, cy - radius),
+                (cx - radius, cy - radius),
+            ]
+            color = DUPLICATION_GLYPH_EXEMPLAR
+        pygame.draw.polygon(self.screen, color, points)
+        pygame.draw.polygon(self.screen, (240, 240, 240), points, 1)
+
     # link lines between connected entrances/exits
     def _draw_connections(self):
         entrypoints = self.sim.entrypoints
@@ -413,6 +443,7 @@ class BoardRenderer:
                 ComponentType.CONNECTOR,
                 ComponentType.DISCONNECTOR,
                 ComponentType.SALT_TRANSMUTER,
+                ComponentType.DUPLICATION_GLYPH,
             )
         }
         if not components:
