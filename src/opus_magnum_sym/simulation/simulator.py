@@ -211,7 +211,11 @@ class Simulator:
         **overrides,
     ) -> PlacementRecord:
         if isinstance(name, ShapeTemplate):
-            self.blueprints.register(name)
+            try:
+                self.blueprints.register(name)
+            except ValueError as exc:
+                msg = f"Blueprint {name.name!r} is already registered."
+                raise SimulationRuntimeError(msg, step=self.step) from exc
             blueprint = name
             name = name.name
         else:

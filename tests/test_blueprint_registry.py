@@ -43,7 +43,7 @@ def test_place_by_object_duplicate_name_rejected():
     sim = Simulator((6, 6))
     sim.place(entrance_straight_2(), Hex(2, 3), atom_type=AtomType.SALT)
 
-    with pytest.raises(ValueError, match="already registered"):
+    with pytest.raises(SimulationRuntimeError, match="already registered"):
         sim.place(entrance_straight_2(), Hex(5, 5), atom_type=AtomType.SALT)
 
 
