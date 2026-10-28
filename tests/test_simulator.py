@@ -1,10 +1,10 @@
 import pytest  # noqa: INP001
-from fixtures.shapes import entrance_straight_2, exit_straight_2
+from fixtures.shapes import branched_entrance, entrance_straight_2, exit_straight_2, typed_exit
 
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import Atom, AtomType
 from opus_magnum_sym.elements.atoms.molecule import collect_molecule
-from opus_magnum_sym.elements.board import Hex
+from opus_magnum_sym.elements.board import Direction, Hex
 from opus_magnum_sym.elements.components import ComponentType
 from opus_magnum_sym.elements.env import level_counter
 from opus_magnum_sym.simulation.collision import CollisionCategory
@@ -334,6 +334,136 @@ def test_connected_exits_reject_wrong_atom_type():
     assert sim.board.get_atom(Hex(3, 2)) is a
     assert sim.board.get_atom(Hex(2, 2)) is b
     assert level_counter.total_finished() == 0
+
+
+def test_manual_link_exits_require_bond():
+    sim = _connected_exit_sim()
+
+    a = Atom(AtomType.BASIC)
+    b = Atom(AtomType.BASIC)
+    sim.board.place_atom(Hex(3, 2), a)
+    sim.board.place_atom(Hex(2, 2), b)
+    # Both cells covered with correct types, but the manual link requires a bond.
+
+    sim.next_step()
+
+    assert sim.board.get_atom(Hex(3, 2)) is a
+    assert sim.board.get_atom(Hex(2, 2)) is b
+    assert level_counter.total_finished() == 0
+
+
+def test_branched_entrance_bonds_along_links_only():
+    sim = Simulator((6, 6))
+    sim.add_component(Hex(5, 5), ComponentType.EXIT, atom_type=AtomType.SALT)
+    sim.place(branched_entrance(), Hex(2, 2), atom_type=AtomType.SALT)
+
+    sim.next_step()
+
+    center = sim.board.get_atom(Hex(2, 2))
+    beam_a = sim.board.get_atom(Hex(2, 3))
+    beam_b = sim.board.get_atom(Hex(3, 2))
+    assert center is not None
+    assert beam_a is not None
+    assert beam_b is not None
+    assert collect_molecule(center) == {center, beam_a, beam_b}
+
+    direction = Direction()
+    assert center.connection_at(direction.rotation_between(Hex(2, 2), Hex(2, 3))) is beam_a
+    assert center.connection_at(direction.rotation_between(Hex(2, 2), Hex(3, 2))) is beam_b
+    # The two beams are adjacent but not linked, so they must stay unbonded.
+    assert beam_a.connection_at(direction.rotation_between(Hex(2, 3), Hex(3, 2))) is None
+    assert beam_b.connection_at(direction.rotation_between(Hex(3, 2), Hex(2, 3))) is None
+
+
+def _typed_exit_sim():
+    """Far entrance (5,5) plus a typed exit centered at (2,2)."""
+    sim = Simulator((6, 6))
+    sim.add_component(Hex(5, 5), ComponentType.ENTRANCE, atom_type=AtomType.SALT)
+    sim.place(typed_exit(), Hex(2, 2))
+    return sim
+
+
+def _typed_exit_cells():
+    """Center (salt), water beam, fire beam for `typed_exit` placed at (2,2)."""
+    return Hex(2, 2), Hex(2, 3), Hex(3, 2)
+
+
+def test_typed_exit_accepts_exact_bond_pattern():
+    sim = _typed_exit_sim()
+    center, beam_a, beam_b = _typed_exit_cells()
+    sim.board.place_atom(center, Atom(AtomType.SALT))
+    sim.board.place_atom(beam_a, Atom(AtomType.WATER))
+    sim.board.place_atom(beam_b, Atom(AtomType.FIRE))
+    sim.board.connect_atoms(center, beam_a)
+    sim.board.connect_atoms(center, beam_b)
+
+    sim.next_step()
+
+    assert sim.board.get_atom(center) is None
+    assert sim.board.get_atom(beam_a) is None
+    assert sim.board.get_atom(beam_b) is None
+    assert level_counter.total_finished() == 1
+
+
+def test_typed_exit_rejects_missing_bond():
+    sim = _typed_exit_sim()
+    center, beam_a, beam_b = _typed_exit_cells()
+    sim.board.place_atom(center, Atom(AtomType.SALT))
+    sim.board.place_atom(beam_a, Atom(AtomType.WATER))
+    sim.board.place_atom(beam_b, Atom(AtomType.FIRE))
+    sim.board.connect_atoms(center, beam_a)  # center<->beam_b bond missing
+
+    sim.next_step()
+
+    assert sim.board.get_atom(center) is not None
+    assert sim.board.get_atom(beam_a) is not None
+    assert sim.board.get_atom(beam_b) is not None
+    assert level_counter.total_finished() == 0
+
+
+def test_typed_exit_rejects_extra_bond():
+    sim = _typed_exit_sim()
+    center, beam_a, beam_b = _typed_exit_cells()
+    sim.board.place_atom(center, Atom(AtomType.SALT))
+    sim.board.place_atom(beam_a, Atom(AtomType.WATER))
+    sim.board.place_atom(beam_b, Atom(AtomType.FIRE))
+    sim.board.connect_atoms(center, beam_a)
+    sim.board.connect_atoms(center, beam_b)
+    sim.board.connect_atoms(beam_a, beam_b)  # extra beam<->beam bond
+
+    sim.next_step()
+
+    assert sim.board.get_atom(center) is not None
+    assert sim.board.get_atom(beam_a) is not None
+    assert sim.board.get_atom(beam_b) is not None
+    assert level_counter.total_finished() == 0
+
+
+def test_typed_exit_rejects_wrong_cell_type():
+    sim = _typed_exit_sim()
+    center, beam_a, beam_b = _typed_exit_cells()
+    sim.board.place_atom(center, Atom(AtomType.WATER))  # center requires salt
+    sim.board.place_atom(beam_a, Atom(AtomType.WATER))
+    sim.board.place_atom(beam_b, Atom(AtomType.FIRE))
+    sim.board.connect_atoms(center, beam_a)
+    sim.board.connect_atoms(center, beam_b)
+
+    sim.next_step()
+
+    assert sim.board.get_atom(center) is not None
+    assert sim.board.get_atom(beam_a) is not None
+    assert sim.board.get_atom(beam_b) is not None
+    assert level_counter.total_finished() == 0
+
+
+def test_shape_cell_kwargs_win_over_placement_override():
+    sim = Simulator((6, 6))
+    sim.place(typed_exit(), Hex(2, 2), atom_type=AtomType.WATER)
+
+    center_id = int(sim.board.components_ids[Hex(2, 2)])
+    fire_id = int(sim.board.components_ids[Hex(3, 2)])
+    assert sim.entrypoints[center_id].atom_type is AtomType.SALT
+    assert sim.entrypoints[fire_id].atom_type is AtomType.FIRE
 
 
 def test_lone_exit_rejects_multi_atom_molecule():
