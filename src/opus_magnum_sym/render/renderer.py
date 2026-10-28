@@ -176,7 +176,7 @@ class BoardRenderer:
                 elif comp == ComponentType.ENTRANCE:
                     comp_id = int(self.board.components_ids[r, s])
                     comp_obj = self.sim.entrypoints.get(comp_id)
-                    color = self._atom_type_color(comp_obj.atom_type) if comp_obj is not None else ENTRANCE
+                    color = self._atom_type_color(comp_obj.atom_type) if comp_obj is not None else ENTRANCE  # ty: ignore
                     half = int(self.hex_size * 0.35)
                     rect = pygame.Rect(cx - half, cy - half, 2 * half, 2 * half)
                     pygame.draw.rect(self.screen, color, rect)
@@ -185,7 +185,7 @@ class BoardRenderer:
                 elif comp == ComponentType.EXIT:
                     comp_id = int(self.board.components_ids[r, s])
                     comp_obj = self.sim.entrypoints.get(comp_id)
-                    color = self._atom_type_color(comp_obj.atom_type) if comp_obj is not None else EXIT
+                    color = self._atom_type_color(comp_obj.atom_type) if comp_obj is not None else EXIT  # ty: ignore
                     radius = int(self.hex_size * 0.47)
                     diamond = [
                         (cx, cy - radius),

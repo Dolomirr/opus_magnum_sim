@@ -1,15 +1,15 @@
 ---
 name: oms-authoring
-description: Author and style `.oms` Opus Magnum puzzle/solution scripts — DSL commands and tokens, component-ID allocation, arm hand positioning, required house style (leading blank line, context comment, sections, `# id n` tags), demo-file conventions (idle gaps in programs, loose atoms/molecules left for the viewer), and the validate/run/save workflow.
+description: Author and style Opus Magnum puzzle scripts — `.oms` solution files (DSL commands and tokens, component-ID allocation, arm hand positioning, required house style, demo-file conventions) and `.oml` level files (size/steps, local shape definitions, entrance/exit placements, allow-list) — plus the validate/run/save workflow.
 ---
 
-# Authoring `.oms` Solution Scripts
+# Authoring `.oms` Solution Scripts and `.oml` Level Files
 
 ## When to use this skill
 
-Use it whenever you create or edit a `.oms` file (usually under `examples/`), or are
-asked to script an Opus Magnum puzzle/level, lay out components and step actions, or
-fix a `.oms` validation/runtime error.
+Use it whenever you create or edit a `.oms` solution file or a `.oml` level file
+(usually under `examples/`), or are asked to script an Opus Magnum puzzle/level, lay out
+components and step actions, define a level's starting conditions, or fix a validation/runtime error.
 
 ## How a `.oms` file works
 
@@ -48,8 +48,8 @@ disconnection <id_a> <id_b>              # unlink two components
 | `connector` | `Connector` | `atom_type` | bonds atoms sitting on its glyph + connected glyph partners |
 | `disconnector` | `Disconnector` | `atom_type` | breaks bonds between atoms on its glyph + connected partners |
 
-`arm_retr` and `transporter` are enum values but are **not** registered in
-`_COMPONENT_MAP`; using them in `comp` raises `Unknown component`.
+`transporter` is an enum value but has no concrete class in `_COMPONENT_MAP`; using it in
+`comp` raises `Unknown component`.
 
 ## Blueprints (`place`)
 
@@ -57,11 +57,13 @@ disconnection <id_a> <id_b>              # unlink two components
 for shapes, their `connection` links) in a single line. `<blueprint>` is a name from
 `list_blueprints()`. The two flavors:
 
-- Shape templates (`connector_tri`, `connector_straight_2`, `entrance_straight_2`,
-  `exit_straight_2`, ...) expand into a multi-cell group with pre-wired links.
+- Shape templates (`connector_straight_2`, `connector_tri`, `connector_tri_odd`,
+  `salt_transmuter`) expand into a multi-cell group with pre-wired links. Entrance/exit
+  shapes are **not** registered globally; define them per-level (see the `.oml` section).
 - Manipulator specs (`arm`) place a single arm with a stored capability descriptor.
-  Gated variants (`arm_piston`, `arm_double`, `arm_triple`, `arm_hex`) are
-  registered but `implemented=False`; `place` on them raises a load-time error.
+  The piston arm `arm_piston` is also placeable. Multi-arm variants (`arm_double`,
+  `arm_triple`, `arm_hex`) are registered but `implemented=False`; `place` on them
+  raises a load-time error.
 
 `rotation=R` rotates the whole shape around the origin cell; some shapes restrict the
 allowed rotations (e.g. the Y shapes only accept {0,2,4} or {1,3,5}). Remaining
@@ -72,7 +74,8 @@ atom_type 'basic'"); for basic atoms build the shape from `comp` lines plus `con
 ## Component kwargs
 
 - `atom_type=<name>` — required for `entrance`, `exit`, `connector`, `disconnector`.
-  Only `basic` exists today.
+  Valid names: `fire`, `water`, `earth`, `air`, `salt`, `metal`. `basic` and `none` are
+  placeholders rejected by `place` and by level entrypoints (but accepted by `comp`).
 - `rotation=<0..5>` — optional initial rotation (default `0`).
 - `length=<int>` — arm hand length (default `1`); arm only.
 
@@ -92,8 +95,8 @@ Usable on an arm:
 | `rotate_molecule_clw` | in-place: arm stays, held molecule rotates around the hand |
 | `rotate_molecule_cclw` | in-place, opposite direction |
 
-Declared but **not usable** on the basic arm — they raise `ActionAssignmentError` at
-execution: `extend`, `retract`, `move_pos`, `move_neg`.
+`extend`/`retract` raise `ActionAssignmentError` on the basic arm but work on the piston arm
+(`arm_piston`). `move_pos`/`move_neg` are declared but unimplemented everywhere.
 
 `action` targets only non-entrypoint components (in practice, arms). Assigning an
 `action` to an entrance/exit/connector/disconnector id raises a load-time error (the line is skipped).
@@ -226,6 +229,91 @@ action 2 3 rotate_cclw
 action 2 4 release
 ```
 
+## Authoring `.oml` Level Files
+
+A `.oml` file defines a level's **starting conditions** (board size, step limit, entrypoint
+shapes and placements, allow-list); the solution is a separate `.oms` file. The two are paired:
+`examples/place_delivery.oml` (level) + `examples/place_delivery.oms` (solution).
+
+### How a `.oml` file works
+
+Loaded line by line by `LevelLoader` (`src/opus_magnum_sym/interpreter/level_loader.py`),
+which builds a validated `LevelSpec`. Unlike `SimInterpreter` (lenient), the loader is
+**strict**: any error raises `LevelLoadError` with the offending line number and aborts the load.
+
+- Blank lines and full-line `#` comments are ignored.
+- `key=value` tokens stay atomic (same `shlex` splitting as `.oms`).
+- `shape` definitions must precede the `entrance`/`exit` lines that reference them.
+
+### Command reference
+
+```text
+size <rows> <cols>
+steps <n>
+allow <name> [name ...]
+shape <name> <kind> cells=(r,s),(r,s),... links=i-j[,i-j...] [rotations=0,1,...]
+entrance <shape> <r> <s> [rotation=k] atom_type=<type>
+exit <shape> <r> <s> [rotation=k] atom_type=<type>
+```
+
+- `size` and `steps` are required and must be positive.
+- `shape <name> <kind>` defines a local `ShapeTemplate`. `<kind>` is a `ComponentType` name
+  restricted to entrypoint kinds — `entrance`, `exit`, `connector`, `disconnector`,
+  `salt_transmuter` (not `arm`). `cells=(r,s),...` lists offsets relative to the origin; exactly
+  one cell must be `(0,0)` and offsets must be distinct. `links=i-j` pairs adjacent cell indexes
+  (use `links=` for a single-cell shape). `rotations=` restricts allowed rotations (omit for any).
+- `entrance`/`exit` place an entrypoint using a **locally defined** `shape` (never a global
+  blueprint). `rotation=k` (default 0) and `atom_type=<type>` (required) are `key=value` pairs;
+  their order after the position is free. `atom_type` must be a real atom type — `basic`/`none`
+  are rejected.
+- `allow <name> [name ...]` lists the blueprints the solution may `place`; each name resolves
+  against the level's local shapes plus the global default registry and must be `implemented`
+  (`arm` and `arm_piston` are; `arm_double`/`arm_triple`/`arm_hex` are not). Entrypoint shapes
+  need not be listed.
+
+### Invariants
+
+- The spec must have at least one entrance and one exit; entrypoint cells (shape offsets +
+  rotation) must be in bounds and pairwise non-overlapping — the loader raises otherwise.
+- A level runs with its own env (fresh id allocator and result counter) and a cloned blueprint
+  registry. Entrypoints are placed first, so the solution's component ids start after them
+  (in `examples/place_delivery.oms` the arm is `# id 4`).
+
+### House style
+
+Follow `examples/place_delivery.oml`:
+
+1. **Context comment block first** — a dry comment stating the scenario, that this is the
+   level, and pointing at its solution file.
+2. **`size` then `steps`** at the top.
+3. **`shape` definitions grouped** in their own section, before the entrypoints that use them.
+4. **`entrance`/`exit` placements grouped**, one comment each when the geometry matters.
+5. **`allow` last** — the solution's available blueprints.
+
+```text
+# Reference level demo: delivery through straight-2 entrance and exit pair.
+#
+# The level file defines the starting conditions.
+# The solution defines placement and actions.
+# The solution lives in `examples/place_delivery.oms`
+
+size 6 6
+steps 30
+
+# Entrypoint shapes are defined locally.
+shape entrance_straight_2 entrance cells=(0,0),(-1,1) links=0-1
+shape exit_straight_2 exit cells=(0,0),(-1,1) links=0-1
+
+# Entrance pair spawns bonded 2-atom molecule on step 0.
+entrance entrance_straight_2 2 3 rotation=1 atom_type=salt
+
+# Exit pair consumes molecule only if it covers both cells exactly.
+exit exit_straight_2 3 2 rotation=2 atom_type=salt
+
+# Blueprints available to the solution.
+allow arm
+```
+
 ## Authoring & verification workflow
 
 ```bash
@@ -234,6 +322,9 @@ just validate examples/my_level.oms
 
 # Run headlessly and print the delivered-molecule count
 just run examples/my_level.oms 30
+
+# Run a level (starting conditions) + its solution together
+uv run opus-magnum run --level examples/my_level.oml examples/my_level.oms
 ```
 
 ## Caveats / known limitations that affect scripts

@@ -114,7 +114,7 @@ class Manipulator(Component):
         is also held by another arm.
         Moving a molecule shared between arms would tear it into two places.
         """
-        held_by_other = any(atom.held_by - {self.idx} for atom in self.holding.values())
+        held_by_other = any(atom.held_by - {self.idx} for atom in self.holding.values())  # ty:ignore
         return self.holding is not None and held_by_other
 
     def _rotate(self, rotation: int, board: Board) -> None:

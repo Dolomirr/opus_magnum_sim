@@ -1,23 +1,18 @@
+# Reference level solution demo: delivery through straight-2 entrance and exit pair.
+#
+# The level file defines the starting conditions.
+# The solution defines placement and actions.
+#
+# This is solution.
+# The level defined in `examples/place_delivery.oml`
 
-# full delivery through the high-level `place` API
+# Arm at (3,3), rotation 0
+place arm 3 3                       # id 4
 
-# Linked entrance pair spawns a bonded 2-atom molecule on step 0.
-place entrance_straight_2 2 3 rotation=1 atom_type=basic   # ids 0,1 -> (2,3),(2,4)
-
-# Linked exit pair consumes the molecule once it exactly covers both cells.
-place exit_straight_2 3 2 rotation=2 atom_type=basic       # ids 2,3 -> (3,2),(4,2)
-
-# Arm at (3,3), rotation 0 -> hand over the entrance beam (2,4).
-place arm 3 3                                              # id 4
-
-# Steps 1-2 are empty: watch the bonded pair sit loose on the entrance.
-# Grab, then four clockwise swings walk the pair onto the exit, then release.
-action 4 3 grab
+# Grab, then four clockwise swings moves pair onto exit, then release.
+action 4 1 grab
+action 4 2 rotate_clw
+action 4 3 rotate_clw
 action 4 4 rotate_clw
 action 4 5 rotate_clw
-action 4 6 rotate_clw
-action 4 7 rotate_clw
-action 4 8 release
-
-# After release the exit consumes the molecule; the entrance respawns a fresh
-# bonded pair, which stays loose on (2,3)/(2,4) across the empty steps that follow.
+action 4 6 release

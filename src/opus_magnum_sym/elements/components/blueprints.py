@@ -108,34 +108,68 @@ class ManipulatorSpec:
             )
 
 
-_blueprints: dict[str, ShapeTemplate | ManipulatorSpec | ComponentSpec] = {}
+Blueprint = ShapeTemplate | ManipulatorSpec | ComponentSpec
+BlueprintListing = list[dict]
 
 
-def register_blueprint(blueprint: ShapeTemplate | ManipulatorSpec | ComponentSpec) -> None:
+class BlueprintRegistry:
     """
-    Register blueprint.
-    Raises ``ValueError`` on duplicated name.
+    Name to blueprint mapping.
+    Templates and specs are immutable,
+    so per-level registry is just a shallow copy of the default built-ins.
     """
-    if blueprint.name in _blueprints:
-        raise ValueError(f"blueprint already registered: {blueprint.name!r}")
-    _blueprints[blueprint.name] = blueprint
+
+    def __init__(self) -> None:
+        self._blueprints: dict[str, Blueprint] = {}
+
+    def register(self, blueprint: Blueprint) -> None:
+        """
+        Register blueprint.
+        Raises `ValueError` on duplicated name.
+        """
+        if blueprint.name in self._blueprints:
+            raise ValueError(f"blueprint already registered: {blueprint.name!r}")
+        self._blueprints[blueprint.name] = blueprint
+
+    def get(self, name: str) -> Blueprint:
+        """
+        Return the blueprint registered under given name.
+        """
+        try:
+            return self._blueprints[name]
+        except KeyError as exc:
+            raise KeyError(f"unknown blueprint: {name!r}") from exc
+
+    def list(self) -> BlueprintListing:
+        """
+        Return one entry per registered blueprint: name and implemented flag.
+        """
+        return [{"name": name, "implemented": bp.implemented} for name, bp in self._blueprints.items()]
+
+    def clone(self) -> BlueprintRegistry:
+        """
+        Return a shallow copy; templates/specs are immutable so shared entries are safe.
+        """
+        registry = BlueprintRegistry()
+        registry._blueprints = dict(self._blueprints)
+        return registry
 
 
-def get_blueprint(name: str) -> ShapeTemplate | ManipulatorSpec | ComponentSpec:
-    """
-    Return the blueprint registered under gven name.
-    """
-    try:
-        return _blueprints[name]
-    except KeyError as exc:
-        raise KeyError(f"unknown blueprint: {name!r}") from exc
+# Module-level default registry plus delegates.
+# Preserved, so untouched callers keep working.
+default_registry = BlueprintRegistry()
+
+
+def register_blueprint(blueprint: Blueprint) -> None:
+    default_registry.register(blueprint)
+
+
+def get_blueprint(name: str) -> Blueprint:
+    return default_registry.get(name)
 
 
 def list_blueprints() -> list[dict]:
-    """
-    Return one entry per registered blueprint: name and implemented flag.
-    """
-    return [{"name": name, "implemented": blueprint.implemented} for name, blueprint in _blueprints.items()]
+    return default_registry.list()
 
 
 def _beam(rotation: int, **kwargs) -> ShapeCell:
@@ -177,8 +211,6 @@ for _tpl in (
     _straight_template("connector_straight_2", ComponentType.CONNECTOR),
     _y_template("connector_tri", ComponentType.CONNECTOR, (0, 2, 4)),
     _y_template("connector_tri_odd", ComponentType.CONNECTOR, (1, 3, 5)),
-    _straight_template("entrance_straight_2", ComponentType.ENTRANCE),
-    _straight_template("exit_straight_2", ComponentType.EXIT),
 ):
     register_blueprint(_tpl)
 

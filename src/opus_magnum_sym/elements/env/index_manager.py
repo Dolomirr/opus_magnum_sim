@@ -1,49 +1,81 @@
-# TODO: simple version for now, up to re-write if multithreading if needed
+class IndexManager:
+    """
+    Per-instance allocator for component ids, independent of any other envs.
+    """
 
-_next_id: int = 0
-_active: set[int] = set()
-_free: set[int] = set()
+    def __init__(self) -> None:
+        self._next_id: int = 0
+        self._active: set[int] = set()
+        self._free: set[int] = set()
+
+    def allocate(self) -> int:
+        idx = self._free.pop() if self._free else self._next_id
+        if idx == self._next_id:
+            self._next_id += 1
+        self._active.add(idx)
+        return idx
+
+    def free(self, idx: int) -> None:
+        if idx not in self._active:
+            msg = f"Index {idx} is not currently active."
+            raise ValueError(msg)
+        self._active.remove(idx)
+        self._free.add(idx)
+
+    def is_active(self, idx: int) -> bool:
+        return idx in self._active
+
+    def is_valid(self, idx: int) -> bool:
+        return idx >= 0 and idx < self._next_id
+
+    def active_count(self) -> int:
+        return len(self._active)
+
+    def total_allocated(self) -> int:
+        return self._next_id
+
+    def get_all_active(self) -> set[int]:
+        return self._active.copy()
+
+    def reset(self) -> None:
+        self._next_id = 0
+        self._active.clear()
+        self._free.clear()
+
+
+# Module-level default instance.
+# Preserved, so existing callers (and tests) keep working.
+default_index_manager = IndexManager()
+# Sloppy, but no way i am fixing all these "tests".
 
 
 def allocate() -> int:
-    global _next_id  # noqa: PLW0603
-    idx = _free.pop() if _free else _next_id
-    if idx == _next_id:
-        _next_id += 1
-    _active.add(idx)
-    return idx
+    return default_index_manager.allocate()
 
 
 def free(idx: int) -> None:
-    if idx not in _active:
-        msg = f"Index {idx} is not currently active."
-        raise ValueError(msg)
-    _active.remove(idx)
-    _free.add(idx)
+    default_index_manager.free(idx)
 
 
 def is_active(idx: int) -> bool:
-    return idx in _active
+    return default_index_manager.is_active(idx)
 
 
 def is_valid(idx: int) -> bool:
-    return idx >= 0 and idx < _next_id
+    return default_index_manager.is_valid(idx)
 
 
 def active_count() -> int:
-    return len(_active)
+    return default_index_manager.active_count()
 
 
 def total_allocated() -> int:
-    return _next_id
+    return default_index_manager.total_allocated()
 
 
 def get_all_active() -> set[int]:
-    return _active.copy()
+    return default_index_manager.get_all_active()
 
 
 def reset() -> None:
-    global _next_id, _active, _free  # noqa: PLW0602, PLW0603
-    _next_id = 0
-    _active.clear()
-    _free.clear()
+    default_index_manager.reset()

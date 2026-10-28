@@ -2,20 +2,20 @@ from typing import TYPE_CHECKING
 
 from icecream import ic
 
-import opus_magnum_sym.elements.env.index_manager as im
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board import Board, Direction, Hex
 from opus_magnum_sym.elements.components import (
+    BlueprintRegistry,
     ComponentSpec,
     ComponentType,
     ManipulatorSpec,
     ShapeTemplate,
-    get_blueprint,
+    default_registry,
 )
 from opus_magnum_sym.elements.components.components_index import get_component_type
 from opus_magnum_sym.elements.components.connections import ConnectionGraph
-from opus_magnum_sym.elements.env import level_counter
+from opus_magnum_sym.elements.env.level_env import LevelEnv, default_env
 from opus_magnum_sym.logging import logger
 from opus_magnum_sym.simulation.collision import CollisionEvent, detect_collision
 from opus_magnum_sym.simulation.errors import SimulationCollisionError, SimulationRuntimeError
@@ -27,15 +27,23 @@ if TYPE_CHECKING:
 
 
 class Simulator:
-    def __init__(self, size: tuple[int, int]) -> None:
+    def __init__(
+        self,
+        size: tuple[int, int],
+        env: LevelEnv | None = None,
+        blueprints: BlueprintRegistry | None = None,
+    ) -> None:
         self.board: Board = Board(*size)
-        self.im = im
+        self.env = env if env is not None else default_env
+        self.im = self.env.im
+        self.blueprints = blueprints if blueprints is not None else default_registry.clone()
         self.components: dict[int, Component] = {}
         self.entrypoints: dict[int, Component] = {}
         self.connections = ConnectionGraph()
         self.step = 0
         self.collision: CollisionEvent | None = None
         self.placements: list[PlacementRecord] = []
+        self.allowed_blueprints: set[str] | None = None
 
     def _verify_init_state(self):
         # TODO: create more granular verification if needed
@@ -103,20 +111,20 @@ class Simulator:
 
         self.step += 1
 
-    # TODO: do something with kwargs
-    # TODO: rework id logic (again)
     def add_component(
         self,
         cell: Hex,
         comp_type: ComponentType,
         **kwargs,
     ):
-        new_id = im.allocate()
+        new_id = self.im.allocate()
         comp = get_component_type(comp_type)(idx=new_id, pos=cell, **kwargs)
         if not self.board.place_component_cells(comp.footprint(), comp_type, new_id):
-            im.free(new_id)
+            self.im.free(new_id)
             msg = f"Cannot place {comp_type.name.lower()} at ({cell.r}, {cell.s})."
             raise SimulationRuntimeError(msg, step=self.step)
+
+        comp.env = self.env
 
         if comp_type in {
             ComponentType.ENTRANCE,
@@ -147,7 +155,7 @@ class Simulator:
     def _refresh_groups(self) -> None:
         for comp in self.entrypoints.values():
             group = [self._lookup(i) for i in self.connections.group_of(comp.idx)]
-            comp.group = [c for c in group if c is not None and c.idx != comp.idx]
+            comp.group = [c for c in group if c is not None and c.idx != comp.idx]  # ty: ignore
 
     def connect_components(self, id_a: int, id_b: int) -> bool:
         comp_a = self._lookup(id_a)
@@ -195,14 +203,33 @@ class Simulator:
         self.im.free(comp_id)
         self._refresh_groups()
 
-    def place(self, name: str, pos: Hex, rotation: int = 0, **overrides) -> PlacementRecord:
-        try:
-            blueprint = get_blueprint(name)
-        except KeyError as exc:
-            msg = f"Unknown blueprint {name!r}."
-            raise SimulationRuntimeError(msg, step=self.step) from exc
+    def place(
+        self,
+        name: str | ShapeTemplate,
+        pos: Hex,
+        rotation: int = 0,
+        **overrides,
+    ) -> PlacementRecord:
+        if isinstance(name, ShapeTemplate):
+            try:
+                self.blueprints.register(name)
+            except ValueError as exc:
+                msg = f"Blueprint {name.name!r} is already registered."
+                raise SimulationRuntimeError(msg, step=self.step) from exc
+            blueprint = name
+            name = name.name
+        else:
+            try:
+                blueprint = self.blueprints.get(name)
+            except KeyError as exc:
+                msg = f"Unknown blueprint {name!r}."
+                raise SimulationRuntimeError(msg, step=self.step) from exc
         if not blueprint.implemented:
             msg = f"Blueprint {name!r} is not implemented and cannot be placed."
+            raise SimulationRuntimeError(msg, step=self.step)
+
+        if self.allowed_blueprints is not None and name not in self.allowed_blueprints:
+            msg = f"Blueprint {name!r} is not allowed in this level."
             raise SimulationRuntimeError(msg, step=self.step)
 
         if overrides.get("atom_type") is AtomType.BASIC:
@@ -355,5 +382,4 @@ class Simulator:
         self.step = 0
         self.collision = None
         self.placements.clear()
-        self.im.reset()
-        level_counter.reset()
+        self.env.reset()

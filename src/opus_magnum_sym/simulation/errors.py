@@ -8,6 +8,7 @@ from opus_magnum_sym.simulation.collision import CollisionEvent
 class SimulationRuntimeError(Exception):
     def __init__(self, message: str, step: int) -> None:
         self.message = message
+        self.step = step
         super().__init__(message)
 
 

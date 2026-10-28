@@ -5,6 +5,7 @@ from enum import IntEnum
 from typing import TYPE_CHECKING
 
 from opus_magnum_sym.elements.actions.actions import StepActionType
+from opus_magnum_sym.elements.env.level_env import LevelEnv, default_env
 from opus_magnum_sym.logging import logger
 
 if TYPE_CHECKING:
@@ -44,6 +45,7 @@ class Component(ABC):
     pos: Hex
     type: ComponentType = ComponentType.EMPTY
     rotation: int = 0
+    env: LevelEnv = field(default=default_env)
     _programm: defaultdict[int, StepActionType] = field(
         default_factory=lambda: defaultdict(lambda: StepActionType.NONE),
     )

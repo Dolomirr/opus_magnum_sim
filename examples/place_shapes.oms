@@ -1,20 +1,41 @@
 
-# reference layout of every high-level `place` blueprint on one board
+# reference layout of linked single-cell primitives on one board
 
 # Entrance and exit pairs (also satisfy run/validate; the entrance pair spawns a
 # loose bonded molecule on step 0 so it can be seen before anything moves).
-place entrance_straight_2 2 3 rotation=1 atom_type=basic   # ids 0,1    -> (2,3),(2,4)
-place exit_straight_2 6 3 rotation=1 atom_type=basic       # ids 2,3    -> (6,3),(6,4)
+comp 2 3 entrance atom_type=basic   # id 0  -> (2,3)
+comp 2 4 entrance atom_type=basic   # id 1  -> (2,4)
+connection 0 1
 
-# Connector shapes. Glyphs only here: atoms must be dropped on them to bond
-# (see place_connector.oms). connector_tri is a 4-cell Y; connector_tri_odd is
-# the mirrored Y and only accepts odd rotations.
-place connector_straight_2 4 3 rotation=1 atom_type=basic  # ids 4,5    -> (4,3),(4,4)
-place connector_tri 2 6 rotation=0 atom_type=basic         # ids 6..9   -> (2,6),(1,7),(3,6),(2,5)
-place connector_tri_odd 5 6 rotation=1 atom_type=basic     # ids 10..13 -> (5,6),(5,7),(6,5),(4,6)
+comp 6 3 exit atom_type=basic       # id 2  -> (6,3)
+comp 6 4 exit atom_type=basic       # id 3  -> (6,4)
+connection 2 3
 
-# Manipulator-spec blueprint: basic arm, length defaults to 1.
-place arm 4 5                                              # id 14      -> (4,5)
+# Connector glyphs. Atoms must be dropped on them to bond. Each shape below is
+# expressed as single-cell connectors wired together: a straight pair, then a
+# 4-cell Y and its mirrored variant.
+comp 4 3 connector atom_type=basic  # id 4  -> (4,3)
+comp 4 4 connector atom_type=basic  # id 5  -> (4,4)
+connection 4 5
+
+comp 2 6 connector atom_type=basic  # id 6  -> (2,6) center
+comp 1 7 connector atom_type=basic  # id 7  -> (1,7)
+comp 3 6 connector atom_type=basic  # id 8  -> (3,6)
+comp 2 5 connector atom_type=basic  # id 9  -> (2,5)
+connection 6 7
+connection 6 8
+connection 6 9
+
+comp 5 6 connector atom_type=basic  # id 10 -> (5,6) center
+comp 5 7 connector atom_type=basic  # id 11 -> (5,7)
+comp 6 5 connector atom_type=basic  # id 12 -> (6,5)
+comp 4 6 connector atom_type=basic  # id 13 -> (4,6)
+connection 10 11
+connection 10 12
+connection 10 13
+
+# Basic arm.
+comp 4 5 arm                       # id 14 -> (4,5)
 
 # No actions scheduled: the entrance pair above spawns a bonded molecule on
 # step 0 and it sits loose across every subsequent empty step.

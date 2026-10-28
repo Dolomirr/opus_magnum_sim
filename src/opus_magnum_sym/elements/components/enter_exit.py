@@ -6,7 +6,6 @@ from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import Atom, AtomType
 from opus_magnum_sym.elements.components import ComponentType
 from opus_magnum_sym.elements.components.base_component import Component
-from opus_magnum_sym.elements.env import level_counter
 
 if TYPE_CHECKING:
     from opus_magnum_sym.elements.board import Board, Hex
@@ -79,5 +78,5 @@ class Exit(Component):
         if set(molecule) != set(cells):
             return
         board.pop_molecule(self.pos)
-        level_counter.record_finished(comp.idx for comp in exits)
+        self.env.results.record_finished(comp.idx for comp in exits)
         self.log_action("consumed", self.atom_type.name.lower(), self.pos)

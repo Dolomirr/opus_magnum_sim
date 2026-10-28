@@ -2,6 +2,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest  # noqa: INP001
+from fixtures.shapes import entrance_straight_2, exit_straight_2
 
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.actions.base_action import ActionAssignmentError
@@ -294,34 +295,6 @@ def test_rotation_wraparound():
     assert arm.get_hand_pos == start
 
 
-@pytest.mark.xfail(reason="Blocked release is now a collision, not retry-until no-op", strict=True)
-def test_release_onto_occupied_keeps_holding_until_free():
-    sim = Simulator((5, 5))
-    sim.add_component(Hex(4, 4), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)
-    sim.add_component(Hex(4, 3), ComponentType.EXIT, atom_type=AtomType.BASIC)
-    sim.add_component(Hex(1, 1), ComponentType.ARM)  # rotation 0 -> hand (0, 2)
-    arm_id = _arm_id(sim)
-    atom = Atom(AtomType.BASIC)
-    sim.board.place_atom(Hex(0, 2), atom)
-    sim.assign_step_action(arm_id, 1, StepActionType.GRAB)
-    sim.assign_step_action(arm_id, 2, StepActionType.ROTATE_CLW)  # hand -> (1, 2)
-    sim.assign_step_action(arm_id, 3, StepActionType.RELEASE)  # blocked
-    sim.assign_step_action(arm_id, 4, StepActionType.ROTATE_CLW)  # hand -> (2, 1)
-    sim.assign_step_action(arm_id, 5, StepActionType.RELEASE)  # succeeds
-
-    for _ in range(3):
-        sim.next_step()  # grab + rotate, hand now (1, 2)
-
-    sim.board.place_atom(Hex(1, 2), Atom(AtomType.BASIC))  # blocker arrives late
-
-    for _ in range(3):
-        sim.next_step()  # blocked release, rotate to (2, 1), release
-
-    assert sim.components[arm_id].holding is None
-    assert sim.board.get_atom(Hex(2, 1)) is atom
-    assert sim.board.get_atom(Hex(1, 2)) is not None  # blocker untouched
-
-
 def test_extend_raises_for_basic_arm():
     sim = _flow_sim()
     arm_id = _arm_id(sim)
@@ -519,8 +492,8 @@ def test_dsl_arm_piston_extend_retract_actions():
 
 def test_place_full_delivery_flow():
     sim = Simulator((6, 6))
-    sim.place("entrance_straight_2", Hex(2, 3), rotation=1, atom_type=AtomType.SALT)
-    sim.place("exit_straight_2", Hex(3, 2), rotation=2, atom_type=AtomType.SALT)
+    sim.place(entrance_straight_2(), Hex(2, 3), rotation=1, atom_type=AtomType.SALT)
+    sim.place(exit_straight_2(), Hex(3, 2), rotation=2, atom_type=AtomType.SALT)
     arm_record = sim.place("arm", Hex(3, 3))
     (arm_id,) = arm_record.component_ids
 
@@ -544,6 +517,8 @@ def test_place_full_delivery_flow():
 
 def test_dsl_place_full_flow():
     dsl = Simulator((6, 6))
+    dsl.blueprints.register(entrance_straight_2())
+    dsl.blueprints.register(exit_straight_2())
     interp = SimInterpreter(dsl)
     interp.evaluate_line("place entrance_straight_2 2 3 rotation=1 atom_type=salt")
     interp.evaluate_line("place exit_straight_2 3 2 rotation=2 atom_type=salt")
@@ -565,8 +540,8 @@ def test_dsl_place_full_flow():
 
     # API-level run of the identical scenario, for board-state interop check.
     api = Simulator((6, 6))
-    api.place("entrance_straight_2", Hex(2, 3), rotation=1, atom_type=AtomType.SALT)
-    api.place("exit_straight_2", Hex(3, 2), rotation=2, atom_type=AtomType.SALT)
+    api.place(entrance_straight_2(), Hex(2, 3), rotation=1, atom_type=AtomType.SALT)
+    api.place(exit_straight_2(), Hex(3, 2), rotation=2, atom_type=AtomType.SALT)
     arm_record = api.place("arm", Hex(3, 3))
     (arm_id,) = arm_record.component_ids
     api.assign_step_action(arm_id, 1, StepActionType.GRAB)

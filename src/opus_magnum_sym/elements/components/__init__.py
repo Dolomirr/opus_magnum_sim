@@ -1,10 +1,12 @@
 # src/opus_magnum_sim/elements/components/__init__.py
 from .base_component import ComponentType
 from .blueprints import (
+    BlueprintRegistry,
     ComponentSpec,
     ManipulatorSpec,
     ShapeCell,
     ShapeTemplate,
+    default_registry,
     get_blueprint,
     list_blueprints,
     register_blueprint,
@@ -16,6 +18,7 @@ from .manipulator import Manipulator, RetractableManipulator
 from .salt_transmuter import SaltTransmuter
 
 __all__ = [
+    "BlueprintRegistry",
     "ComponentSpec",
     "ComponentType",
     "Connector",
@@ -29,6 +32,7 @@ __all__ = [
     "SaltTransmuter",
     "ShapeCell",
     "ShapeTemplate",
+    "default_registry",
     "get_blueprint",
     "list_blueprints",
     "register_blueprint",

@@ -37,6 +37,9 @@ uv run opus-magnum run --steps 30 \
 
 # Validate a solution file
 uv run opus-magnum validate examples/test_flow.oms
+
+# Run a level (starting conditions) + its solution
+uv run opus-magnum run --level examples/place_delivery.oml examples/place_delivery.oms
 ```
 
 The REPL accepts DSL commands directly and meta-commands prefixed with `!` (e.g. `!run 30`, `!load examples/test_flow.oms`, `!list`, `!help`; also `!history [n]`, `!edit`/`!e`, and `!viz [on|off]` to toggle visualization). Tab completion (commands, component/action names, ids, file paths), history-based auto-suggestions, and persistent history (`~/.cache/opus_magnum_sym/repl_history`) are wired up in `repl/sim_repl.py` via prompt_toolkit.
@@ -64,14 +67,15 @@ src/opus_magnum_sym/
 │   ├── actions/        # Per-step action enum (StepActionType)
 │   ├── board/          # Hex grid, coordinates, directions
 │   ├── components/     # Components: arms, entrance, exit; blueprints.py (placement templates)
-│   ├── env/            # Global-ish helpers: index manager, level counter
+│   ├── env/            # Per-level env state: index manager, result counter, LevelEnv
 │   └── atoms/          # Atom type/instances + molecule BFS (molecule.py)
-├── interpreter/        # Parses .oms solution files
+├── interpreter/        # Parses .oms solution files; level_loader.py parses .oml level files
+├── levels/             # Level definition model (spec.py), runtime (level.py), result (result.py)
 ├── render/             # Pygame-based visualization
 ├── repl/               # Interactive REPL
 └── simulation/         # Simulator orchestration; placement.py (PlacementRecord)
 tests/                  # pytest tests + conftest.py (reset global state fixture)
-examples/               # Example .oms solutions + ad-hoc integration scripts
+examples/               # Example .oms/.oml files + ad-hoc integration scripts
 ```
 
 ## 4. Coordinate System
@@ -102,21 +106,22 @@ When placing components or reading the board, always use `Hex(r, s)`.
 ### Components (`elements/components/`)
 
 - `Component` is an abstract dataclass; every concrete component has:
-  - `idx`: unique ID from the global index manager.
+  - `idx`: unique ID allocated by the component's `LevelEnv` index manager.
   - `pos`: `Hex` location on the board.
   - `type`: `ComponentType`.
   - `rotation`: `0..5`.
   - `_programm`: a dict mapping simulation step → `StepActionType`.
   - `footprint()`: cells occupied by the component's base (default `[pos]`; multi-cell components override it as a pure function of `pos` + `rotation`).
-- `ComponentType` values: `ENTRANCE`, `EXIT`, `ARM`, `ARM_RETR`, `TRANSPORTER`.
+- `ComponentType` values: `ENTRANCE`, `EXIT`, `ARM`, `ARM_RETR`, `TRANSPORTER`, `CONNECTOR`, `DISCONNECTOR`, `SALT_TRANSMUTER`, `DUPLICATION_GLYPH`.
 - Concrete classes:
   - `Manipulator` (`ARM`) — rotates, grabs/releases atoms at its hand position.
+  - `RetractableManipulator` (`ARM_RETR`) — piston arm; hand slides along the rotation axis (`EXTEND`/`RETRACT`).
   - `Enter` (`ENTRANCE`) — spawns an `Atom` of its configured `AtomType` if the cell is empty, then bonds it to any connected entrance partners.
-  - `Exit` (`EXIT`) — accepts a full molecule via group exact-cover matching (see "Connected entrances/exits" below) and increments `level_counter.CORRECT_FINISHED`.
+  - `Exit` (`EXIT`) — accepts a full molecule via group exact-cover matching (see "Connected entrances/exits" below) and records a finished molecule in its env's `ResultCounter`.
 
 ### Atoms (`elements/atoms/atom.py`)
 
-- `AtomType`: `NONE` and `BASIC` (the only atom kind so far).
+- `AtomType`: `NONE`, `BASIC`, `FIRE`, `WATER`, `EARTH`, `AIR`, `SALT`, `METAL`. `NONE` and `BASIC` are non-game placeholders rejected by the high-level placement API (`sim.place`) and by level entrypoints.
 - `Atom`: an instance placed on the board via `board.place_atom`. It carries `connections` — a list of 6 slots (`Atom | None`), one per neighbor direction, indexed by rotation index `0..5` matching `Direction().from_rotation(rotation)`; the opposite of slot `i` is slot `(i + 3) % 6`. `connect` / `disconnect` / `connection_at` maintain these slots reciprocally, and `rotate_connections(steps)` rotates every slot in place.
 - Bonds are created manually (low-level, by cell) via `Board.connect_atoms` / `Board.disconnect_atoms`. `molecule.py::collect_molecule(root)` runs a BFS to return all atoms connected to `root`.
 - `Atom.connect` / `Atom.disconnect` are the low-level slot primitives with no positional validation; all bonding/removal from `src/` must route through `Board.connect_atoms` / `Board.disconnect_atoms`, which reject non-adjacent cells.
@@ -145,13 +150,13 @@ sim.next_step()  # advances one simulation step
 
 - On `step == 0` the simulator verifies that both an entrance and an exit exist.
 - Each step calls `execute_step` on every non-entrypoint component, then on entrypoints. **Order may cause race conditions** — be careful when extending logic.
-- Component IDs are allocated globally via `elements/env/index_manager.py`. In tests, reset it with `im.reset()`.
+- Component IDs are allocated per-environment via `elements/env/index_manager.py` (an `IndexManager` owned by the simulator's `LevelEnv`). In tests, reset the module default with `im.reset()`.
 
 ### Connected entrances/exits (`elements/components/connections.py`)
 
 - `ConnectionGraph` is a pure-id undirected link graph (`add`, `remove`, `remove_component`, `links_of`, `group_of`); `group_of` returns the transitive closure including the node itself.
 - `Simulator.connect_components(id_a, id_b)` links two components, returning `False` (no state change) unless both ids exist, differ, are not already linked, share the same type, and that type is `ENTRANCE` or `EXIT`, and the two cells are adjacent. `disconnect_components` removes an existing link.
-- On any link change the simulator refreshes each entrypoint's `group` list (its transitive neighbours). Linked entrances bond their spawned atoms together; linked exits accept a molecule only when it covers every group cell exactly (set equality), consuming the whole molecule and incrementing `CORRECT_FINISHED` once.
+- On any link change the simulator refreshes each entrypoint's `group` list (its transitive neighbours). Linked entrances bond their spawned atoms together; linked exits accept a molecule only when it covers every group cell exactly (set equality), consuming the whole molecule and recording one finished molecule in the env's `ResultCounter`.
 
 ### Blueprints & placement (`elements/components/blueprints.py`, `simulation/placement.py`)
 
@@ -160,7 +165,19 @@ sim.next_step()  # advances one simulation step
   - `ShapeTemplate` — a multi-cell group of linkable entrypoint components (`ENTRANCE`, `EXIT`, `CONNECTOR`, `DISCONNECTOR`). At runtime it exists as N ordinary components wired through the existing `ConnectionGraph`. Carries `cells` (offset + per-cell kwargs), `links` (index pairs), and optional `allowed_rotations`.
   - `ManipulatorSpec` — a capability descriptor for an arm variant (`arm_count`, `extendable`, `min_length`/`max_length`). Variants are data, not enum values or subclasses.
 - Registry functions: `register_blueprint`, `get_blueprint`, `list_blueprints` (returns name + `implemented` flag). `implemented=False` blueprints are registerable but not placeable (place raises `SimulationRuntimeError`).
+- The global `default_registry` holds the built-ins (arm specs, connector shapes, `salt_transmuter`, `glyph_duplication`). Each `Simulator` clones it at construction (`default_registry.clone()`), so per-simulator registrations never leak into the global registry or other simulators. The straight-2 entrance/exit PoC shapes (`entrance_straight_2` / `exit_straight_2`) are **not** registered globally; define them per-level.
 - `Simulator.placements` records every placement; `Simulator.remove_placement(record)` removes the member components (which purges their links) and the record. `reset()` clears placements.
+
+### Level concept (`levels/`)
+
+A **level** bundles a puzzle's starting conditions and its own runtime state, so levels run independently of one another. Public names (from `levels/__init__.py`): `EntrypointSpec`, `LevelSpec`, `Level`, `LevelResult`, `LevelError`, `LevelStatus`.
+
+- `LevelSpec` (frozen dataclass, `levels/spec.py`) — immutable, validated starting conditions: board `size`, local `ShapeTemplate`s, a tuple of `EntrypointSpec`, an `allowed_blueprints` frozenset, and a `steps` limit. Validation enforces: unique shape names; every entrypoint resolves to a *local* shape with matching `comp_type`; every allow-list name resolves locally or in the global default registry and is `implemented`; at least one entrance and one exit; positive size and steps; entrypoint cells (computed from shape offsets + rotation, pure `Hex`/`Direction` math) in bounds and pairwise non-overlapping. It never touches a `Simulator`.
+- `EntrypointSpec` (frozen dataclass) — one entrance or exit: `kind` (`ENTRANCE`/`EXIT`), `shape` name, `pos` (`Hex`), `rotation` (0..5), `atom_type`. `atom_type` may not be `NONE`/`BASIC` (mirrors the `place` guard).
+- `Level` (`levels/level.py`) — built from a `LevelSpec`; owns a `Simulator` with a fresh `LevelEnv` and a cloned blueprint registry; registers the spec's shapes, sets `allowed_blueprints`, and places each entrypoint with one `sim.place(...)` call. Solution-building delegates: `place`, `assign_step_action`, `remove_placement`, `load_solution(path)`. `run(steps=None)` advances up to the spec limit (or the override) and returns a `LevelResult` instead of raising. `Level.from_file(path)` builds from a `.oml` file.
+- `LevelResult` / `LevelError` / `LevelStatus` (`levels/result.py`) — `status` is `COMPLETED` or `ERROR`; `error` carries the exception class name, message, `step`, and optional `CollisionEvent`; `finished` maps exit-cluster id sets to counts, `finished_by_exit` maps spec exit-entrypoint index to counts (zeros filled), `total_finished` sums them; `metrics` is reserved (empty) for future eval parameters.
+
+**Invariants**: a level's component ids, result counters, and blueprint registry never leak across levels. `AtomType.BASIC`/`NONE` are non-game placeholders rejected from level entrypoints and from `sim.place`, but remain available to the low-level `add_component` path.
 
 ### Interpreter (`interpreter/sim_interpreter.py`)
 
@@ -202,6 +219,21 @@ Keyword arguments supported by `_handle_comp`:
 - `rotation=<int>` — initial rotation
 - `length=<int>` — arm length
 
+### Level files (`.oml`, `interpreter/level_loader.py`)
+
+The same starting conditions are loadable from text, alongside the `.oms` solution format. `LevelLoader` reuses the shlex-per-line style but is strict: errors raise `LevelLoadError` with the offending line number (unlike `SimInterpreter`, which prints and continues).
+
+```text
+size <rows> <cols>
+steps <n>
+allow <name> [name ...]
+shape <name> <kind> cells=(r,s),(r,s),... links=i-j,i-j [rotations=0,1,...]
+entrance <shape> <r> <s> [rotation=k] atom_type=<type>
+exit <shape> <r> <s> [rotation=k] atom_type=<type>
+```
+
+`kind` is a `ComponentType` name (`entrance`, `exit`, `connector`, ...); `atom_type` is an `AtomType` name (never `none`/`basic`). Reference demo: `examples/place_delivery.oml` (level) + `examples/place_delivery.oms` (solution), run end-to-end via `Level.from_file` + `load_solution` + `run`.
+
 ## 6. Rendering
 
 `render/renderer.py` uses `pygame-ce`. `BoardRenderer` draws the grid, components, objects, and manipulator hands. It is typically driven from the REPL or from ad-hoc scripts like `examples/_test_flow.py`.
@@ -210,7 +242,7 @@ Keyword arguments supported by `_handle_comp`:
 
 - Tests live in `tests/` and use `pytest`.
 - `tests/conftest.py` provides an autouse `clean_state` fixture that resets the global `index_manager` and `level_counter` before every test. Because these keep module-level state, any test that allocates component IDs or runs the simulator relies on it.
-- Coverage is behavior-focused (architecture regression guards): `test_atom.py` (connection slots), `test_board.py` (atom placement/movement, `move_atom` atomicity), `test_manipulator.py` (arm grab/release, movement recording, ENDPOINT_OVERLAP payloads), `test_simulator.py` (entrance spawn, exit consume, arm moving an atom to the exit, sweep collisions), `test_geometry.py` (hex↔xy mapping, offset rotation, circle overlap), `test_movement.py` (`Movement.atom_xy` interpolation), `test_collision.py` (`detect_collision` unit tests).
+- Coverage is behavior-focused (architecture regression guards): `test_atom.py` (connection slots), `test_board.py` (atom placement/movement, `move_atom` atomicity), `test_manipulator.py` (arm grab/release, movement recording, ENDPOINT_OVERLAP payloads), `test_simulator.py` (entrance spawn, exit consume, arm moving an atom to the exit, sweep collisions), `test_geometry.py` (hex↔xy mapping, offset rotation, circle overlap), `test_movement.py` (`Movement.atom_xy` interpolation), `test_collision.py` (`detect_collision` unit tests), `test_level_env.py` (per-env id/counter isolation), `test_blueprint_registry.py` (registry isolation/clone), `test_level_spec.py` (spec validation branches), `test_level.py` (level run/result/independence), `test_level_loader.py` (`.oml` parsing and demo end-to-end). Shared builders live in `tests/fixtures/` (`shapes.py`, `levels.py`).
 - Logging goes through `opus_magnum_sym.logging`. `configure_logging(pretty=True)` (REPL default) emits aligned columns with one separator between setup and runtime; `configure_logging(pretty=False)` emits raw stdlib messages. Do not use `icecream` in source.
 - Ruff is heavily configured in `pyproject.toml`. Most docstring rules and unused-import rules are intentionally ignored; do not fight the existing lint list unless asked.
 
@@ -234,17 +266,23 @@ Keyword arguments supported by `_handle_comp`:
 - Use `Simulator` as the underlying engine.
 - Expose `board.get_state()` as observations.
 - Map actions to `assign_step_action` calls and step with `next_step()`.
-- Use `level_counter.CORRECT_FINISHED` or custom reward logic.
+- Use `sim.env.results.total_finished()` or wrap a `Level` and inspect its `LevelResult`.
+
+### Define and run a level
+
+1. Build a `LevelSpec` (or `Level.from_file("level.oml")`) with local shapes, entrypoints, allow-list, and step limit.
+2. Construct a `Level(spec)` — it owns a fresh env and a cloned blueprint registry, and places the entrypoints.
+3. Build the solution through `level.place(...)` / `level.assign_step_action(...)`, or `level.load_solution("solution.oms")`.
+4. `result = level.run()` returns a `LevelResult`; inspect `result.status`, `result.total_finished`, `result.finished_by_exit`, and `result.error`.
 
 ## 9. Known Limitations / TODOs
 
-- Connector / disconnector / transporter components themselves are not implemented; the link graph and `connection` DSL command exist only as the structure they will plug into.
-- `EXTEND`, `RETRACT`, `MOVE_POS`, `MOVE_NEG` are declared but largely unimplemented.
-- The blueprint type surface (Stage 2+) exists, but multi-arm and piston arm variants are data-only: `arm_piston`, `arm_double`, `arm_triple`, `arm_hex` are registered as `ManipulatorSpec` with `implemented=False`, so `sim.place` (and the `place` DSL command) reject them. Only the basic `arm` spec (`arm_count=1`, `extendable=False`) is placeable; constructing a `Manipulator` with `arm_count != 1` raises `ComponentAssignmentError`.
-- Only a single atom kind (`AtomType.BASIC`) exists. Atoms have per-direction connection slots and manual bonding, but alchemical glyphs, multiple bond types, and bond rendering are not modeled.
+- The transporter component (`TRANSPORTER`) has no concrete class and is not implemented.
+- `EXTEND`/`RETRACT` are implemented only for the piston arm (`arm_piston`, `RetractableManipulator`); the basic arm rejects them. `MOVE_POS`/`MOVE_NEG` remain declared but unimplemented.
+- Multi-arm specs (`arm_double`, `arm_triple`, `arm_hex`) are data-only (`implemented=False`): constructing a `Manipulator` with `arm_count != 1` raises `ComponentAssignmentError`. Single-arm `arm` and `arm_piston` are placeable.
+- Atoms carry per-direction connection slots and manual bonding, but alchemical glyph effects, multiple bond types, and bond rendering are not modeled. `AtomType.NONE`/`BASIC` are non-game placeholders rejected by the high-level placement API and level entrypoints.
 - The simulator runs components in two hard-coded phases; simultaneous actions can race.
 - Mechanical molecule collision is structural: an arm can't move/release into a cell held by another arm (cell-level), and can't move a molecule that is also held by another arm (`Atom.held_by` is a set of holder ids — a shared molecule is blocked from moving rather than torn into two places). Note: the current whole-molecule grab (`Board.pop_molecule`) removes the entire connected molecule, so a second arm can't grab an already-held molecule — the shared-holder state is currently unreachable, and the shared-move guard only triggers once grab is changed to allow multiple holders.
-- `level_counter.CORRECT_FINISHED` is a module-level counter — not suitable for parallel environments without refactoring. It counts delivered molecules (not atoms), so a lone exit no longer tears apart a multi-atom molecule touching it.
 - `Board.place_componet` retains a typo in the source; preserve existing naming unless refactoring.
 
 ## 10. Files to Read First
