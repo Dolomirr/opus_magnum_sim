@@ -5,7 +5,7 @@ from fixtures.levels import make_level_spec
 
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import Atom, AtomType
-from opus_magnum_sym.elements.board import Hex
+from opus_magnum_sym.elements.board import Direction, Hex
 from opus_magnum_sym.elements.components import ComponentType, ShapeCell, ShapeTemplate, get_blueprint
 from opus_magnum_sym.levels import EntrypointSpec, Level, LevelSpec, LevelStatus
 from opus_magnum_sym.simulation.collision import CollisionCategory
@@ -116,6 +116,43 @@ def test_collision_yields_error_with_metadata():
     assert event.owner_ids == (arm_id,)
     # No steps are incremented past the failing step.
     assert result.steps == 2
+
+
+def test_linked_exit_entrypoints_reported_in_finished_by_exit(tmp_path):
+    """A solution `connection`-linking two exits lands deliveries under the union cluster key."""
+    exit_a = Hex(3, 3)
+    exit_b = Direction.H3.apply(exit_a)
+    spec = LevelSpec(
+        size=(6, 6),
+        shapes=(
+            _single_cell_shape("entrance_1", ComponentType.ENTRANCE),
+            _single_cell_shape("exit_1", ComponentType.EXIT),
+        ),
+        entrypoints=(
+            EntrypointSpec(kind=ComponentType.ENTRANCE, shape="entrance_1", pos=Hex(1, 1), atom_type=AtomType.SALT),
+            EntrypointSpec(kind=ComponentType.EXIT, shape="exit_1", pos=exit_a, atom_type=AtomType.SALT),
+            EntrypointSpec(kind=ComponentType.EXIT, shape="exit_1", pos=exit_b, atom_type=AtomType.SALT),
+        ),
+        allowed_blueprints=frozenset(),
+        steps=1,
+    )
+    level = Level(spec)
+    exit_ids = [record.component_ids[0] for record in level._exit_records]
+
+    solution = tmp_path / "link_exits.oms"
+    solution.write_text(f"connection {exit_ids[0]} {exit_ids[1]}\n")
+    level.load_solution(solution)
+
+    board = level.sim.board
+    board.place_atom(exit_a, Atom(AtomType.SALT))
+    board.place_atom(exit_b, Atom(AtomType.SALT))
+    board.connect_atoms(exit_a, exit_b)
+
+    result = level.run()
+
+    union = frozenset(exit_ids)
+    assert result.finished == {union: 1}
+    assert result.finished_by_exit == {0: 1, 1: 1}
 
 
 def test_two_levels_stay_independent():
