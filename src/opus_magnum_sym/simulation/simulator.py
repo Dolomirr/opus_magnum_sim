@@ -156,6 +156,8 @@ class Simulator:
         for comp in self.entrypoints.values():
             group = [self._lookup(i) for i in self.connections.group_of(comp.idx)]
             comp.group = [c for c in group if c is not None and c.idx != comp.idx]  # ty: ignore
+            links = [self._lookup(i) for i in self.connections.links_of(comp.idx)]
+            comp.links = [c for c in links if c is not None]
 
     def connect_components(self, id_a: int, id_b: int) -> bool:
         comp_a = self._lookup(id_a)
@@ -339,7 +341,9 @@ class Simulator:
         placed_ids: list[int] = []
         try:
             for cell, template_cell in zip(cells, blueprint.cells, strict=True):
-                kwargs = {**template_cell.kwargs, **overrides}
+                # Cell kwargs takes priority over placement overrides,
+                # so per-cell atom types are never overwritten by blanket placement `atom_type`.
+                kwargs = {**overrides, **template_cell.kwargs}
                 before = set(self.components) | set(self.entrypoints)
                 self.add_component(cell, blueprint.comp_type, **kwargs)
                 (comp_id,) = (set(self.components) | set(self.entrypoints)) - before
