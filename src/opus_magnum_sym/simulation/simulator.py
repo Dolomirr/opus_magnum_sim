@@ -43,6 +43,7 @@ class Simulator:
         self.step = 0
         self.collision: CollisionEvent | None = None
         self.placements: list[PlacementRecord] = []
+        self.allowed_blueprints: set[str] | None = None
 
     def _verify_init_state(self):
         # TODO: create more granular verification if needed
@@ -221,6 +222,10 @@ class Simulator:
                 raise SimulationRuntimeError(msg, step=self.step) from exc
         if not blueprint.implemented:
             msg = f"Blueprint {name!r} is not implemented and cannot be placed."
+            raise SimulationRuntimeError(msg, step=self.step)
+
+        if self.allowed_blueprints is not None and name not in self.allowed_blueprints:
+            msg = f"Blueprint {name!r} is not allowed in this level."
             raise SimulationRuntimeError(msg, step=self.step)
 
         if overrides.get("atom_type") is AtomType.BASIC:
