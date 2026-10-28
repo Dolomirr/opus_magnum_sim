@@ -29,14 +29,12 @@ class Level:
             self.sim.blueprints.register(shape)
 
         self._entrypoint_records: list[PlacementRecord] = []
-        self._exit_cluster_keys: dict[int, frozenset[int]] = {}
-        exit_index = 0
+        self._exit_records: list[PlacementRecord] = []
         for ep in spec.entrypoints:
             record = self.sim.place(ep.shape, ep.pos, rotation=ep.rotation, atom_type=ep.atom_type)
             self._entrypoint_records.append(record)
             if ep.kind is ComponentType.EXIT:
-                self._exit_cluster_keys[exit_index] = frozenset(record.component_ids)
-                exit_index += 1
+                self._exit_records.append(record)
 
         # Gate solution placements only after entrypoints are on the board;
         # entrypoint shapes are *not* part of the allow-list.
@@ -107,9 +105,27 @@ class Level:
 
         return self._snapshot(status, error)
 
+    def _exit_cluster_key(self, record: PlacementRecord) -> frozenset[int]:
+        """
+        Current exit cluster id set for `record`, from the live connection graph.
+
+        Matches `ResultCounter` key, essentially a closure of exit ids.
+
+        Connections only link same-type components, so for exits contains only exits.
+        Recomputed at snapshot time so a solution that links
+        or splits exit entrypoints is reflected in `finished_by_exit`.
+        """
+        ids: set[int] = set()
+        for comp_id in record.component_ids:
+            ids.update(self.sim.connections.group_of(comp_id))
+        return frozenset(ids)
+
     def _snapshot(self, status: LevelStatus, error: LevelError | None) -> LevelResult:
         finished = self.sim.env.results.clusters()
-        finished_by_exit = {index: finished.get(key, 0) for index, key in self._exit_cluster_keys.items()}
+        finished_by_exit = {
+            index: finished.get(self._exit_cluster_key(record), 0)
+            for index, record in enumerate(self._exit_records)
+        }
         return LevelResult(
             status=status,
             error=error,
