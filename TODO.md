@@ -15,9 +15,10 @@
     - ...
 - [ ] Composed multi hex components (predefined shapes, rather than freestyle).
     - [ ] Pre-defined entrances and exits placement [Level completion logic]
-        - [ ] Way of describing such shapes (and possibly "finding root"?)
+        - [x] ~Way of describing such shapes (and possibly "finding root"?)~
+        - [ ] Allow placing them in both level spec and solution.
     - [ ] Fixed shapes of components.
-        - [ ] Various shape connectors.
+        - [x] Various shape connectors.
         - [x] Snowflake manipulators
         - [ ] Destructors.
 - [x] Atom connection.
@@ -33,10 +34,10 @@
     - [x] Actual components to glue/un-glue molecules.
 - [ ] Level completion logic
     - [x] Per-exit counters (each should be correct).
-    - [ ] Move things like `index_manager` and `result_counter` to Simulator or separate Level to isolate envs.
+    - [x] Move things like `index_manager` and `result_counter` to Simulator or separate Level to isolate envs.
     - [ ] Actual validation of level.
     - [ ] Stale level detection (then no steps limit is given)
-    - [ ] Entrances and exists verification, connected to [Composed multi hex components]
+    - [x] Entrances and exists verification, connected to [Composed multi hex components]
     - [ ] Conditions to mark level as correct / finished.
     - [ ] Results counters.
         - [ ] Steps.
@@ -60,7 +61,7 @@
     - [ ] (?) C+- - Ah shiiit here we go again...
     - [ ] (?) Nim - Can be nice, but not transparent.
     - [ ] Prepare for static structures.
-        - [ ] Atoms store as limited pre-allocated array (since board is not infinite) with ids.
+        - [x] ~Atoms store as limited pre-allocated array (since board is not infinite) with ids.~
         - Classify what cannot be handled statically.
         - ...
     - [ ] (?) Consider bitmap collision overlap checking, instead of full sub-step pass.
