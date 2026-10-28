@@ -134,10 +134,7 @@ class MetaInterpreter:
                 print(f"    actions: {actions}")
         for record in self.repl.sim.placements:
             ids = ", ".join(str(i) for i in record.component_ids)
-            print(
-                f"placement {record.blueprint} at {record.pos} "
-                f"rotation={record.rotation} ids=[{ids}]"
-            )
+            print(f"placement {record.blueprint} at {record.pos} rotation={record.rotation} ids=[{ids}]")
 
     def _history(self, args: list[str]) -> None:
         n = 20
@@ -171,11 +168,11 @@ class MetaInterpreter:
         for comp in components:
             parts = [f"comp {comp.pos.r} {comp.pos.s} {comp.type.name.lower()}"]
             if hasattr(comp, "atom_type"):
-                parts.append(f"atom_type={comp.atom_type.name.lower()}")
+                parts.append(f"atom_type={comp.atom_type.name.lower()}")  # ty: ignore
             if getattr(comp, "rotation", 0):
                 parts.append(f"rotation={comp.rotation}")
             if getattr(comp, "hand_length", 1) != 1:
-                parts.append(f"length={comp.hand_length}")
+                parts.append(f"length={comp.hand_length}")  # ty: ignore
             lines.append(" ".join(parts))
 
         lines.append("")

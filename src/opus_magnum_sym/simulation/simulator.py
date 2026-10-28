@@ -155,7 +155,7 @@ class Simulator:
     def _refresh_groups(self) -> None:
         for comp in self.entrypoints.values():
             group = [self._lookup(i) for i in self.connections.group_of(comp.idx)]
-            comp.group = [c for c in group if c is not None and c.idx != comp.idx]
+            comp.group = [c for c in group if c is not None and c.idx != comp.idx]  # ty: ignore
 
     def connect_components(self, id_a: int, id_b: int) -> bool:
         comp_a = self._lookup(id_a)
