@@ -10,9 +10,10 @@ src/opus_magnum_sym/
 │   ├── actions/    # Movement and manipulation actions
 │   ├── board/      # Grid/board representation
 │   ├── components/ # Game components
-│   ├── env/        # Environment state management
-│   └── atoms/      # Atoms (with future bonding slots).
-├── interpreter     # Parses .oms solution/state files
+│   ├── env/        # Per-level environment state (ids, result counters)
+│   └── atoms/      # Atoms (with bonding slots).
+├── interpreter     # Parses .oms solution files and .oml level files
+├── levels          # Level definition model, runtime, and results
 ├── render          # Visualization (pygame-based)
 ├── repl            # Interactive REPL interface
 └── simulation      # Core simulation engine
@@ -102,10 +103,94 @@ Physical overlap includes atoms or arm bases touching during movement, two movin
 
 `.oms` files contain Opus Magnum solutions in a custom text format. See `test_flow.oms` for an example.
 
+## Library Usage: Levels
+
+A *level* bundles a puzzle's starting conditions and its own runtime state (component ids, result counters, blueprint registry), so levels run independently of one another. The public API lives in `opus_magnum_sym.levels`.
+
+### Define a level in Python
+
+```python
+from opus_magnum_sym.elements.actions.actions import StepActionType
+from opus_magnum_sym.elements.atoms.atom import AtomType
+from opus_magnum_sym.elements.board import Hex
+from opus_magnum_sym.elements.components import ComponentType, ShapeCell, ShapeTemplate
+from opus_magnum_sym.levels import EntrypointSpec, Level, LevelSpec, LevelStatus
+
+# Local two-cell straight entrance and exit shapes.
+entrance = ShapeTemplate(
+    name="entrance_straight_2",
+    comp_type=ComponentType.ENTRANCE,
+    cells=(ShapeCell(offset=Hex(0, 0)), ShapeCell(offset=Hex(-1, 1))),
+    links=((0, 1),),
+)
+exit_ = ShapeTemplate(
+    name="exit_straight_2",
+    comp_type=ComponentType.EXIT,
+    cells=(ShapeCell(offset=Hex(0, 0)), ShapeCell(offset=Hex(-1, 1))),
+    links=((0, 1),),
+)
+
+spec = LevelSpec(
+    size=(6, 6),
+    shapes=(entrance, exit_),
+    entrypoints=(
+        EntrypointSpec(ComponentType.ENTRANCE, "entrance_straight_2", Hex(2, 3), AtomType.SALT, rotation=1),
+        EntrypointSpec(ComponentType.EXIT, "exit_straight_2", Hex(3, 2), AtomType.SALT, rotation=2),
+    ),
+    allowed_blueprints=frozenset({"arm"}),
+    steps=30,
+)
+
+level = Level(spec)
+arm = level.place("arm", Hex(3, 3))
+(arm_id,) = arm.component_ids
+level.assign_step_action(arm_id, 1, StepActionType.GRAB)
+for step in (2, 3, 4, 5):
+    level.assign_step_action(arm_id, step, StepActionType.ROTATE_CLW)
+level.assign_step_action(arm_id, 6, StepActionType.RELEASE)
+
+result = level.run()
+print(result.status)           # LevelStatus.COMPLETED
+print(result.total_finished)   # 1
+print(result.finished_by_exit) # {0: 1}
+```
+
+### Load a level and solution from files
+
+The same starting conditions are loadable from a `.oml` file (via `Level.from_file`), and the solution from a `.oms` file (`Level.load_solution`):
+
+```python
+level = Level.from_file("examples/place_delivery.oml")
+level.load_solution("examples/place_delivery.oms")
+result = level.run()
+```
+
+A `.oml` level file defines `size`, `steps`, an `allow` list, local `shape` definitions, and `entrance`/`exit` placements:
+
+```text
+size 6 6
+steps 30
+shape entrance_straight_2 entrance cells=(0,0),(-1,1) links=0-1
+shape exit_straight_2 exit cells=(0,0),(-1,1) links=0-1
+entrance entrance_straight_2 2 3 rotation=1 atom_type=salt
+exit exit_straight_2 3 2 rotation=2 atom_type=salt
+allow arm
+```
+
+### Run a level from the CLI
+
+```bash
+uv run opus-magnum run --level examples/place_delivery.oml examples/place_delivery.oms
+```
+
+The `LevelResult` (`levels/result.py`) reports `status` (`COMPLETED`/`ERROR`), the steps executed, per-exit finished counts (`finished` / `finished_by_exit`), `total_finished`, and an optional `error` with exception metadata (and collision event, when the run collided).
+
 ## Key Components
 
 - **elements/**: Defines atoms, bonds, arms, glyphs, and board state
 - **interpreter/sim_interpreter.py**: Parses `.oms` files into executable instructions
+- **interpreter/level_loader.py**: Parses `.oml` level files into a `LevelSpec`
+- **levels/**: Level definition model (`LevelSpec`), runtime (`Level`), and results (`LevelResult`)
 - **simulation/simulator.py**: Executes instructions, manages simulation state
 - **render/renderer.py**: Visualizes the simulation using pygame-ce
 
