@@ -5,7 +5,6 @@ from collections.abc import Sequence
 import pygame
 
 from opus_magnum_sym.elements.components.base_component import ComponentType
-from opus_magnum_sym.elements.env import level_counter
 from opus_magnum_sym.interpreter import SimInterpreter
 from opus_magnum_sym.logging import configure_logging
 from opus_magnum_sym.render.factory import create_renderer
@@ -52,7 +51,7 @@ def _run_headless(file: str | None, steps: int, commands: list[str] | None = Non
         print(e, file=sys.stderr)
         sys.exit(1)
 
-    print(f"Ran {steps} steps. Correct finished: {level_counter.total_finished()}")
+    print(f"Ran {steps} steps. Correct finished: {sim.env.results.total_finished()}")
 
 
 def _validate(file: str) -> None:
