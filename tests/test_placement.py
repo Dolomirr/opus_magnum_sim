@@ -132,10 +132,13 @@ def test_rotation_validation():
         assert record.rotation == rotation
 
 
-@pytest.mark.parametrize(("name", "allowed"), [
-    ("connector_tri", {0, 2, 4}),
-    ("connector_tri_odd", {1, 3, 5}),
-])
+@pytest.mark.parametrize(
+    ("name", "allowed"),
+    [
+        ("connector_tri", {0, 2, 4}),
+        ("connector_tri_odd", {1, 3, 5}),
+    ],
+)
 def test_y_template_accepts_all_and_only_its_rotations(name, allowed):
     for rotation in range(6):
         sim = _make_sim()
