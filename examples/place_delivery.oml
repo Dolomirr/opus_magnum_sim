@@ -1,0 +1,23 @@
+# Reference level demo: delivery through straight-2 entrance and exit pair.
+#
+# The level file defines the starting conditions.
+# The solution defines placement and actions.
+#
+# This is level.
+# The solution lives in `examples/place_delivery.oms`
+
+size 6 6
+steps 30
+
+# Entrypoint shapes are defined locally.
+shape entrance_straight_2 entrance cells=(0,0),(-1,1) links=0-1
+shape exit_straight_2 exit cells=(0,0),(-1,1) links=0-1
+
+# Entrance pair spawns bonded 2-atom molecule on step 0.
+entrance entrance_straight_2 2 3 rotation=1 atom_type=salt
+
+# Exit pair consumes molecule only if it covers both cells exactly.
+exit exit_straight_2 3 2 rotation=2 atom_type=salt
+
+# Blueprints available to the solution.
+allow arm
