@@ -2,6 +2,10 @@
 default:
     @just --list
 
+alias t  := test
+alias tv := test-verbose
+alias r  := repl
+
 # Open interactive REPL (with Pygame window visualization)
 repl:
     uv run opus-magnum repl
