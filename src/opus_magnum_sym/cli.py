@@ -6,6 +6,7 @@ import pygame
 
 from opus_magnum_sym.elements.components.base_component import ComponentType
 from opus_magnum_sym.interpreter import SimInterpreter
+from opus_magnum_sym.levels import Level, LevelStatus
 from opus_magnum_sym.logging import configure_logging
 from opus_magnum_sym.render.factory import create_renderer
 from opus_magnum_sym.repl import SimREPL
@@ -52,6 +53,35 @@ def _run_headless(file: str | None, steps: int, commands: list[str] | None = Non
         sys.exit(1)
 
     print(f"Ran {steps} steps. Correct finished: {sim.env.results.total_finished()}")
+
+
+def _run_level(
+    level_file: str, solution_file: str | None, steps: int | None, commands: list[str] | None = None
+) -> None:
+    configure_logging()
+    try:
+        level = Level.from_file(level_file)
+    except Exception as e:
+        print(f"Failed to load level: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    if solution_file is not None:
+        level.load_solution(solution_file)
+    for command in commands or []:
+        SimInterpreter(level.sim).evaluate_line(command)
+
+    result = level.run(steps=steps)
+
+    if result.status is LevelStatus.ERROR:
+        if result.error is not None:
+            print(result.error.message, file=sys.stderr)
+        sys.exit(1)
+
+    print(
+        f"status={result.status.value} steps={result.steps} "
+        f"total_finished={result.total_finished} "
+        f"finished_by_exit={result.finished_by_exit}"
+    )
 
 
 def _validate(file: str) -> None:
@@ -107,7 +137,11 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     run_parser = subparsers.add_parser("run", help="run a solution headlessly")
     run_parser.add_argument("file", nargs="?", help="solution file to load before running inline commands")
-    run_parser.add_argument("--steps", type=int, default=30)
+    run_parser.add_argument(
+        "--level",
+        help="level file (.oml) defining starting conditions; the positional file becomes the solution",
+    )
+    run_parser.add_argument("--steps", type=int, default=None)
     run_parser.add_argument(
         "--command",
         "-c",
@@ -125,9 +159,12 @@ def main(argv: Sequence[str] | None = None) -> None:
         case "validate":
             _validate(args.file)
         case "run":
-            if not args.file and not args.command:
-                parser.error("'run' requires either a file or at least one -c/--command")
-            _run_headless(args.file, args.steps, commands=args.command)
+            if args.level is not None:
+                _run_level(args.level, args.file, args.steps, commands=args.command)
+            else:
+                if not args.file and not args.command:
+                    parser.error("'run' requires either a file or at least one -c/--command")
+                _run_headless(args.file, 30 if args.steps is None else args.steps, commands=args.command)
         case _:
             start_repl(args.file, headless=args.headless, commands=args.command)
 
