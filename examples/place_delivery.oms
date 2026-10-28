@@ -1,14 +1,18 @@
 
-# full delivery through the high-level `place` API
+# full delivery through linked single-cell primitives
 
 # Linked entrance pair spawns a bonded 2-atom molecule on step 0.
-place entrance_straight_2 2 3 rotation=1 atom_type=basic   # ids 0,1 -> (2,3),(2,4)
+comp 2 3 entrance atom_type=basic   # id 0 -> (2,3)
+comp 2 4 entrance atom_type=basic   # id 1 -> (2,4)
+connection 0 1
 
 # Linked exit pair consumes the molecule once it exactly covers both cells.
-place exit_straight_2 3 2 rotation=2 atom_type=basic       # ids 2,3 -> (3,2),(4,2)
+comp 3 2 exit atom_type=basic       # id 2 -> (3,2)
+comp 4 2 exit atom_type=basic       # id 3 -> (4,2)
+connection 2 3
 
 # Arm at (3,3), rotation 0 -> hand over the entrance beam (2,4).
-place arm 3 3                                              # id 4
+comp 3 3 arm                       # id 4
 
 # Steps 1-2 are empty: watch the bonded pair sit loose on the entrance.
 # Grab, then four clockwise swings walk the pair onto the exit, then release.

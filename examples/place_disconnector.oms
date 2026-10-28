@@ -10,10 +10,12 @@ connection 0 1
 comp 9 9 exit atom_type=basic           # id 2
 
 # Linked entrance pair spawns a bonded 2-atom molecule on step 0.
-place entrance_straight_2 2 3 rotation=1 atom_type=basic   # ids 3,4 -> (2,3),(2,4)
+comp 2 3 entrance atom_type=basic       # id 3 -> (2,3)
+comp 2 4 entrance atom_type=basic       # id 4 -> (2,4)
+connection 3 4
 
 # Arm at (3,3), rotation 0 -> hand over the entrance beam (2,4).
-place arm 3 3                           # id 5
+comp 3 3 arm                            # id 5
 
 # Step 1 is empty: the bonded pair sits loose on the entrance.
 # Grab, then two clockwise swings carry the pair onto the disconnectors.
