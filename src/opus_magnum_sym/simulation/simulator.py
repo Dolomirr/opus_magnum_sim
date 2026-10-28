@@ -2,7 +2,6 @@ from typing import TYPE_CHECKING
 
 from icecream import ic
 
-import opus_magnum_sym.elements.env.index_manager as im
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board import Board, Direction, Hex
@@ -15,7 +14,7 @@ from opus_magnum_sym.elements.components import (
 )
 from opus_magnum_sym.elements.components.components_index import get_component_type
 from opus_magnum_sym.elements.components.connections import ConnectionGraph
-from opus_magnum_sym.elements.env import level_counter
+from opus_magnum_sym.elements.env.level_env import LevelEnv, default_env
 from opus_magnum_sym.logging import logger
 from opus_magnum_sym.simulation.collision import CollisionEvent, detect_collision
 from opus_magnum_sym.simulation.errors import SimulationCollisionError, SimulationRuntimeError
@@ -27,9 +26,10 @@ if TYPE_CHECKING:
 
 
 class Simulator:
-    def __init__(self, size: tuple[int, int]) -> None:
+    def __init__(self, size: tuple[int, int], env: LevelEnv | None = None) -> None:
         self.board: Board = Board(*size)
-        self.im = im
+        self.env = env if env is not None else default_env
+        self.im = self.env.im
         self.components: dict[int, Component] = {}
         self.entrypoints: dict[int, Component] = {}
         self.connections = ConnectionGraph()
@@ -111,12 +111,14 @@ class Simulator:
         comp_type: ComponentType,
         **kwargs,
     ):
-        new_id = im.allocate()
+        new_id = self.im.allocate()
         comp = get_component_type(comp_type)(idx=new_id, pos=cell, **kwargs)
         if not self.board.place_component_cells(comp.footprint(), comp_type, new_id):
-            im.free(new_id)
+            self.im.free(new_id)
             msg = f"Cannot place {comp_type.name.lower()} at ({cell.r}, {cell.s})."
             raise SimulationRuntimeError(msg, step=self.step)
+
+        comp.env = self.env
 
         if comp_type in {
             ComponentType.ENTRANCE,
@@ -355,5 +357,4 @@ class Simulator:
         self.step = 0
         self.collision = None
         self.placements.clear()
-        self.im.reset()
-        level_counter.reset()
+        self.env.reset()
