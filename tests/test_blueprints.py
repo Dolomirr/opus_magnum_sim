@@ -115,8 +115,6 @@ class TestBuiltins:
             "connector_straight_2",
             "connector_tri",
             "connector_tri_odd",
-            "entrance_straight_2",
-            "exit_straight_2",
             "arm",
             "arm_piston",
             "arm_double",

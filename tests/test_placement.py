@@ -13,7 +13,6 @@ from opus_magnum_sym.elements.components import (
     RetractableManipulator,
     ShapeCell,
     ShapeTemplate,
-    register_blueprint,
 )
 from opus_magnum_sym.simulation.errors import SimulationRuntimeError
 from opus_magnum_sym.simulation.simulator import Simulator
@@ -95,20 +94,18 @@ def test_place_rollback_on_link_failure():
     # (only adjacency, bounds, and self-links are checked) but fails at
     # wiring time: the second link is already present in the graph.
     beam_offset = Direction().from_rotation(0).apply(Hex(0, 0))
-    register_blueprint(
-        ShapeTemplate(
-            "duplicate_link_test",
-            ComponentType.CONNECTOR,
-            cells=(
-                ShapeCell(offset=Hex(0, 0)),
-                ShapeCell(offset=beam_offset),
-            ),
-            links=((0, 1), (0, 1)),
-        )
+    template = ShapeTemplate(
+        "duplicate_link_test",
+        ComponentType.CONNECTOR,
+        cells=(
+            ShapeCell(offset=Hex(0, 0)),
+            ShapeCell(offset=beam_offset),
+        ),
+        links=((0, 1), (0, 1)),
     )
 
     with pytest.raises(SimulationRuntimeError, match="invalid link"):
-        sim.place("duplicate_link_test", center, atom_type=AtomType.SALT)
+        sim.place(template, center, atom_type=AtomType.SALT)
 
     assert im.active_count() == baseline
     assert set(sim.components) | set(sim.entrypoints) == before_ids

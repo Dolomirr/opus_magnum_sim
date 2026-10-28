@@ -1,4 +1,5 @@
 import pytest  # noqa: INP001
+from fixtures.shapes import entrance_straight_2, exit_straight_2
 
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import Atom, AtomType
@@ -141,12 +142,19 @@ def test_exit_consumes_only_matching_atom_type():
 
 @pytest.mark.parametrize(
     "name",
-    ["entrance_straight_2", "exit_straight_2", "connector_straight_2"],
+    ["connector_straight_2", "connector_tri", "salt_transmuter"],
 )
 def test_place_blueprint_rejects_basic(name):
     sim = Simulator((6, 6))
     with pytest.raises(SimulationRuntimeError, match="cannot use atom_type 'basic'"):
         sim.place(name, Hex(2, 3), atom_type=AtomType.BASIC)
+
+
+@pytest.mark.parametrize("factory", [entrance_straight_2, exit_straight_2])
+def test_place_shape_object_rejects_basic(factory):
+    sim = Simulator((6, 6))
+    with pytest.raises(SimulationRuntimeError, match="cannot use atom_type 'basic'"):
+        sim.place(factory(), Hex(2, 3), atom_type=AtomType.BASIC)
 
 
 def test_add_component_still_allows_basic():

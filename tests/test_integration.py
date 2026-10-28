@@ -2,6 +2,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest  # noqa: INP001
+from fixtures.shapes import entrance_straight_2, exit_straight_2
 
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.actions.base_action import ActionAssignmentError
@@ -491,8 +492,8 @@ def test_dsl_arm_piston_extend_retract_actions():
 
 def test_place_full_delivery_flow():
     sim = Simulator((6, 6))
-    sim.place("entrance_straight_2", Hex(2, 3), rotation=1, atom_type=AtomType.SALT)
-    sim.place("exit_straight_2", Hex(3, 2), rotation=2, atom_type=AtomType.SALT)
+    sim.place(entrance_straight_2(), Hex(2, 3), rotation=1, atom_type=AtomType.SALT)
+    sim.place(exit_straight_2(), Hex(3, 2), rotation=2, atom_type=AtomType.SALT)
     arm_record = sim.place("arm", Hex(3, 3))
     (arm_id,) = arm_record.component_ids
 
@@ -516,6 +517,8 @@ def test_place_full_delivery_flow():
 
 def test_dsl_place_full_flow():
     dsl = Simulator((6, 6))
+    dsl.blueprints.register(entrance_straight_2())
+    dsl.blueprints.register(exit_straight_2())
     interp = SimInterpreter(dsl)
     interp.evaluate_line("place entrance_straight_2 2 3 rotation=1 atom_type=salt")
     interp.evaluate_line("place exit_straight_2 3 2 rotation=2 atom_type=salt")
@@ -537,8 +540,8 @@ def test_dsl_place_full_flow():
 
     # API-level run of the identical scenario, for board-state interop check.
     api = Simulator((6, 6))
-    api.place("entrance_straight_2", Hex(2, 3), rotation=1, atom_type=AtomType.SALT)
-    api.place("exit_straight_2", Hex(3, 2), rotation=2, atom_type=AtomType.SALT)
+    api.place(entrance_straight_2(), Hex(2, 3), rotation=1, atom_type=AtomType.SALT)
+    api.place(exit_straight_2(), Hex(3, 2), rotation=2, atom_type=AtomType.SALT)
     arm_record = api.place("arm", Hex(3, 3))
     (arm_id,) = arm_record.component_ids
     api.assign_step_action(arm_id, 1, StepActionType.GRAB)
