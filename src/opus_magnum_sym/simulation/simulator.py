@@ -6,11 +6,12 @@ from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board import Board, Direction, Hex
 from opus_magnum_sym.elements.components import (
+    BlueprintRegistry,
     ComponentSpec,
     ComponentType,
     ManipulatorSpec,
     ShapeTemplate,
-    get_blueprint,
+    default_registry,
 )
 from opus_magnum_sym.elements.components.components_index import get_component_type
 from opus_magnum_sym.elements.components.connections import ConnectionGraph
@@ -26,10 +27,16 @@ if TYPE_CHECKING:
 
 
 class Simulator:
-    def __init__(self, size: tuple[int, int], env: LevelEnv | None = None) -> None:
+    def __init__(
+        self,
+        size: tuple[int, int],
+        env: LevelEnv | None = None,
+        blueprints: BlueprintRegistry | None = None,
+    ) -> None:
         self.board: Board = Board(*size)
         self.env = env if env is not None else default_env
         self.im = self.env.im
+        self.blueprints = blueprints if blueprints is not None else default_registry.clone()
         self.components: dict[int, Component] = {}
         self.entrypoints: dict[int, Component] = {}
         self.connections = ConnectionGraph()
@@ -103,8 +110,6 @@ class Simulator:
 
         self.step += 1
 
-    # TODO: do something with kwargs
-    # TODO: rework id logic (again)
     def add_component(
         self,
         cell: Hex,
@@ -197,12 +202,23 @@ class Simulator:
         self.im.free(comp_id)
         self._refresh_groups()
 
-    def place(self, name: str, pos: Hex, rotation: int = 0, **overrides) -> PlacementRecord:
-        try:
-            blueprint = get_blueprint(name)
-        except KeyError as exc:
-            msg = f"Unknown blueprint {name!r}."
-            raise SimulationRuntimeError(msg, step=self.step) from exc
+    def place(
+        self,
+        name: str | ShapeTemplate,
+        pos: Hex,
+        rotation: int = 0,
+        **overrides,
+    ) -> PlacementRecord:
+        if isinstance(name, ShapeTemplate):
+            self.blueprints.register(name)
+            blueprint = name
+            name = name.name
+        else:
+            try:
+                blueprint = self.blueprints.get(name)
+            except KeyError as exc:
+                msg = f"Unknown blueprint {name!r}."
+                raise SimulationRuntimeError(msg, step=self.step) from exc
         if not blueprint.implemented:
             msg = f"Blueprint {name!r} is not implemented and cannot be placed."
             raise SimulationRuntimeError(msg, step=self.step)
