@@ -42,6 +42,16 @@ class Level:
         # entrypoint shapes are *not* part of the allow-list.
         self.sim.allowed_blueprints = set(spec.allowed_blueprints)
 
+    # AAA.
+    @classmethod
+    def from_file(cls, path: str | Path) -> Level:
+        """
+        Build a level from a `.oml` file.
+        """
+        from opus_magnum_sym.interpreter.level_loader import LevelLoader  # noqa: PLC0415
+
+        return cls(LevelLoader().load_file(path))
+
     # solution building
 
     def place(self, name, pos, rotation: int = 0, **overrides) -> PlacementRecord:
