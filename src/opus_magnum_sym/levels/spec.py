@@ -77,6 +77,7 @@ class LevelSpec:
     `shapes` holds the shape templates that entrypoints resolve against;
     `allowed_blueprints` defines solution placements
     It can allow either local shape (entrypoints) or built-in from global default registry (components/glyphs).
+    `target` is the per-exit delivery requirement; `None` (or `0`) disables early termination.
     """
 
     size: tuple[int, int]
@@ -86,6 +87,7 @@ class LevelSpec:
     steps: int
     entrypoints_fixed: bool = True
     atom_types: frozenset[AtomType] = frozenset()
+    target: int | None = None
 
     def __post_init__(self) -> None:
         rows, cols = self.size
@@ -93,6 +95,13 @@ class LevelSpec:
             raise ValueError(f"LevelSpec size must be positive, got {self.size!r}")
         if self.steps <= 0:
             raise ValueError(f"LevelSpec steps must be positive, got {self.steps}")
+        if self.target is not None:
+            if not isinstance(self.target, int):
+                raise ValueError(f"LevelSpec target must be an int or None, got {self.target!r}")
+            if self.target < 0:
+                raise ValueError(f"LevelSpec target must not be negative, got {self.target}")
+            if self.target == 0:
+                object.__setattr__(self, "target", None)
 
         shape_names = [shape.name for shape in self.shapes]
         if len(set(shape_names)) != len(shape_names):
