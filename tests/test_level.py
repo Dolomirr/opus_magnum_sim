@@ -1,7 +1,10 @@
 """Level runtime and result tests (Stage 4)."""
 
+from pathlib import Path
+
 import pytest  # noqa: INP001
 from fixtures.levels import make_level_spec
+from fixtures.shapes import entrance_straight_2, exit_straight_2
 
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import Atom, AtomType
@@ -177,3 +180,138 @@ def test_two_levels_stay_independent():
     # Entrypoint shapes are registered per-level, never in the global registry.
     with pytest.raises(KeyError, match="entrance_straight_2"):
         get_blueprint("entrance_straight_2")
+
+
+# --- unfixed entrypoints (solution-placed) ---
+
+EXAMPLES_DIR = Path(__file__).parent.parent / "examples"
+
+
+def _unfixed_straight_spec() -> LevelSpec:
+    return LevelSpec(
+        size=(6, 6),
+        shapes=(entrance_straight_2(), exit_straight_2()),
+        entrypoints=(
+            EntrypointSpec(
+                kind=ComponentType.ENTRANCE,
+                shape="entrance_straight_2",
+                atom_type=AtomType.SALT,
+            ),
+            EntrypointSpec(
+                kind=ComponentType.EXIT,
+                shape="exit_straight_2",
+                atom_type=AtomType.SALT,
+            ),
+        ),
+        allowed_blueprints=frozenset({"arm"}),
+        steps=30,
+        entrypoints_fixed=False,
+    )
+
+
+def test_unfixed_happy_path(tmp_path):
+    level = Level(_unfixed_straight_spec())
+    solution = tmp_path / "unfixed.oms"
+    solution.write_text(
+        "place entrance_straight_2 2 3 rotation=1 atom_type=salt\n"
+        "place exit_straight_2 3 2 rotation=2 atom_type=salt\n"
+        "place arm 3 3\n"
+        "action 4 1 grab\n"
+        "action 4 2 rotate_clw\n"
+        "action 4 3 rotate_clw\n"
+        "action 4 4 rotate_clw\n"
+        "action 4 5 rotate_clw\n"
+        "action 4 6 release\n"
+    )
+    level.load_solution(solution)
+
+    result = level.run()
+
+    assert result.status is LevelStatus.COMPLETED
+    assert result.error is None
+    assert result.total_finished == 1
+    assert result.finished_by_exit == {0: 1}
+
+
+def test_unfixed_missing_exit_fails(tmp_path):
+    level = Level(_unfixed_straight_spec())
+    solution = tmp_path / "missing_exit.oms"
+    solution.write_text("place entrance_straight_2 2 3 rotation=1 atom_type=salt\n")
+    level.load_solution(solution)
+
+    result = level.run()
+
+    assert result.status is LevelStatus.FAILED
+    assert result.error is not None
+    assert result.error.step == 0
+    assert result.steps == 0
+    # The simulator is untouched: no step advanced, nothing consumed.
+    assert level.sim.step == 0
+    assert level.sim.env.results.total_finished() == 0
+
+
+def test_unfixed_duplicate_exit_fails(tmp_path):
+    level = Level(_unfixed_straight_spec())
+    solution = tmp_path / "dup_exit.oms"
+    solution.write_text(
+        "place entrance_straight_2 2 3 rotation=1 atom_type=salt\n"
+        "place exit_straight_2 3 2 rotation=2 atom_type=salt\n"
+        "place exit_straight_2 4 3 rotation=2 atom_type=salt\n"
+    )
+    level.load_solution(solution)
+
+    result = level.run()
+
+    assert result.status is LevelStatus.FAILED
+    assert result.steps == 0
+    assert level.sim.step == 0
+
+
+def test_unfixed_copies_per_exit_counts(tmp_path):
+    spec = LevelSpec(
+        size=(6, 6),
+        shapes=(
+            _single_cell_shape("entrance_1", ComponentType.ENTRANCE),
+            _single_cell_shape("exit_1", ComponentType.EXIT),
+        ),
+        entrypoints=(
+            EntrypointSpec(kind=ComponentType.ENTRANCE, shape="entrance_1", atom_type=AtomType.SALT),
+            EntrypointSpec(kind=ComponentType.EXIT, shape="exit_1", atom_type=AtomType.SALT),
+            EntrypointSpec(kind=ComponentType.EXIT, shape="exit_1", atom_type=AtomType.SALT),
+        ),
+        allowed_blueprints=frozenset(),
+        steps=1,
+        entrypoints_fixed=False,
+    )
+    level = Level(spec)
+    exit_a = Hex(3, 3)
+    exit_b = Hex(4, 4)
+    solution = tmp_path / "copies.oms"
+    solution.write_text(
+        "place entrance_1 1 1 atom_type=salt\n"
+        f"place exit_1 {exit_a.r} {exit_a.s} atom_type=salt\n"
+        f"place exit_1 {exit_b.r} {exit_b.s} atom_type=salt\n"
+    )
+    level.load_solution(solution)
+
+    board = level.sim.board
+    board.place_atom(exit_a, Atom(AtomType.SALT))
+    board.place_atom(exit_b, Atom(AtomType.SALT))
+
+    result = level.run()
+
+    assert result.status is LevelStatus.COMPLETED
+    assert result.total_finished == 2
+    assert result.finished_by_exit == {0: 1, 1: 1}
+
+
+def test_typed_exit_demo_end_to_end():
+    level = Level.from_file(EXAMPLES_DIR / "typed_delivery.oml")
+    level.load_solution(EXAMPLES_DIR / "typed_delivery.oms")
+
+    result = level.run()
+
+    assert result.status is LevelStatus.COMPLETED
+    assert result.error is None
+    assert result.total_finished == 1
+    assert result.finished_by_exit == {0: 1}
