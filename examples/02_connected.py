@@ -1,3 +1,8 @@
+"""
+DEPRECATED - low-level connected entrance/exit API.
+See `examples/29_connected_pair.py`.
+"""
+
 import time
 
 from opus_magnum_sym.elements.actions.actions import StepActionType

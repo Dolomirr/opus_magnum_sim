@@ -1,0 +1,29 @@
+
+# Deliver fire atom and water atom to their matching exits.
+#
+# DEPRECATED - uses low-level `comp` primitives.
+
+# Fire entrace and exit.
+comp 2 3 entrance atom_type=fire  # id 0
+comp 2 4 exit atom_type=fire      # id 1
+
+# Water entrance and exit.
+comp 4 3 entrance atom_type=water # id 2
+comp 3 4 exit atom_type=water     # id 3
+
+# Arm at (3,3).
+comp 3 3 arm                      # id 4
+
+# Step 0: both entrances spawn atoms.
+# Step 1-4: deliver fire.
+action 4 1 rotate_cclw
+action 4 2 grab
+action 4 3 rotate_clw
+action 4 4 release
+
+# Step 5-9: deliver water.
+action 4 5 rotate_clw
+action 4 6 rotate_clw
+action 4 7 grab
+action 4 8 rotate_cclw
+action 4 9 release

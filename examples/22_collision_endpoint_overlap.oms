@@ -1,3 +1,8 @@
+
+# Collision endpoint overlap: rotating arm moves held atom onto an occupied cell.
+#
+# DEPRECATED - uses low-level `comp` primitives.
+
 comp 2 6 entrance atom_type=basic # id 0
 
 comp 4 6 entrance atom_type=basic # id 1

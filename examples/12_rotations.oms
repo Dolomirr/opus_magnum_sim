@@ -1,7 +1,10 @@
 
-# shows two manipulator rotation actions
+# Shows two manipulator rotation actions
 # full rotation with arm moving around base
-# in-place rotation with arm staying as is, and only held molecule rotates around the hand
+# in-place rotation with arm staying as is,
+# and only held molecule rotates around the hand
+#
+# DEPRECATED - uses low-level `comp` primitives.
 
 # connected entrances
 comp 4 5 entrance atom_type=basic # id 0

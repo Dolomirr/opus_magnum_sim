@@ -1,8 +1,11 @@
 
-# reference layout of linked single-cell primitives on one board
+# Reference layout of linked single-cell primitives on one board
+#
+# DEPRECATED - uses low-level `comp` primitives.
 
-# Entrance and exit pairs (also satisfy run/validate; the entrance pair spawns a
-# loose bonded molecule on step 0 so it can be seen before anything moves).
+# Entrance and exit pairs spawns loose bonded molecule
+# on step 0 so it can be seen before anything moves.
+
 comp 2 3 entrance atom_type=basic   # id 0  -> (2,3)
 comp 2 4 entrance atom_type=basic   # id 1  -> (2,4)
 connection 0 1
@@ -11,9 +14,12 @@ comp 6 3 exit atom_type=basic       # id 2  -> (6,3)
 comp 6 4 exit atom_type=basic       # id 3  -> (6,4)
 connection 2 3
 
-# Connector glyphs. Atoms must be dropped on them to bond. Each shape below is
-# expressed as single-cell connectors wired together: a straight pair, then a
-# 4-cell Y and its mirrored variant.
+# Connector glyphs
+# Atoms must be dropped on them to bond.
+# Each shape below is expressed as
+# single-cell connectors bound together:
+# straight pair, 4-cell Y and its mirrored variant.
+
 comp 4 3 connector atom_type=basic  # id 4  -> (4,3)
 comp 4 4 connector atom_type=basic  # id 5  -> (4,4)
 connection 4 5
@@ -34,8 +40,6 @@ connection 10 11
 connection 10 12
 connection 10 13
 
-# Basic arm.
+# Basic arm
 comp 4 5 arm                       # id 14 -> (4,5)
 
-# No actions scheduled: the entrance pair above spawns a bonded molecule on
-# step 0 and it sits loose across every subsequent empty step.

@@ -1,5 +1,7 @@
 
-# bond pair of atoms, then unbond them
+# Bond pair of atoms, then unbond them
+#
+# DEPRECATED - uses low-level `comp` primitives.
 
 comp 2 4 entrance atom_type=basic     # id 0
 comp 3 4 connector atom_type=basic    # id 1
