@@ -16,7 +16,7 @@
         - [x] Allow placing them in both level spec and solution.
     - [x] Fixed shapes of components.
         - [x] Various shape connectors.
-        - [x] Snowflake manipulators
+        - [ ] Update unfixed entrypoints API, see `examples/41_unfixed_delivery.oml` with `salt` placeholder.
 - [x] Atom connection.
     - [x] Generic multi hex components.
     - [x] Dynamic atoms IDs.
@@ -39,7 +39,7 @@
         - [ ] Const per-component.
         - [ ] (?) Used space.
 - [ ] (?) Add more planned components.
-    - [ ] Multi-arm manipulators
+    - [ ] Multi-arm (snowflake) manipulators
     - [ ] Conveyor belt
     - [ ] Destructor (either simple 1-cell or original 7-cell)
 - [x] ! Collision
