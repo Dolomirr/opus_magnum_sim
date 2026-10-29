@@ -4,11 +4,11 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 from fixtures.levels import make_level_spec
-from fixtures.shapes import entrance_straight_2, exit_straight_2, straight_shape
+from fixtures.shapes import entrance_straight_2, exit_straight_2, straight_shape, typed_exit
 
 from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board import Hex
-from opus_magnum_sym.elements.components import ComponentType
+from opus_magnum_sym.elements.components import ComponentType, ShapeCell, ShapeTemplate
 from opus_magnum_sym.levels import EntrypointSpec
 
 
@@ -141,3 +141,125 @@ def test_entrypoint_cell_out_of_bounds():
 def test_entrypoint_cells_non_overlapping():
     with pytest.raises(ValueError, match="overlaps"):
         make_level_spec(entrypoints=(_entrance(), _exit(pos=Hex(2, 3), rotation=1)))
+
+
+# --- fixed / unfixed modes ---
+
+
+def test_fixed_mode_requires_position():
+    with pytest.raises(ValueError, match="requires a position"):
+        make_level_spec(entrypoints=(_entrance(pos=None), _exit()))
+
+
+def test_unfixed_mode_rejects_position():
+    with pytest.raises(ValueError, match="must not specify a position"):
+        make_level_spec(entrypoints_fixed=False, entrypoints=(_entrance(), _exit(pos=None)))
+
+
+def test_unfixed_mode_allows_positionless_entrypoints():
+    spec = make_level_spec(
+        entrypoints_fixed=False,
+        entrypoints=(_entrance(pos=None), _exit(pos=None)),
+    )
+    assert all(ep.pos is None for ep in spec.entrypoints)
+
+
+# --- atom_type fallback requirement ---
+
+
+def test_atom_type_required_for_untyped_shape():
+    with pytest.raises(ValueError, match="requires atom_type"):
+        make_level_spec(entrypoints=(_entrance(atom_type=None), _exit()))
+
+
+def test_atom_type_optional_when_all_cells_typed():
+    spec = make_level_spec(
+        shapes=(entrance_straight_2(), typed_exit()),
+        entrypoints=(
+            _entrance(pos=Hex(1, 1), rotation=0),
+            _exit(shape="typed_exit", pos=Hex(4, 4), rotation=0, atom_type=None),
+        ),
+    )
+    assert spec.entrypoints[1].atom_type is None
+
+
+# --- declared atom_types ---
+
+
+def test_atom_types_reject_forbidden_values():
+    with pytest.raises(ValueError, match="atom_types"):
+        make_level_spec(atom_types=frozenset({AtomType.SALT, AtomType.BASIC}))
+
+
+def test_atom_types_must_include_entrypoint_types():
+    with pytest.raises(ValueError, match="not declared in atom_types"):
+        make_level_spec(
+            shapes=(entrance_straight_2(), typed_exit()),
+            entrypoints=(
+                _entrance(pos=Hex(1, 1), rotation=0),
+                _exit(shape="typed_exit", pos=Hex(4, 4), rotation=0, atom_type=None),
+            ),
+            atom_types=frozenset({AtomType.SALT}),
+        )
+
+
+def test_atom_types_accepts_declared_superset():
+    spec = make_level_spec(
+        shapes=(entrance_straight_2(), typed_exit()),
+        entrypoints=(
+            _entrance(pos=Hex(1, 1), rotation=0),
+            _exit(shape="typed_exit", pos=Hex(4, 4), rotation=0, atom_type=None),
+        ),
+        atom_types=frozenset({AtomType.SALT, AtomType.WATER, AtomType.FIRE}),
+    )
+    assert spec.atom_types == frozenset({AtomType.SALT, AtomType.WATER, AtomType.FIRE})
+
+
+# --- duplicate entrypoints (copies) ---
+
+
+def test_duplicate_entrypoints_same_shape_legal():
+    spec = make_level_spec(
+        entrypoints=(
+            _entrance(pos=Hex(1, 1), rotation=0),
+            _exit(pos=Hex(3, 3), rotation=0),
+            _exit(pos=Hex(4, 4), rotation=0),
+        ),
+    )
+    assert [ep.shape for ep in spec.entrypoints].count("exit_straight_2") == 2
+
+
+# --- typed-cell kwargs validation ---
+
+
+def test_shape_rejects_unknown_typed_cell_key():
+    bad = ShapeTemplate(
+        name="bad_exit",
+        comp_type=ComponentType.EXIT,
+        cells=(ShapeCell(offset=Hex(0, 0), kwargs={"bogus": 1}),),
+        links=(),
+    )
+    with pytest.raises(ValueError, match="unknown typed-cell parameter"):
+        make_level_spec(shapes=(entrance_straight_2(), exit_straight_2(), bad))
+
+
+def test_shape_rejects_non_atom_type_typed_cell():
+    bad = ShapeTemplate(
+        name="bad_exit",
+        comp_type=ComponentType.EXIT,
+        cells=(ShapeCell(offset=Hex(0, 0), kwargs={"atom_type": "salt"}),),
+        links=(),
+    )
+    with pytest.raises(ValueError, match="invalid atom_type"):
+        make_level_spec(shapes=(entrance_straight_2(), exit_straight_2(), bad))
+
+
+def test_shape_rejects_forbidden_typed_cell():
+    bad = ShapeTemplate(
+        name="bad_exit",
+        comp_type=ComponentType.EXIT,
+        cells=(ShapeCell(offset=Hex(0, 0), kwargs={"atom_type": AtomType.BASIC}),),
+        links=(),
+    )
+    with pytest.raises(ValueError, match="invalid atom_type"):
+        make_level_spec(shapes=(entrance_straight_2(), exit_straight_2(), bad))
