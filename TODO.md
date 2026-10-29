@@ -56,6 +56,7 @@
     - [ ] (?) Possibly only level-wise max steps limit [Level completion logic]
     - [ ] Indef step levels
     - [ ] Stale level detection (then no steps limit is given)
+    - [ ] Ensure entranced does not bypass held in manipulators atoms
 - [ ] Exporting board state on steps via python structure (full serialization).
 - [ ] Optimization.
     - [x] Headless simulation.
@@ -73,7 +74,7 @@
 - [ ] Cleanup.
     - [ ] (?) Block low-level API
     - [ ] Remove global state level (switch REPL to instanced)
-    - [ ] Organize `examples/`
+    - [x] Organize `examples/`
 - [ ] ~(?) Interactive simulation control via keyboard (is it really needed?).~
   - [ ] (?) Keyboard control.
   - [ ] (?) Interactive adding.
