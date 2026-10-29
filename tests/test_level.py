@@ -184,7 +184,7 @@ def test_two_levels_stay_independent():
 
 # --- unfixed entrypoints (solution-placed) ---
 
-EXAMPLES_DIR = Path(__file__).parent.parent / "examples"
+FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
 def _unfixed_straight_spec() -> LevelSpec:
@@ -306,8 +306,8 @@ def test_unfixed_copies_per_exit_counts(tmp_path):
 
 
 def test_typed_exit_demo_end_to_end():
-    level = Level.from_file(EXAMPLES_DIR / "typed_delivery.oml")
-    level.load_solution(EXAMPLES_DIR / "typed_delivery.oms")
+    level = Level.from_file(FIXTURES_DIR / "typed_delivery.oml")
+    level.load_solution(FIXTURES_DIR / "typed_delivery.oms")
 
     result = level.run()
 

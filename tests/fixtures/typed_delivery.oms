@@ -1,0 +1,11 @@
+place entrance_typed 2 3 rotation=1
+place exit_typed 3 2 rotation=2
+
+place arm 3 3
+
+action 4 1 grab
+action 4 2 rotate_clw
+action 4 3 rotate_clw
+action 4 4 rotate_clw
+action 4 5 rotate_clw
+action 4 6 release
