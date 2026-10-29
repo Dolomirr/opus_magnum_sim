@@ -1,3 +1,40 @@
+"""
+Interactive REPL: read DSL and meta commands, drive a `Simulator`, and render the board.
+
+Lines not starting with `!` (or `:`) are DSL input; `!`-prefixed lines are meta commands.
+Each placed component gets an auto-incrementing id (from `0`) shown on its program bar.
+
+DSL commands (handled by `SimInterpreter`):
+
+| command                                                  | alias | effect                                   |
+|----------------------------------------------------------|-------|------------------------------------------|
+| `comp <r> <s> <type> [key=value ...]`                    | `c`   | place a component                        |
+| `place <blueprint> <r> <s> [rotation=R] [key=value ...]` | -     | place a blueprint                        |
+| `action <id> <step> <action_type>`                       | `a`   | schedule a step action (`none` to clear) |
+| `remove <id>`                                            | `rm`  | remove a component                       |
+| `connection <id_a> <id_b>`                               | -     | link two components                      |
+| `disconnection <id_a> <id_b>`                            | -     | unlink two components                    |
+
+Meta commands (handled by `MetaInterpreter`):
+
+| command         | alias          | effect                                             |
+|-----------------|----------------|----------------------------------------------------|
+| `!load <path>`  | `!r`           | apply a `.oms` file to the running simulation      |
+| `!save [path]`  | `!w`           | save the current solution (default `solution.oms`) |
+| `!run [n]`      | -              | run `n` steps (default 30), redrawing each step    |
+| `!step [n]`     | `!s`           | advance a single step (or `n`)                     |
+| `!reset`        | `!clear`, `!c` | clear board, ids, step counter, and counters       |
+| `!list`         | -              | list components with ids and assigned actions      |
+| `!history [n]`  | `!h`           | show the last `n` commands (default 20)            |
+| `!edit`         | `!e`           | edit the solution in `$EDITOR`, then reload        |
+| `!viz [on/off]` | -              | toggle visualization                               |
+| `!help`         | -              | show available commands                            |
+| `!quit`         | `!q`, `!exit`  | exit the REPL                                      |
+
+`!load` merges into the running simulation (it does not reset the board first); load into a
+fresh session for a clean state. History persists at `~/.cache/opus_magnum_sym/repl_history`.
+"""
+
 from collections.abc import Iterable
 from pathlib import Path
 

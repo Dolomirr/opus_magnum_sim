@@ -1,5 +1,60 @@
 """
 Level runtime: build a simulator from a `LevelSpec` and run it to a result.
+
+Level bundles puzzle's starting conditions with its own runtime state,
+so levels run independently of one another.
+
+The high-level entry point is `Level.from_file` and `load_solution` + `run`;
+the spec can also be constructed in Python:
+
+```python
+from opus_magnum_sym.elements.actions.actions import StepActionType
+from opus_magnum_sym.elements.atoms.atom import AtomType
+from opus_magnum_sym.elements.board import Hex
+from opus_magnum_sym.elements.components import ComponentType, ShapeCell, ShapeTemplate
+from opus_magnum_sym.levels import EntrypointSpec, Level, LevelSpec
+
+# Local two-cell straight entrance and exit shapes.
+entrance = ShapeTemplate(
+    name="entrance_straight_2",
+    comp_type=ComponentType.ENTRANCE,
+    cells=(ShapeCell(offset=Hex(0, 0)), ShapeCell(offset=Hex(-1, 1))),
+    links=((0, 1),),
+)
+exit_ = ShapeTemplate(
+    name="exit_straight_2",
+    comp_type=ComponentType.EXIT,
+    cells=(ShapeCell(offset=Hex(0, 0)), ShapeCell(offset=Hex(-1, 1))),
+    links=((0, 1),),
+)
+
+spec = LevelSpec(
+    size=(6, 6),
+    shapes=(entrance, exit_),
+    entrypoints=(
+        EntrypointSpec(ComponentType.ENTRANCE, "entrance_straight_2", Hex(2, 3), AtomType.SALT, rotation=1),
+        EntrypointSpec(ComponentType.EXIT, "exit_straight_2", Hex(3, 2), AtomType.SALT, rotation=2),
+    ),
+    allowed_blueprints=frozenset({"arm"}),
+    steps=30,
+)
+
+level = Level(spec)
+arm = level.place("arm", Hex(3, 3))
+(arm_id,) = arm.component_ids
+level.assign_step_action(arm_id, 1, StepActionType.GRAB)
+for step in (2, 3, 4, 5):
+    level.assign_step_action(arm_id, step, StepActionType.ROTATE_CLW)
+level.assign_step_action(arm_id, 6, StepActionType.RELEASE)
+
+result = level.run()
+print(result.status)            # LevelStatus.COMPLETED
+print(result.total_finished)    # 1
+print(result.finished_by_exit)  # {0: 1}
+```
+
+Entrypoints may be fixed (the level places them, above) or solution-placed
+(`entrypoints_fixed 0`); see `levels/spec.py` and `interpreter/level_loader.py`.
 """
 
 from collections import Counter

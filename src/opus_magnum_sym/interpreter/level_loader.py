@@ -3,6 +3,32 @@ Loader for `.oml` level files into a `LevelSpec`.
 
 Mirrors `SimInterpreter`'s shlex-per-line style, but raises `LevelLoadError`
 with the offending line number instead of printing and continuing.
+
+Grammar (comments start with `#`; `shape` definitions must precede the `entrance`/`exit` lines that reference them):
+
+```text
+size <rows> <cols>
+steps <n>
+allow <name> [name ...]
+atom_types <type> [type ...]
+entrypoints_fixed 0|1
+shape <name> <kind> cells=(r,s)[:type],(r,s)[:type],... links=i-j[,i-j...] [rotations=0,1,...]
+entrance <shape> [<r> <s>] [rotation=k] [atom_type=<type>]
+exit <shape> [<r> <s>] [rotation=k] [atom_type=<type>]
+```
+
+- `shape` defines a local `ShapeTemplate`; `kind` is an entrypoint `ComponentType` name.
+  `cells` are offsets relative to the origin (exactly one `(0,0)`, all distinct). A cell may
+  carry a colon-suffixed typed `atom_type` — `(0,0):salt,(-1,1):water` — which overrides the
+  entrypoint's `atom_type`; untyped cells fall back to it.
+- `entrance`/`exit` place an entrypoint from a locally defined shape. `atom_type` is required
+  unless every cell of the shape is typed, and must be a real atom type (never `none`/`basic`).
+- `entrypoints_fixed 0` makes entrypoints solution-placed: the `r s` position is omitted and
+  the solution must `place` each defined entrypoint shape exactly once (matching per shape name).
+- `atom_types` declares the level's used atom types (optional; empty = unconstrained); when
+  non-empty, every entrypoint type (fallback and typed cells) must be a member.
+
+The strict loader aborts on the first invalid line; `LevelSpec` performs further validation.
 """
 
 import re
