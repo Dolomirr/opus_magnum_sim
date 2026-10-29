@@ -60,3 +60,22 @@ class Movement:
         offset = (atom_center[0] - pivot_xy[0], atom_center[1] - pivot_xy[1])
         rotated = rotate_offset(offset, self.rotation_steps * t)  # rotation_steps * 60° * t
         return (pivot_xy[0] + rotated[0], pivot_xy[1] + rotated[1])
+
+    def swept_cells(self) -> set[Hex]:
+        """
+        Cells every held atom passes through at cell granularity.
+
+        Rotation movements adds to cells counter start cell and each 60° landing cell;
+        `HAND_SLIDE` adds start and cells.
+        """
+        cells: set[Hex] = {cell for cell, _atom in self.atoms}
+        if self.kind is MovementKind.HAND_SLIDE:
+            for cell, _atom in self.atoms:
+                cells.add(Hex(cell.r + self.slide_delta.r, cell.s + self.slide_delta.s))
+            return cells
+
+        sign = 1 if self.rotation_steps >= 0 else -1
+        for step in range(1, abs(self.rotation_steps) + 1):
+            cells.update(cell.rotate_around(self.pivot, sign * step) for cell, _atom in self.atoms)
+        return cells
+

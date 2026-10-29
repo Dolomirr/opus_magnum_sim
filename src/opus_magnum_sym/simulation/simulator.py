@@ -111,6 +111,9 @@ class Simulator:
 
         self.step += 1
 
+        self.env.area.record_sweep(movements)
+        self.env.area.record_atom_stops(self.board.atoms, held_cells)
+
     def add_component(
         self,
         cell: Hex,
