@@ -95,5 +95,5 @@ class Exit(Component):
                 return
 
         board.pop_molecule(self.pos)
-        self.env.results.record_finished(comp.idx for comp in exits)
+        self.env.results.record_finished((comp.idx for comp in exits), step=self._step)
         self.log_action("consumed", self.atom_type.name.lower(), self.pos)
