@@ -1,0 +1,19 @@
+# Reference: fixed-entrypoints solution.
+#
+# The level has already placed both entrypoints;
+# this solution only places the arm
+# and carries the spawned molecule onto the exit.
+#
+# This is solution.
+# The level is defined in `examples/40_fixed_delivery.oml`.
+
+# Arm at (3,3); rotation 0 -> hand at (2,4).
+place arm 3 3                       # id 4
+
+# Grab the molecule, swing it four steps onto the exit, then release.
+action 4 1 grab
+action 4 2 rotate_clw
+action 4 3 rotate_clw
+action 4 4 rotate_clw
+action 4 5 rotate_clw
+action 4 6 release

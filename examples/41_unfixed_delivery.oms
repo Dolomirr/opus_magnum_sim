@@ -1,0 +1,22 @@
+# Reference: solution-placed-entrypoints solution.
+#
+# The solution places the entrypoint shapes (and arm) itself,
+# then carries spawned molecule onto the exit.
+#
+# This is solution.
+# The level is defined in `examples/41_unfixed_delivery.oml`.
+
+# Place the entrypoint shapes (the level runs unfixed).
+place entrance_straight_2 2 3 rotation=1 atom_type=salt  # ids 0, 1
+place exit_straight_2 3 2 rotation=2 atom_type=salt      # ids 2, 3
+
+# Arm at (3,3); rotation 0 -> hand at (2,4).
+place arm 3 3                                            # id 4
+
+# Grab the molecule, moves it four steps onto the exit, then release.
+action 4 1 grab
+action 4 2 rotate_clw
+action 4 3 rotate_clw
+action 4 4 rotate_clw
+action 4 5 rotate_clw
+action 4 6 release

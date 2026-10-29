@@ -1,0 +1,25 @@
+# Reference: solution-placed-entrypoints delivery.
+#
+# The level defines the entrypoint shapes but leaves their placement to the
+# solution (`entrypoints_fixed 0`);
+# solution places them anywhere on board (`place <entypoint>`).
+#
+# This is level.
+# The solution is defined in `examples/41_unfixed_delivery.oms`
+
+size 6 6
+steps 30
+entrypoints_fixed 0
+
+# Entrypoint shapes are defined locally.
+# Both cells are untyped,
+# so each entrypoint declares `atom_type` fallback.
+shape entrance_straight_2 entrance cells=(0,0),(-1,1) links=0-1
+shape exit_straight_2 exit cells=(0,0),(-1,1) links=0-1
+
+# No position: the solution places each entrypoint shape exactly once.
+entrance entrance_straight_2 atom_type=salt
+exit exit_straight_2 atom_type=salt
+
+# Blueprints available to the solution (entrypoint shapes are added automatically).
+allow arm
