@@ -2,8 +2,11 @@
 Level runtime: build a simulator from a `LevelSpec` and run it to a result.
 """
 
+from collections import Counter
 from pathlib import Path
+from typing import cast
 
+from opus_magnum_sym.elements.board import Hex
 from opus_magnum_sym.elements.components import ComponentType, default_registry
 from opus_magnum_sym.elements.env.level_env import LevelEnv
 from opus_magnum_sym.interpreter.sim_interpreter import SimInterpreter
@@ -30,15 +33,22 @@ class Level:
 
         self._entrypoint_records: list[PlacementRecord] = []
         self._exit_records: list[PlacementRecord] = []
-        for ep in spec.entrypoints:
-            record = self.sim.place(ep.shape, ep.pos, rotation=ep.rotation, atom_type=ep.atom_type)
-            self._entrypoint_records.append(record)
-            if ep.kind is ComponentType.EXIT:
-                self._exit_records.append(record)
 
-        # Gate solution placements only after entrypoints are on the board;
-        # entrypoint shapes are *not* part of the allow-list.
-        self.sim.allowed_blueprints = set(spec.allowed_blueprints)
+        if spec.entrypoints_fixed:
+            for ep in spec.entrypoints:
+                record = self.sim.place(ep.shape, cast(Hex, ep.pos), rotation=ep.rotation, atom_type=ep.atom_type)
+                self._entrypoint_records.append(record)
+                if ep.kind is ComponentType.EXIT:
+                    self._exit_records.append(record)
+
+            # Check solution placements only after entrypoints are on the board;
+            # entrypoint shapes are *not* part of the allow-list.
+            self.sim.allowed_blueprints = set(spec.allowed_blueprints)
+        else:
+            # Entrypoints are solution-placed:
+            # make their shapes placeable alongside regular allow-list.
+            entrypoint_shapes = {ep.shape for ep in spec.entrypoints}
+            self.sim.allowed_blueprints = set(spec.allowed_blueprints) | entrypoint_shapes
 
     # AAA.
     @classmethod
@@ -72,7 +82,23 @@ class Level:
 
         Returns `LevelResult`; never raises runtime failures to caller.
         Reaching the limit without an error is `COMPLETED` regardless of delivered counts.
+
+        Unfixed entrypoints are re-checked every call:
+        missing or duplicate required entrypoint yields `FAILED` without stepping.
         """
+        if not self.spec.entrypoints_fixed:
+            mismatch = self._unfixed_placement_error()
+            if mismatch is not None:
+                num_exits = sum(1 for ep in self.spec.entrypoints if ep.kind is ComponentType.EXIT)
+                return LevelResult(
+                    status=LevelStatus.FAILED,
+                    error=mismatch,
+                    steps=0,
+                    finished={},
+                    finished_by_exit=dict.fromkeys(range(num_exits), 0),
+                    total_finished=0,
+                )
+
         limit = self.spec.steps if steps is None else steps
 
         status = LevelStatus.COMPLETED
@@ -105,6 +131,23 @@ class Level:
 
         return self._snapshot(status, error)
 
+    def _unfixed_placement_error(self) -> LevelError | None:
+        """
+        Return a `LevelError` when solution-placed entrypoints and the spec does not match.
+        Each defined entrypoint requires exactly one placement of its shape.
+        """
+        spec_counts = Counter(ep.shape for ep in self.spec.entrypoints)
+        placed_counts = Counter(record.blueprint for record in self.sim.placements if record.blueprint in spec_counts)
+        for shape, expected in spec_counts.items():
+            actual = placed_counts[shape]
+            if actual != expected:
+                return LevelError(
+                    exception="EntrypointPlacementError",
+                    message=f"entrypoint shape {shape!r}: expected {expected} placement(s), found {actual}",
+                    step=0,
+                )
+        return None
+
     def _exit_cluster_key(self, record: PlacementRecord) -> frozenset[int]:
         """
         Current exit cluster id set for `record`, from the live connection graph.
@@ -120,11 +163,36 @@ class Level:
             ids.update(self.sim.connections.group_of(comp_id))
         return frozenset(ids)
 
+    def _exit_records_for_snapshot(self) -> list[PlacementRecord]:
+        """
+        Exit placements aligned with spec exit entrypoints, resolved at snapshot time.
+
+        Fixed mode reuses records stored at build; unfixed mode matches each
+        exit spec to the n-th placement of its shape,
+        so copies and solution-placed entrypoints report correctly.
+        """
+        if self.spec.entrypoints_fixed:
+            return list(self._exit_records)
+
+        placements_by_shape: dict[str, list[PlacementRecord]] = {}
+        for record in self.sim.placements:
+            placements_by_shape.setdefault(record.blueprint, []).append(record)
+
+        shape_used: dict[str, int] = {}
+        records: list[PlacementRecord] = []
+        for ep in self.spec.entrypoints:
+            if ep.kind is not ComponentType.EXIT:
+                continue
+            index = shape_used.get(ep.shape, 0)
+            records.append(placements_by_shape[ep.shape][index])
+            shape_used[ep.shape] = index + 1
+        return records
+
     def _snapshot(self, status: LevelStatus, error: LevelError | None) -> LevelResult:
         finished = self.sim.env.results.clusters()
         finished_by_exit = {
             index: finished.get(self._exit_cluster_key(record), 0)
-            for index, record in enumerate(self._exit_records)
+            for index, record in enumerate(self._exit_records_for_snapshot())
         }
         return LevelResult(
             status=status,
