@@ -10,17 +10,13 @@
 
 ## Long Term Targets
 
-- [ ] Correct steps handling.
-    - [x] Ensure enter/exit apply change on atom above only within correct step.
-    - ...
-- [ ] Composed multi hex components (predefined shapes, rather than freestyle).
-    - [ ] Pre-defined entrances and exits placement [Level completion logic]
+- [x] Composed multi hex components (predefined shapes, rather than freestyle).
+    - [x] Pre-defined entrances and exits placement [Level completion logic]
         - [x] ~Way of describing such shapes (and possibly "finding root"?)~
-        - [ ] Allow placing them in both level spec and solution.
-    - [ ] Fixed shapes of components.
+        - [x] Allow placing them in both level spec and solution.
+    - [x] Fixed shapes of components.
         - [x] Various shape connectors.
         - [x] Snowflake manipulators
-        - [ ] Destructors.
 - [x] Atom connection.
     - [x] Generic multi hex components.
     - [x] Dynamic atoms IDs.
@@ -36,22 +32,30 @@
     - [x] Per-exit counters (each should be correct).
     - [x] Move things like `index_manager` and `result_counter` to Simulator or separate Level to isolate envs.
     - [ ] Actual validation of level.
-    - [ ] Stale level detection (then no steps limit is given)
     - [x] Entrances and exists verification, connected to [Composed multi hex components]
     - [ ] Conditions to mark level as correct / finished.
-    - [ ] Results counters.
+    - [ ] Eval Metrics (results counters).
         - [ ] Steps.
         - [ ] Const per-component.
         - [ ] (?) Used space.
+- [ ] (?) Add more planned components.
+    - [ ] Multi-arm manipulators
+    - [ ] Conveyor belt
+    - [ ] Destructor (either simple 1-cell or original 7-cell)
 - [x] ! Collision
     - [x] ~For start molecules and atoms can go throe each other ig, so only multi arm grab problem is to solve.~
     - [x] ~For Atoms define `held_by`or smth similar~
     - [x] Define `movement_root` to validate conflicts before moving atom (multi arm grab etc.).
     - [x] ~Spatial collision seem to not error-out in REPL?~
     - [x] Make mechanical collision to error-out sim.
+- [ ] Ensure determinism.
+    - Currently two hard-coded phases + dict iteration cause simultaneous actions to race
+    - [ ] Define resolution order
 - [ ] Program Flow.
     - [ ] Programs cycle (optional, or just the simplest, without epicycles)
     - [ ] (?) Possibly only level-wise max steps limit [Level completion logic]
+    - [ ] Indef step levels
+    - [ ] Stale level detection (then no steps limit is given)
 - [ ] Exporting board state on steps via python structure (full serialization).
 - [ ] Optimization.
     - [x] Headless simulation.
@@ -66,9 +70,10 @@
         - ...
     - [ ] (?) Consider bitmap collision overlap checking, instead of full sub-step pass.
 - [x] Proper logging.
-- [ ] Ensure determinism.
-    - Currently two hard-coded phases + dict iteration cause simultaneous actions to race
-    - [ ] Define resolution order
+- [ ] Cleanup.
+    - [ ] (?) Block low-level API
+    - [ ] Remove global state level (switch REPL to instanced)
+    - [ ] Organize `examples/`
 - [ ] ~(?) Interactive simulation control via keyboard (is it really needed?).~
   - [ ] (?) Keyboard control.
   - [ ] (?) Interactive adding.
@@ -83,5 +88,4 @@
 - Component signature (`.holding` is defined only for arm etc.) (generics?)
 - REPL's `!save` seem to lose connections?
 
-- Make level separate entity, with separate counters and per-level defined entrances (instead of just `straight_2`)
 
