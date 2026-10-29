@@ -7,8 +7,8 @@
 # The level is defined in `examples/41_unfixed_delivery.oml`.
 
 # Place the entrypoint shapes (the level runs unfixed).
-place entrance_straight_2 2 3 rotation=1 atom_type=salt  # ids 0, 1
-place exit_straight_2 3 2 rotation=2 atom_type=salt      # ids 2, 3
+place entrance_straight_2 2 3 rotation=1                 # ids 0, 1
+place exit_straight_2 3 2 rotation=2                     # ids 2, 3
 
 # Arm at (3,3); rotation 0 -> hand at (2,4).
 place arm 3 3                                            # id 4

@@ -11,15 +11,13 @@ size 6 6
 steps 30
 entrypoints_fixed 0
 
-# Entrypoint shapes are defined locally.
-# Both cells are untyped,
-# so each entrypoint declares `atom_type` fallback.
-shape entrance_straight_2 entrance cells=(0,0),(-1,1) links=0-1
-shape exit_straight_2 exit cells=(0,0),(-1,1) links=0-1
+# Entrypoint shapes are defined locally; each cell carries its atom type.
+shape entrance_straight_2 entrance cells=(0,0):salt,(-1,1):salt links=0-1
+shape exit_straight_2 exit cells=(0,0):salt,(-1,1):salt links=0-1
 
 # No position: the solution places each entrypoint shape exactly once.
-entrance entrance_straight_2 atom_type=salt
-exit exit_straight_2 atom_type=salt
+entrance entrance_straight_2
+exit exit_straight_2
 
 # Blueprints available to the solution (entrypoint shapes are added automatically).
 allow arm

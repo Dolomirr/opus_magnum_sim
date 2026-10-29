@@ -11,15 +11,15 @@
 size 6 6
 steps 30
 
-# Entrypoint shapes are defined locally.
-shape entrance_straight_2 entrance cells=(0,0),(-1,1) links=0-1
-shape exit_straight_2 exit cells=(0,0),(-1,1) links=0-1
+# Entrypoint shapes are defined locally; each cell carries its atom type.
+shape entrance_straight_2 entrance cells=(0,0):salt,(-1,1):salt links=0-1
+shape exit_straight_2 exit cells=(0,0):salt,(-1,1):salt links=0-1
 
 # Entrance pair spawns a bonded 2-atom molecule on step 0.
-entrance entrance_straight_2 2 3 rotation=1 atom_type=salt
+entrance entrance_straight_2 2 3 rotation=1
 
 # Exit pair consumes the molecule only if it covers both cells exactly.
-exit exit_straight_2 3 2 rotation=2 atom_type=salt
+exit exit_straight_2 3 2 rotation=2
 
 # Blueprints available to the solution.
 allow arm
