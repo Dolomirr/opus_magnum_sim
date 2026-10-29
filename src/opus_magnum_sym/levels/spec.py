@@ -47,6 +47,28 @@ class EntrypointSpec:
             raise ValueError(f"EntrypointSpec rotation must be within 0..5, got {self.rotation}")
 
 
+def entrance(shape: str, pos: Hex | None = None, rotation: int = 0) -> EntrypointSpec:
+    """
+    Define an entrance entrypoint from a locally defined shape.
+
+    `pos` is `None` for solution-placed entrypoint (`entrypoints_fixed` false).
+    Atom types are carried by the shape's typed cells,
+    so no `atom_type` placeholder is required here.
+    """
+    return EntrypointSpec(kind=ComponentType.ENTRANCE, shape=shape, pos=pos, rotation=rotation)
+
+
+def exit(shape: str, pos: Hex | None = None, rotation: int = 0) -> EntrypointSpec:
+    """
+    Define an exit entrypoint from a locally defined shape.
+
+    `pos` is `None` for solution-placed entrypoint (`entrypoints_fixed` false).
+    Atom types are carried by the shape's typed cells,
+    so no `atom_type` placeholder is required here.
+    """
+    return EntrypointSpec(kind=ComponentType.EXIT, shape=shape, pos=pos, rotation=rotation)
+
+
 @dataclass(frozen=True)
 class LevelSpec:
     """
