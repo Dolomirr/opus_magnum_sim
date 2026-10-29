@@ -1,10 +1,12 @@
 # Reference level solution demo: delivery through straight-2 entrance and exit pair.
 #
+# Partially DEPRECATED - use typed entrypoints, see `27_level_typed.om[sl]`.
+#
 # The level file defines the starting conditions.
 # The solution defines placement and actions.
 #
 # This is solution.
-# The level defined in `examples/place_delivery.oml`
+# The level defined in `examples/26_level_fixed.oml`
 
 # Arm at (3,3), rotation 0
 place arm 3 3                       # id 4

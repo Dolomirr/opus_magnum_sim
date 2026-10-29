@@ -23,7 +23,7 @@ uv run opus-magnum repl --headless
 uv run opus-magnum repl -c "comp 2 3 entrance atom_type=basic" -c "comp 3 3 arm"
 
 # Run a solution headlessly
-uv run opus-magnum run examples/test_flow.oms --steps 30
+uv run opus-magnum run examples/10_basic_flow.oms --steps 30
 
 # Run a solution built entirely from inline commands (no .oms file)
 uv run opus-magnum run --steps 30 \
@@ -36,13 +36,13 @@ uv run opus-magnum run --steps 30 \
   -c "action 2 4 release"
 
 # Validate a solution file
-uv run opus-magnum validate examples/test_flow.oms
+uv run opus-magnum validate examples/10_basic_flow.oms
 
 # Run a level (starting conditions) + its solution
-uv run opus-magnum run --level examples/place_delivery.oml examples/place_delivery.oms
+uv run opus-magnum run --level examples/26_level_fixed.oml examples/26_level_fixed.oms
 ```
 
-The REPL accepts DSL commands directly and meta-commands prefixed with `!` (e.g. `!run 30`, `!load examples/test_flow.oms`, `!list`, `!help`; also `!history [n]`, `!edit`/`!e`, and `!viz [on|off]` to toggle visualization). Tab completion (commands, component/action names, ids, file paths), history-based auto-suggestions, and persistent history (`~/.cache/opus_magnum_sym/repl_history`) are wired up in `repl/sim_repl.py` via prompt_toolkit.
+The REPL accepts DSL commands directly and meta-commands prefixed with `!` (e.g. `!run 30`, `!load examples/10_basic_flow.oms`, `!list`, `!help`; also `!history [n]`, `!edit`/`!e`, and `!viz [on|off]` to toggle visualization). Tab completion (commands, component/action names, ids, file paths), history-based auto-suggestions, and persistent history (`~/.cache/opus_magnum_sym/repl_history`) are wired up in `repl/sim_repl.py` via prompt_toolkit.
 
 ### Justfile
 
@@ -75,7 +75,7 @@ src/opus_magnum_sym/
 ├── repl/               # Interactive REPL
 └── simulation/         # Simulator orchestration; placement.py (PlacementRecord)
 tests/                  # pytest tests + conftest.py (reset global state fixture)
-examples/               # Example .oms/.oml files + ad-hoc integration scripts
+examples/               # Numbered .oms/.oml examples + high-level lib-use demos
 ```
 
 ## 4. Coordinate System
@@ -207,7 +207,7 @@ connection <comp_id_a> <comp_id_b>
 disconnection <comp_id_a> <comp_id_b>
 ```
 
-Example (`examples/test_flow.oms`):
+Example (`examples/10_basic_flow.oms`):
 
 ```text
 comp 2 3 entrance atom_type=basic
@@ -219,6 +219,10 @@ action 2 2 grab
 action 2 3 rotate_cclw
 action 2 4 release
 ```
+
+Example files carry a short header description; an example that uses the low-level
+`comp`/`connection` primitives instead of `place <blueprint>` is marked in that header with
+`# DEPRECATED - uses low-level `comp` primitives.` Files built on `place`/`.oml` carry no marker.
 
 Keyword arguments supported by `_handle_comp`:
 
@@ -241,11 +245,11 @@ entrance <shape> [<r> <s>] [rotation=k] [atom_type=<type>]
 exit <shape> [<r> <s>] [rotation=k] [atom_type=<type>]
 ```
 
-`kind` is a `ComponentType` name (`entrance`, `exit`, `connector`, ...); `atom_type` is an `AtomType` name (never `none`/`basic`). Shape `cells` take an optional colon suffix per cell to declare a typed cell, e.g. `cells=(0,0):salt,(-1,1):water,(1,0):fire`; cells without a suffix are untyped and fall back to the entrypoint's `atom_type`. `atom_types` declares the level's used types (optional; empty = unconstrained). `entrypoints_fixed 0` switches to solution-placed entrypoints: `entrance`/`exit` then take no `r s` position, and `atom_type` may be omitted when every cell of the shape is typed. Reference demos: `examples/place_delivery.oml` (fixed) and `examples/typed_delivery.oml` (typed, unfixed) + their `.oms` solutions, run end-to-end via `Level.from_file` + `load_solution` + `run`.
+`kind` is a `ComponentType` name (`entrance`, `exit`, `connector`, ...); `atom_type` is an `AtomType` name (never `none`/`basic`). Shape `cells` take an optional colon suffix per cell to declare a typed cell, e.g. `cells=(0,0):salt,(-1,1):water,(1,0):fire`; cells without a suffix are untyped and fall back to the entrypoint's `atom_type`. `atom_types` declares the level's used types (optional; empty = unconstrained). `entrypoints_fixed 0` switches to solution-placed entrypoints: `entrance`/`exit` then take no `r s` position, and `atom_type` may be omitted when every cell of the shape is typed. Reference demos: `examples/26_level_fixed.oml` (fixed) and `examples/27_level_typed.oml` (typed, unfixed) + their `.oms` solutions, run end-to-end via `Level.from_file` + `load_solution` + `run`.
 
 ## 6. Rendering
 
-`render/renderer.py` uses `pygame-ce`. `BoardRenderer` draws the grid, components, objects, and manipulator hands. It is typically driven from the REPL or from ad-hoc scripts like `examples/_test_flow.py`.
+`render/renderer.py` uses `pygame-ce`. `BoardRenderer` draws the grid, components, objects, and manipulator hands. It is typically driven from the REPL.
 
 ## 7. Testing & Linting Conventions
 
@@ -301,7 +305,7 @@ A complete end-to-end Python example lives in the `levels/level.py` module docst
 For any new task, start with these:
 
 1. `README.md` — high-level description.
-2. `examples/test_flow.oms` — concrete DSL example.
+2. `examples/10_basic_flow.oms` — concrete DSL example.
 3. `src/opus_magnum_sym/simulation/simulator.py` — simulation orchestration.
 4. `src/opus_magnum_sym/elements/components/manipulator.py` — how arms act.
 5. `src/opus_magnum_sym/interpreter/sim_interpreter.py` — DSL parsing.

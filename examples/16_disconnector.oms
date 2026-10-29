@@ -1,5 +1,7 @@
 
-# disconnector component breaks the bond of a delivered molecule
+# Disconnector component breaks the bond of delivered molecule.
+#
+# DEPRECATED - uses low-level `comp` primitives.
 
 # Linked disconnectors at (3,4) and (4,3), wired with the `connection` command.
 comp 3 4 disconnector atom_type=basic   # id 0
@@ -17,13 +19,13 @@ connection 3 4
 # Arm at (3,3), rotation 0 -> hand over the entrance beam (2,4).
 comp 3 3 arm                            # id 5
 
-# Step 1 is empty: the bonded pair sits loose on the entrance.
-# Grab, then two clockwise swings carry the pair onto the disconnectors.
+# Step 1 is empty: bonded pair sits loose on the entrance.
+# Grab, then two clockwise swings moves pair onto the disconnectors.
 action 5 2 grab
 action 5 3 rotate_clw
 action 5 4 rotate_clw
 action 5 5 release
 
-# After step 5 the disconnectors break the bond, leaving two loose single atoms
-# on (3,4)/(4,3) for the empty steps that follow. The entrance respawns a fresh
-# bonded pair alongside them.
+# After step 5 the disconnectors break the bond,
+# leaving two loose single atoms on (3,4)/(4,3).
+# The entrance respawns a fresh bonded pair alongside them.

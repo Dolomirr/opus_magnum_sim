@@ -1,0 +1,29 @@
+
+# Connector blueprint bonds two atoms dropped onto its glyphs.
+
+# Two unlinked entrances: each spawns single loose atom.
+comp 2 4 entrance atom_type=basic                         # id 0 -> (2,4)
+comp 4 5 entrance atom_type=basic                         # id 1 -> (4,5)
+
+# Stray exit so run/validate succeed.
+comp 9 9 exit atom_type=basic                             # id 2
+
+# Connector pair: two adjacent bound glyphs at (3,4) and (4,4).
+place connector_straight_2 3 4 rotation=2 atom_type=basic # ids 3,4 -> (3,4),(4,4)
+
+# Arm 1 (id 5): hand on (2,4), one clockwise swing reaches (3,4).
+place arm 3 3                                             # id 5
+
+# Arm 2 (id 6): hand on (4,5), one counter-clockwise swing reaches (4,4).
+place arm 5 4                                             # id 6
+
+# Step 1 is empty: both atoms sit loose on their entrances.
+# Each arm grabs an atom, moves it onto connector glyph, and releases.
+action 5 2 grab
+action 6 2 grab
+action 5 3 rotate_clw
+action 6 3 rotate_cclw
+action 5 4 release
+action 6 4 release
+
+# After step 4 the connector bonds the two atoms on (3,4)/(4,4).

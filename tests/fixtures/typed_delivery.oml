@@ -1,0 +1,12 @@
+size 6 6
+steps 30
+entrypoints_fixed 0
+atom_types salt water
+
+shape entrance_typed entrance cells=(0,0):water,(-1,1):salt links=0-1
+shape exit_typed exit cells=(0,0):salt,(-1,1):water links=0-1
+
+entrance entrance_typed
+exit exit_typed
+
+allow arm

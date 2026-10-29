@@ -1,6 +1,9 @@
-import time
+"""
+DEPRECATED - low-level `Simulator` API: manual step loop + renderer.
+See `examples/28_manual_flow.py` for up-to-date example.
+"""
 
-from icecream import ic
+import time
 
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import AtomType
@@ -30,7 +33,6 @@ def main():
     sim.assign_step_action(2, 9, StepActionType.ROTATE_CLW)
 
     for _ in range(12):
-        # ic(sim.step)
         sim.next_step()
 
         renderer.draw()

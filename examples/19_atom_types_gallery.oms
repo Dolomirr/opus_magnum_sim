@@ -1,0 +1,29 @@
+
+# Gallery of the six atom types.
+#
+# DEPRECATED - uses low-level `comp` primitives.
+
+# Six single entrances, each of differnt type
+comp 1 1 entrance atom_type=fire  # id 0
+comp 1 3 entrance atom_type=water # id 1
+comp 1 5 entrance atom_type=earth # id 2
+comp 3 1 entrance atom_type=air   # id 3
+comp 3 3 entrance atom_type=salt  # id 4
+comp 3 5 entrance atom_type=metal # id 5
+
+# Exits of each type
+comp 8 8 exit atom_type=fire      # id 6
+comp 8 6 exit atom_type=water     # id 7
+comp 8 4 exit atom_type=earth     # id 8
+comp 6 8 exit atom_type=air       # id 9
+comp 6 6 exit atom_type=salt      # id 10
+comp 6 4 exit atom_type=metal     # id 11
+
+comp 4 4 arm                      # id 12
+
+# Steps 0-9: every entrance spawns and its atom stays loose.
+# Step 10+: arm picks up metal atom and moves it.
+action 12 10 grab
+action 12 11 rotate_clw
+action 12 12 rotate_clw
+action 12 13 release

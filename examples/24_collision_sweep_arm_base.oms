@@ -1,0 +1,24 @@
+
+# Collision sweep arm base: arm swings atom through other arm's base.
+#
+# DEPRECATED - uses low-level `comp` primitives.
+
+# Atom source for moving arm.
+comp 4 5 entrance atom_type=basic # id 0
+
+# Required exit.
+comp 7 4 exit atom_type=basic     # id 1
+
+# Moving arm: rotation 1 -> hand at (4,5).
+comp 4 4 arm rotation=1           # id 2
+
+# Collisng arm base at (3,5); atom's movement arc goes through it.
+comp 3 5 arm                      # id 3
+
+# Pick up the atom, then rotate CCLW into neighbouring base.
+# Sweep detects overlap.
+action 2 1 grab
+action 2 2 none
+action 2 3 none
+action 2 4 none
+action 2 5 rotate_cclw

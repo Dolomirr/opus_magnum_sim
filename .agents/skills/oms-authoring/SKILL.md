@@ -148,6 +148,10 @@ Follow these rules for every new `.oms` file:
 6. **`place` lines in their own section** — put `place` lines in a section after all
    `comp` lines, with a context comment noting the blueprint and its atom type.
 7. **Ascending step order** — within a component, list `action` lines by increasing `step`.
+8. **Deprecation marker** — a file that uses the low-level `comp`/`connection` primitives
+   instead of `place <blueprint>` marks its header with a `# DEPRECATED - uses low-level
+   `comp` primitives.` line, separated from the context comment by one blank `#` line.
+   Files built on `place` (or `.oml` levels) carry no marker.
 
 These rules are cosmetic; the parser ignores blank lines and comments. They exist for
 human and agent readability.
@@ -213,6 +217,8 @@ See `templates/basic.oms`, reproduced here:
 ```text
 
 # minimal entrance -> arm -> exit delivery
+#
+# DEPRECATED - uses low-level `comp` primitives.
 
 # Entrance spawns a basic atom at (2,3).
 comp 2 3 entrance atom_type=basic # id 0
@@ -234,7 +240,7 @@ action 2 4 release
 
 A `.oml` file defines a level's **starting conditions** (board size, step limit, entrypoint
 shapes and placements, allow-list); the solution is a separate `.oms` file. The two are paired:
-`examples/place_delivery.oml` (level) + `examples/place_delivery.oms` (solution).
+`examples/26_level_fixed.oml` (level) + `examples/26_level_fixed.oms` (solution).
 
 ### How a `.oml` file works
 
@@ -290,7 +296,7 @@ exit <shape> [<r> <s>] [rotation=k] [atom_type=<type>]
   otherwise. In unfixed mode every entrypoint must omit its position.
 - A level runs with its own env (fresh id allocator and result counter) and a cloned blueprint
   registry. In fixed mode entrypoints are placed first, so the solution's component ids start
-  after them (in `examples/place_delivery.oms` the arm is `# id 4`). In unfixed mode the solution
+  after them (in `examples/26_level_fixed.oms` the arm is `# id 4`). In unfixed mode the solution
   places the entrypoints itself, so their ids come from the solution's own `place` order.
 - The exit verifies the delivered molecule's **bond pattern exactly**: for every pair of covered
   cells, a bond must exist iff the two exit components are directly linked (no missing, no extra
@@ -298,7 +304,7 @@ exit <shape> [<r> <s>] [rotation=k] [atom_type=<type>]
 
 ### House style
 
-Follow `examples/place_delivery.oml` (minimal copy: `templates/basic.oml`):
+Follow `examples/26_level_fixed.oml` (minimal copy: `templates/basic.oml`):
 
 1. **Context comment block first** — a dry comment stating the scenario, that this is the
    level, and pointing at its solution file.
@@ -312,7 +318,7 @@ Follow `examples/place_delivery.oml` (minimal copy: `templates/basic.oml`):
 #
 # The level file defines the starting conditions.
 # The solution defines placement and actions.
-# The solution lives in `examples/place_delivery.oms`
+# The solution lives in `examples/26_level_fixed.oms`
 
 size 6 6
 steps 30
@@ -333,7 +339,7 @@ allow arm
 
 ### Typed cells & solution-placed entrypoints
 
-Follow `examples/typed_delivery.oml` when a level uses typed cells or leaves entrypoint
+Follow `examples/27_level_typed.oml` when a level uses typed cells or leaves entrypoint
 placement to the solution:
 
 1. Put `entrypoints_fixed 0` (and `atom_types ...` when declared) directly after `steps`,
@@ -349,7 +355,7 @@ placement to the solution:
 #
 # The level defines the typed shapes and leaves entrypoint placement to the
 # solution (`entrypoints_fixed 0`).
-# The solution lives in `examples/typed_delivery.oms`
+# The solution lives in `examples/27_level_typed.oms`
 
 size 6 6
 steps 30

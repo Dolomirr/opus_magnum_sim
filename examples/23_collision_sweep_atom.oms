@@ -1,0 +1,24 @@
+
+# Collision sweep atom: length-2 arm swings atom through other, static atom.
+#
+# DEPRECATED - uses low-level `comp` primitives.
+
+# Atom source for the moving arm.
+comp 2 6 entrance atom_type=basic # id 0
+
+# Static atom sits in location in arc between (2,6) and (4,6).
+comp 3 6 entrance atom_type=basic # id 1
+
+# Required exit.
+comp 7 4 exit atom_type=basic     # id 2
+
+# Moving arm at (4,4), length 2, rotation 0 -> hand at (2,6).
+comp 4 4 arm rotation=0 length=2  # id 3
+
+# Pick up atom, then rotate CLW.
+# The moving atom sweeps close enough to the static one to collide.
+action 3 1 grab
+action 3 2 none
+action 3 3 none
+action 3 4 none
+action 3 5 rotate_clw

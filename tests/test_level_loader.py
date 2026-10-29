@@ -10,7 +10,7 @@ from opus_magnum_sym.elements.board import Hex
 from opus_magnum_sym.interpreter.level_loader import LevelLoader, LevelLoadError
 from opus_magnum_sym.levels import Level, LevelStatus
 
-EXAMPLES_DIR = Path(__file__).parent.parent / "examples"
+FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 # Text form of `make_level_spec()`; order matches the fixture's shapes/entrypoints.
 LEVEL_TEXT = "\n".join(
@@ -72,8 +72,8 @@ def test_unknown_atom_type_rejected():
 
 
 def test_demo_pair_end_to_end():
-    level = Level.from_file(EXAMPLES_DIR / "place_delivery.oml")
-    level.load_solution(EXAMPLES_DIR / "place_delivery.oms")
+    level = Level.from_file(FIXTURES_DIR / "fixed_delivery.oml")
+    level.load_solution(FIXTURES_DIR / "fixed_delivery.oms")
 
     result = level.run()
 

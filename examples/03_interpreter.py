@@ -1,10 +1,16 @@
-import time
+"""
+DEPRECATED - low-level `SimInterpreter` + `BoardRenderer` loop.
+See `examples/30_load_solution.py`.
+"""
 
-from icecream import ic
+import time
+from pathlib import Path
 
 from opus_magnum_sym.interpreter.sim_interpreter import SimInterpreter
 from opus_magnum_sym.render.renderer import BoardRenderer
 from opus_magnum_sym.simulation.simulator import Simulator
+
+EXAMPLES_DIR = Path(__file__).resolve().parent
 
 
 def main():
@@ -12,7 +18,7 @@ def main():
     renderer = BoardRenderer(sim)
 
     inter = SimInterpreter(sim)
-    inter.load_file("/home/dolomirr/Projects/opus_magnum_sim/test_flow.oms")
+    inter.load_file(EXAMPLES_DIR / "10_basic_flow.oms")
 
     for _ in range(12):
         sim.next_step()
