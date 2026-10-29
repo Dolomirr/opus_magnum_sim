@@ -3,8 +3,35 @@ Loader for `.oml` level files into a `LevelSpec`.
 
 Mirrors `SimInterpreter`'s shlex-per-line style, but raises `LevelLoadError`
 with the offending line number instead of printing and continuing.
+
+Grammar (comments start with `#`; `shape` definitions must precede the `entrance`/`exit` lines that reference them):
+
+```text
+size <rows> <cols>
+steps <n>
+allow <name> [name ...]
+atom_types <type> [type ...]
+entrypoints_fixed 0|1
+shape <name> <kind> cells=(r,s)[:type],(r,s)[:type],... links=i-j[,i-j...] [rotations=0,1,...]
+entrance <shape> [<r> <s>] [rotation=k] [atom_type=<type>]
+exit <shape> [<r> <s>] [rotation=k] [atom_type=<type>]
+```
+
+- `shape` defines a local `ShapeTemplate`; `kind` is an entrypoint `ComponentType` name.
+  `cells` are offsets relative to the origin (exactly one `(0,0)`, all distinct). A cell may
+  carry a colon-suffixed typed `atom_type` — `(0,0):salt,(-1,1):water` — which overrides the
+  entrypoint's `atom_type`; untyped cells fall back to it.
+- `entrance`/`exit` place an entrypoint from a locally defined shape. `atom_type` is required
+  unless every cell of the shape is typed, and must be a real atom type (never `none`/`basic`).
+- `entrypoints_fixed 0` makes entrypoints solution-placed: the `r s` position is omitted and
+  the solution must `place` each defined entrypoint shape exactly once (matching per shape name).
+- `atom_types` declares the level's used atom types (optional; empty = unconstrained); when
+  non-empty, every entrypoint type (fallback and typed cells) must be a member.
+
+The strict loader aborts on the first invalid line; `LevelSpec` performs further validation.
 """
 
+import re
 import shlex
 from pathlib import Path
 
@@ -12,6 +39,9 @@ from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board import Hex
 from opus_magnum_sym.elements.components import ComponentType, ShapeCell, ShapeTemplate
 from opus_magnum_sym.levels.spec import EntrypointSpec, LevelSpec
+
+# One shape cell: `(r,s)` optionally followed by `:atom_type`.
+_CELL_RE = re.compile(r"\((-?\d+),(-?\d+)\)(?::([A-Za-z_][A-Za-z0-9_]*))?")
 
 
 class LevelLoadError(Exception):
@@ -27,13 +57,29 @@ class LevelLoadError(Exception):
 
 
 def _parse_cells(value: str) -> tuple[ShapeCell, ...]:
-    inner = value.strip().strip("()")
-    if not inner:
+    value = value.strip()
+    if not value:
         raise ValueError("cells cannot be empty")
-    cells = []
-    for part in inner.split("),("):
-        r, s = (int(coord) for coord in part.split(","))
-        cells.append(ShapeCell(offset=Hex(r, s)))
+    cells: list[ShapeCell] = []
+    cursor = 0
+    for match in _CELL_RE.finditer(value):
+        if value[cursor : match.start()].strip(", "):
+            raise ValueError(f"malformed cells in {value!r}")
+        cursor = match.end()
+        kwargs: dict[str, object] = {}
+        type_name = match.group(3)
+        if type_name is not None:
+            try:
+                kwargs["atom_type"] = getattr(AtomType, type_name.upper())
+            except AttributeError:
+                raise ValueError(f"unknown atom_type {type_name!r}") from None
+        cells.append(
+            ShapeCell(offset=Hex(int(match.group(1)), int(match.group(2))), kwargs=kwargs)
+        )
+    if value[cursor:].strip(", "):
+        raise ValueError(f"malformed cells in {value!r}")
+    if not cells:
+        raise ValueError("cells cannot be empty")
     return tuple(cells)
 
 
@@ -63,6 +109,8 @@ class LevelLoader:
         self._allowed: list[str] = []
         self._shapes: dict[str, ShapeTemplate] = {}
         self._entrypoints: list[EntrypointSpec] = []
+        self._entrypoints_fixed = True
+        self._atom_types: frozenset[AtomType] = frozenset()
         self._dispatch = {
             "size": self._handle_size,
             "steps": self._handle_steps,
@@ -70,6 +118,8 @@ class LevelLoader:
             "shape": self._handle_shape,
             "entrance": self._handle_entrance,
             "exit": self._handle_exit,
+            "atom_types": self._handle_atom_types,
+            "entrypoints_fixed": self._handle_entrypoints_fixed,
         }
 
     def load_file(self, path: str | Path) -> LevelSpec:
@@ -114,6 +164,22 @@ class LevelLoader:
             raise ValueError("allow expects at least one blueprint name")
         self._allowed.extend(args)
 
+    def _handle_atom_types(self, args: list[str]) -> None:
+        if not args:
+            raise ValueError("atom_types expects at least one atom type")
+        atom_types = set()
+        for name in args:
+            try:
+                atom_types.add(getattr(AtomType, name.upper()))
+            except AttributeError:
+                raise ValueError(f"unknown atom_type {name!r}") from None
+        self._atom_types = frozenset(atom_types)
+
+    def _handle_entrypoints_fixed(self, args: list[str]) -> None:
+        if len(args) != 1 or args[0] not in ("0", "1"):
+            raise ValueError("entrypoints_fixed expects 0 or 1")
+        self._entrypoints_fixed = args[0] == "1"
+
     def _handle_shape(self, args: list[str]) -> None:
         if len(args) < 4:
             raise ValueError("shape expects <name> <kind> cells=... links=... [rotations=...]")
@@ -157,13 +223,28 @@ class LevelLoader:
         self._add_entrypoint(ComponentType.EXIT, args)
 
     def _add_entrypoint(self, kind: ComponentType, args: list[str]) -> None:
-        if len(args) < 3:
-            raise ValueError(f"{kind.name.lower()} expects <shape> <r> <s> [rotation=k] atom_type=<type>")
+        if not args:
+            raise ValueError(
+                f"{kind.name.lower()} expects <shape> [<r> <s>] [rotation=k] [atom_type=<type>]"
+            )
         shape = args[0]
-        pos = Hex(int(args[1]), int(args[2]))
+        remaining = args[1:]
+
+        pos: Hex | None = None
         rotation = 0
-        atom_type = None
-        for arg in args[3:]:
+        atom_type: AtomType | None = None
+        # Positioned form: the two tokens after <shape> are integers r, s.
+        if (
+            len(remaining) >= 2
+            and remaining[0].lstrip("-").isdigit()
+            and remaining[1].lstrip("-").isdigit()
+        ):
+            pos = Hex(int(remaining[0]), int(remaining[1]))
+            options = remaining[2:]
+        else:
+            options = remaining
+
+        for arg in options:
             key, value = arg.split("=", 1)
             if key == "rotation":
                 rotation = int(value)
@@ -174,8 +255,6 @@ class LevelLoader:
                     raise ValueError(f"unknown atom_type {value!r}") from None
             else:
                 raise ValueError(f"unknown entrypoint parameter {key!r}")
-        if atom_type is None:
-            raise ValueError(f"{kind.name.lower()} requires atom_type=<type>")
         self._entrypoints.append(
             EntrypointSpec(
                 kind=kind,
@@ -191,10 +270,15 @@ class LevelLoader:
             raise LevelLoadError("missing 'size' command")
         if self._steps is None:
             raise LevelLoadError("missing 'steps' command")
-        return LevelSpec(
-            size=self._size,
-            shapes=tuple(self._shapes.values()),
-            entrypoints=tuple(self._entrypoints),
-            allowed_blueprints=frozenset(self._allowed),
-            steps=self._steps,
-        )
+        try:
+            return LevelSpec(
+                size=self._size,
+                shapes=tuple(self._shapes.values()),
+                entrypoints=tuple(self._entrypoints),
+                allowed_blueprints=frozenset(self._allowed),
+                steps=self._steps,
+                entrypoints_fixed=self._entrypoints_fixed,
+                atom_types=self._atom_types,
+            )
+        except ValueError as exc:
+            raise LevelLoadError(str(exc)) from exc

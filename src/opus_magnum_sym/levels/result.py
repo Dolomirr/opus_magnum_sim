@@ -11,6 +11,7 @@ from opus_magnum_sym.simulation.collision import CollisionEvent
 class LevelStatus(Enum):
     COMPLETED = "completed"
     ERROR = "error"
+    FAILED = "failed"
 
 
 @dataclass

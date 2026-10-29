@@ -72,7 +72,7 @@ def _run_level(
 
     result = level.run(steps=steps)
 
-    if result.status is LevelStatus.ERROR:
+    if result.status in (LevelStatus.ERROR, LevelStatus.FAILED):
         if result.error is not None:
             print(result.error.message, file=sys.stderr)
         sys.exit(1)

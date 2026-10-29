@@ -1,5 +1,13 @@
 """
 Collision events for spatial collision detection.
+
+Arm rotations are recorded as continuous arcs in 2D rather than checked only at start/end
+cells. After all arms move, a separate collision pass samples every moved atom along its arc
+(on fixed sub-steps) and tests for overlap with stationary atoms, arm bases, and atoms carried
+by other arms. Any physical overlap stops the run and reports the step, category, and cell.
+
+Overlap includes atoms or arm bases touching during movement, two moving atoms crossing paths
+simultaneously, and an arm rotating or releasing a molecule onto an already-occupied cell.
 """
 
 from collections.abc import Iterable
