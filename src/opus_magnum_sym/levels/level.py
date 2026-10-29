@@ -12,28 +12,34 @@ from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board import Hex
 from opus_magnum_sym.elements.components import ComponentType, ShapeCell, ShapeTemplate
-from opus_magnum_sym.levels import EntrypointSpec, Level, LevelSpec
+from opus_magnum_sym.levels import Level, LevelSpec, entrance, exit
 
-# Local two-cell straight entrance and exit shapes.
-entrance = ShapeTemplate(
+# Local two-cell straight entrance and exit shapes; each cell carries its atom type.
+entrance_shape = ShapeTemplate(
     name="entrance_straight_2",
     comp_type=ComponentType.ENTRANCE,
-    cells=(ShapeCell(offset=Hex(0, 0)), ShapeCell(offset=Hex(-1, 1))),
+    cells=(
+        ShapeCell(offset=Hex(0, 0), kwargs={"atom_type": AtomType.SALT}),
+        ShapeCell(offset=Hex(-1, 1), kwargs={"atom_type": AtomType.SALT}),
+    ),
     links=((0, 1),),
 )
-exit_ = ShapeTemplate(
+exit_shape = ShapeTemplate(
     name="exit_straight_2",
     comp_type=ComponentType.EXIT,
-    cells=(ShapeCell(offset=Hex(0, 0)), ShapeCell(offset=Hex(-1, 1))),
+    cells=(
+        ShapeCell(offset=Hex(0, 0), kwargs={"atom_type": AtomType.SALT}),
+        ShapeCell(offset=Hex(-1, 1), kwargs={"atom_type": AtomType.SALT}),
+    ),
     links=((0, 1),),
 )
 
 spec = LevelSpec(
     size=(6, 6),
-    shapes=(entrance, exit_),
+    shapes=(entrance_shape, exit_shape),
     entrypoints=(
-        EntrypointSpec(ComponentType.ENTRANCE, "entrance_straight_2", Hex(2, 3), AtomType.SALT, rotation=1),
-        EntrypointSpec(ComponentType.EXIT, "exit_straight_2", Hex(3, 2), AtomType.SALT, rotation=2),
+        entrance("entrance_straight_2", Hex(2, 3), rotation=1),
+        exit("exit_straight_2", Hex(3, 2), rotation=2),
     ),
     allowed_blueprints=frozenset({"arm"}),
     steps=30,
