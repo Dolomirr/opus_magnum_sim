@@ -13,10 +13,10 @@ uv sync
 uv run opus-magnum
 
 # Run solution headlessly for N steps
-uv run opus-magnum run examples/test_flow.oms --steps 30
+uv run opus-magnum run examples/10_basic_flow.oms --steps 30
 
 # Run level (with starting conditions) + its solution
-uv run opus-magnum run --level examples/place_delivery.oml examples/place_delivery.oms
+uv run opus-magnum run --level examples/26_level_fixed.oml examples/26_level_fixed.oms
 ```
 
 ## File Formats
@@ -37,8 +37,8 @@ so levels run independently of one another:
 ```python
 from opus_magnum_sym.levels import Level
 
-level = Level.from_file("examples/place_delivery.oml")
-level.load_solution("examples/place_delivery.oms")
+level = Level.from_file("examples/26_level_fixed.oml")
+level.load_solution("examples/26_level_fixed.oms")
 result = level.run()
 
 result.status            # LevelStatus.COMPLETED | ERROR | FAILED
