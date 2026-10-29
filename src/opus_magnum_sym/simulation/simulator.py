@@ -157,7 +157,7 @@ class Simulator:
             group = [self._lookup(i) for i in self.connections.group_of(comp.idx)]
             comp.group = [c for c in group if c is not None and c.idx != comp.idx]  # ty: ignore
             links = [self._lookup(i) for i in self.connections.links_of(comp.idx)]
-            comp.links = [c for c in links if c is not None]
+            comp.links = [c for c in links if c is not None] # ty: ignore
 
     def connect_components(self, id_a: int, id_b: int) -> bool:
         comp_a = self._lookup(id_a)
