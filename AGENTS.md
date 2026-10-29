@@ -116,8 +116,8 @@ When placing components or reading the board, always use `Hex(r, s)`.
 - Concrete classes:
   - `Manipulator` (`ARM`) — rotates, grabs/releases atoms at its hand position.
   - `RetractableManipulator` (`ARM_RETR`) — piston arm; hand slides along the rotation axis (`EXTEND`/`RETRACT`).
-  - `Enter` (`ENTRANCE`) — spawns an `Atom` of its configured `AtomType` if the cell is empty, then bonds it to any connected entrance partners.
-  - `Exit` (`EXIT`) — accepts a full molecule via group exact-cover matching (see "Connected entrances/exits" below) and records a finished molecule in its env's `ResultCounter`.
+  - `Enter` (`ENTRANCE`) — spawns an `Atom` of its configured `AtomType` (per-cell, so each typed cell of a shape spawns its own type) if the cell is empty, then bonds it to its *directly-linked* entrance partners only.
+  - `Exit` (`EXIT`) — accepts a full molecule via exact-cover + bond-pattern matching (see "Connected entrances/exits" below) and records a finished molecule in its env's `ResultCounter`.
 
 ### Atoms (`elements/atoms/atom.py`)
 
@@ -156,13 +156,16 @@ sim.next_step()  # advances one simulation step
 
 - `ConnectionGraph` is a pure-id undirected link graph (`add`, `remove`, `remove_component`, `links_of`, `group_of`); `group_of` returns the transitive closure including the node itself.
 - `Simulator.connect_components(id_a, id_b)` links two components, returning `False` (no state change) unless both ids exist, differ, are not already linked, share the same type, and that type is `ENTRANCE` or `EXIT`, and the two cells are adjacent. `disconnect_components` removes an existing link.
-- On any link change the simulator refreshes each entrypoint's `group` list (its transitive neighbours). Linked entrances bond their spawned atoms together; linked exits accept a molecule only when it covers every group cell exactly (set equality), consuming the whole molecule and recording one finished molecule in the env's `ResultCounter`.
+- On any link change the simulator refreshes each entrypoint's `group` list (transitive neighbours) **and** its `links` list (direct partners, resolved from `connections.links_of`). Components expose both, but game logic uses the direct links:
+  - **Entrance bonding**: `Enter._execute` bonds its spawned atom only to its `links` partners (never to transitively-reached-but-unlinked neighbours), so a branched shape bonds exactly along its link set. Execution is sequential, so the last spawner in a group completes every bond; `Board.connect_atoms` no-ops on already-bonded pairs and rejects non-adjacent cells.
+  - **Exit verification**: `Exit._execute` first checks exact cell cover (set equality with the exit's `group`) and per-cell `atom.type` against each component's own `atom_type`, then verifies the **bond pattern** — for every ordered pair of covered cells, a bond must exist iff the two exit components are directly linked. No missing bonds, no extra bonds; the rotation for each pair is derived from the hex offset via `Direction().rotation_between`. A molecule whose bonds mismatch the link set is rejected (not consumed).
+- Manually `connection`-linked entrypoints are direct links in the same `ConnectionGraph`, so they participate naturally in both entrance bonding and exit verification.
 
 ### Blueprints & placement (`elements/components/blueprints.py`, `simulation/placement.py`)
 
 - A high-level placement layer on top of the single-hex primitives. Callers place a named, registered **blueprint** with `sim.place(name, pos, rotation=0, **overrides)`; the result is a `PlacementRecord`.
 - Two blueprint flavors, discriminated with `isinstance`:
-  - `ShapeTemplate` — a multi-cell group of linkable entrypoint components (`ENTRANCE`, `EXIT`, `CONNECTOR`, `DISCONNECTOR`). At runtime it exists as N ordinary components wired through the existing `ConnectionGraph`. Carries `cells` (offset + per-cell kwargs), `links` (index pairs), and optional `allowed_rotations`.
+  - `ShapeTemplate` — a multi-cell group of linkable entrypoint components (`ENTRANCE`, `EXIT`, `CONNECTOR`, `DISCONNECTOR`). At runtime it exists as N ordinary components wired through the existing `ConnectionGraph`. Carries `cells` (offset + per-cell kwargs), `links` (index pairs), and optional `allowed_rotations`. A `ShapeCell`'s `kwargs` may carry `atom_type` (a *typed cell*); at placement `_place_shape` merges per-cell kwargs **over** placement overrides (`{**overrides, **template_cell.kwargs}`), so a typed cell's type is never clobbered by a blanket `atom_type` override. Untyped cells fall back to the override (the entrypoint's `atom_type`).
   - `ManipulatorSpec` — a capability descriptor for an arm variant (`arm_count`, `extendable`, `min_length`/`max_length`). Variants are data, not enum values or subclasses.
 - Registry functions: `register_blueprint`, `get_blueprint`, `list_blueprints` (returns name + `implemented` flag). `implemented=False` blueprints are registerable but not placeable (place raises `SimulationRuntimeError`).
 - The global `default_registry` holds the built-ins (arm specs, connector shapes, `salt_transmuter`, `glyph_duplication`). Each `Simulator` clones it at construction (`default_registry.clone()`), so per-simulator registrations never leak into the global registry or other simulators. The straight-2 entrance/exit PoC shapes (`entrance_straight_2` / `exit_straight_2`) are **not** registered globally; define them per-level.
@@ -172,10 +175,14 @@ sim.next_step()  # advances one simulation step
 
 A **level** bundles a puzzle's starting conditions and its own runtime state, so levels run independently of one another. Public names (from `levels/__init__.py`): `EntrypointSpec`, `LevelSpec`, `Level`, `LevelResult`, `LevelError`, `LevelStatus`.
 
-- `LevelSpec` (frozen dataclass, `levels/spec.py`) — immutable, validated starting conditions: board `size`, local `ShapeTemplate`s, a tuple of `EntrypointSpec`, an `allowed_blueprints` frozenset, and a `steps` limit. Validation enforces: unique shape names; every entrypoint resolves to a *local* shape with matching `comp_type`; every allow-list name resolves locally or in the global default registry and is `implemented`; at least one entrance and one exit; positive size and steps; entrypoint cells (computed from shape offsets + rotation, pure `Hex`/`Direction` math) in bounds and pairwise non-overlapping. It never touches a `Simulator`.
-- `EntrypointSpec` (frozen dataclass) — one entrance or exit: `kind` (`ENTRANCE`/`EXIT`), `shape` name, `pos` (`Hex`), `rotation` (0..5), `atom_type`. `atom_type` may not be `NONE`/`BASIC` (mirrors the `place` guard).
-- `Level` (`levels/level.py`) — built from a `LevelSpec`; owns a `Simulator` with a fresh `LevelEnv` and a cloned blueprint registry; registers the spec's shapes, sets `allowed_blueprints`, and places each entrypoint with one `sim.place(...)` call. Solution-building delegates: `place`, `assign_step_action`, `remove_placement`, `load_solution(path)`. `run(steps=None)` advances up to the spec limit (or the override) and returns a `LevelResult` instead of raising. `Level.from_file(path)` builds from a `.oml` file.
-- `LevelResult` / `LevelError` / `LevelStatus` (`levels/result.py`) — `status` is `COMPLETED` or `ERROR`; `error` carries the exception class name, message, `step`, and optional `CollisionEvent`; `finished` maps exit-cluster id sets to counts, `finished_by_exit` maps spec exit-entrypoint index to counts (zeros filled), `total_finished` sums them; `metrics` is reserved (empty) for future eval parameters.
+- `LevelSpec` (frozen dataclass, `levels/spec.py`) — immutable, validated starting conditions: board `size`, local `ShapeTemplate`s, a tuple of `EntrypointSpec`, an `allowed_blueprints` frozenset, a `steps` limit, plus `entrypoints_fixed: bool = True` and `atom_types: frozenset[AtomType] = frozenset()` (declared atom types, empty = unconstrained). Validation enforces: unique shape names; every entrypoint resolves to a *local* shape with matching `comp_type`; every allow-list name resolves locally or in the global default registry and is `implemented`; at least one entrance and one exit; positive size and steps; typed-cell kwargs are only `atom_type` with a non-`NONE`/`BASIC` `AtomType` value; declared `atom_types` excludes `NONE`/`BASIC` and (when non-empty) must include every entrypoint's fallback and per-cell types; in fixed mode every entrypoint has `pos` and its cells (computed from shape offsets + rotation, pure `Hex`/`Direction` math) are in bounds and pairwise non-overlapping; in unfixed mode every entrypoint has `pos=None`. An entrypoint's `atom_type` is required iff its shape has at least one untyped cell. It never touches a `Simulator`.
+- `EntrypointSpec` (frozen dataclass) — one entrance or exit: `kind` (`ENTRANCE`/`EXIT`), `shape` name, `pos` (`Hex | None`, `None` in unfixed mode), `rotation` (0..5), `atom_type` (`AtomType | None`, fallback for untyped cells). `atom_type` may not be `NONE`/`BASIC` when set (mirrors the `place` guard). Multiple entrypoints may share a `shape` name to require copies.
+- `Level` (`levels/level.py`) — built from a `LevelSpec`; owns a `Simulator` with a fresh `LevelEnv` and a cloned blueprint registry; registers the spec's shapes, sets `allowed_blueprints`, and (fixed mode) places each entrypoint with one `sim.place(...)` call. In unfixed mode nothing is placed up front and the allow-list is `spec.allowed_blueprints` union the entrypoint shape names, so solutions place entrypoints through the normal `place` path. Solution-building delegates: `place`, `assign_step_action`, `remove_placement`, `load_solution(path)`. `run(steps=None)` advances up to the spec limit (or the override) and returns a `LevelResult` instead of raising. `Level.from_file(path)` builds from a `.oml` file.
+- `LevelResult` / `LevelError` / `LevelStatus` (`levels/result.py`) — `status` is `COMPLETED`, `ERROR`, or `FAILED`; `error` carries the exception class name, message, `step`, and optional `CollisionEvent`; `finished` maps exit-cluster id sets to counts, `finished_by_exit` maps spec exit-entrypoint index to counts (zeros filled), `total_finished` sums them; `metrics` is reserved (empty) for future eval parameters.
+
+**Fixed vs unfixed entrypoints**: with `entrypoints_fixed 1` (default) the level places entrypoints at build time; with `entrypoints_fixed 0` the solution must place each defined entrypoint exactly once. Matching is per shape name: placements-of-shape must equal specs-of-shape (extra or missing → `FAILED`). `Level.run` re-checks the count on every call (not just the first) and, on mismatch, returns `LevelResult(status=FAILED, error=LevelError(...), steps=0)` without stepping. `FAILED` is distinct from `ERROR` (a simulation fault).
+
+**Snapshot-time results**: `finished_by_exit` is computed in `_snapshot`, not cached at build time — each exit's cluster key is read from the live `ConnectionGraph` (`connections.group_of`), so a solution that `connection`-links exit entrypoints into one cluster reports correctly. Fixed mode reuses the build-time records; unfixed mode maps each exit spec to the n-th placement of its shape.
 
 **Invariants**: a level's component ids, result counters, and blueprint registry never leak across levels. `AtomType.BASIC`/`NONE` are non-game placeholders rejected from level entrypoints and from `sim.place`, but remain available to the low-level `add_component` path.
 
@@ -227,12 +234,14 @@ The same starting conditions are loadable from text, alongside the `.oms` soluti
 size <rows> <cols>
 steps <n>
 allow <name> [name ...]
-shape <name> <kind> cells=(r,s),(r,s),... links=i-j,i-j [rotations=0,1,...]
-entrance <shape> <r> <s> [rotation=k] atom_type=<type>
-exit <shape> <r> <s> [rotation=k] atom_type=<type>
+atom_types <type> [type ...]
+entrypoints_fixed 0|1
+shape <name> <kind> cells=(r,s)[:type],(r,s)[:type],... links=i-j,i-j [rotations=0,1,...]
+entrance <shape> [<r> <s>] [rotation=k] [atom_type=<type>]
+exit <shape> [<r> <s>] [rotation=k] [atom_type=<type>]
 ```
 
-`kind` is a `ComponentType` name (`entrance`, `exit`, `connector`, ...); `atom_type` is an `AtomType` name (never `none`/`basic`). Reference demo: `examples/place_delivery.oml` (level) + `examples/place_delivery.oms` (solution), run end-to-end via `Level.from_file` + `load_solution` + `run`.
+`kind` is a `ComponentType` name (`entrance`, `exit`, `connector`, ...); `atom_type` is an `AtomType` name (never `none`/`basic`). Shape `cells` take an optional colon suffix per cell to declare a typed cell, e.g. `cells=(0,0):salt,(-1,1):water,(1,0):fire`; cells without a suffix are untyped and fall back to the entrypoint's `atom_type`. `atom_types` declares the level's used types (optional; empty = unconstrained). `entrypoints_fixed 0` switches to solution-placed entrypoints: `entrance`/`exit` then take no `r s` position, and `atom_type` may be omitted when every cell of the shape is typed. Reference demos: `examples/place_delivery.oml` (fixed) and `examples/typed_delivery.oml` (typed, unfixed) + their `.oms` solutions, run end-to-end via `Level.from_file` + `load_solution` + `run`.
 
 ## 6. Rendering
 
@@ -274,6 +283,8 @@ exit <shape> <r> <s> [rotation=k] atom_type=<type>
 2. Construct a `Level(spec)` — it owns a fresh env and a cloned blueprint registry, and places the entrypoints.
 3. Build the solution through `level.place(...)` / `level.assign_step_action(...)`, or `level.load_solution("solution.oms")`.
 4. `result = level.run()` returns a `LevelResult`; inspect `result.status`, `result.total_finished`, `result.finished_by_exit`, and `result.error`.
+
+A complete end-to-end Python example lives in the `levels/level.py` module docstring.
 
 ## 9. Known Limitations / TODOs
 

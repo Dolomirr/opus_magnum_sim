@@ -1,6 +1,6 @@
 ---
 name: oms-authoring
-description: Author and style Opus Magnum puzzle scripts — `.oms` solution files (DSL commands and tokens, component-ID allocation, arm hand positioning, required house style, demo-file conventions) and `.oml` level files (size/steps, local shape definitions, entrance/exit placements, allow-list) — plus the validate/run/save workflow.
+description: Author and style Opus Magnum puzzle scripts — `.oms` solution files (DSL commands and tokens, component-ID allocation, arm hand positioning, required house style, demo-file conventions) and `.oml` level files (size/steps, local shape definitions with typed cells, entrance/exit placements, allow-list, fixed vs solution-placed entrypoints, declared atom types) — plus the validate/run/save workflow.
 ---
 
 # Authoring `.oms` Solution Scripts and `.oml` Level Files
@@ -68,7 +68,8 @@ for shapes, their `connection` links) in a single line. `<blueprint>` is a name 
 `rotation=R` rotates the whole shape around the origin cell; some shapes restrict the
 allowed rotations (e.g. the Y shapes only accept {0,2,4} or {1,3,5}). Remaining
 `key=value` pairs merge onto every placed cell — `atom_type=` reaches all cells of a
-connector/entrance/exit shape. Note: `place` rejects `atom_type=basic` ("cannot use
+connector/entrance/exit shape. A per-cell typed `:type` (from a `.oml`-defined shape)
+wins over a blanket `atom_type=` override. Note: `place` rejects `atom_type=basic` ("cannot use
 atom_type 'basic'"); for basic atoms build the shape from `comp` lines plus `connection`.
 
 ## Component kwargs
@@ -251,9 +252,11 @@ which builds a validated `LevelSpec`. Unlike `SimInterpreter` (lenient), the loa
 size <rows> <cols>
 steps <n>
 allow <name> [name ...]
-shape <name> <kind> cells=(r,s),(r,s),... links=i-j[,i-j...] [rotations=0,1,...]
-entrance <shape> <r> <s> [rotation=k] atom_type=<type>
-exit <shape> <r> <s> [rotation=k] atom_type=<type>
+atom_types <type> [type ...]
+entrypoints_fixed 0|1
+shape <name> <kind> cells=(r,s)[:type],(r,s)[:type],... links=i-j[,i-j...] [rotations=0,1,...]
+entrance <shape> [<r> <s>] [rotation=k] [atom_type=<type>]
+exit <shape> [<r> <s>] [rotation=k] [atom_type=<type>]
 ```
 
 - `size` and `steps` are required and must be positive.
@@ -262,26 +265,40 @@ exit <shape> <r> <s> [rotation=k] atom_type=<type>
   `salt_transmuter` (not `arm`). `cells=(r,s),...` lists offsets relative to the origin; exactly
   one cell must be `(0,0)` and offsets must be distinct. `links=i-j` pairs adjacent cell indexes
   (use `links=` for a single-cell shape). `rotations=` restricts allowed rotations (omit for any).
+- **Typed cells**: each cell may carry a colon-suffixed atom type — `(0,0):salt,(-1,1):water`.
+  A typed cell overrides the entrypoint's `atom_type`; an untyped cell falls back to it. The
+  loader rejects unknown typed-cell keys and non-`AtomType`/`basic`/`none` values.
 - `entrance`/`exit` place an entrypoint using a **locally defined** `shape` (never a global
-  blueprint). `rotation=k` (default 0) and `atom_type=<type>` (required) are `key=value` pairs;
-  their order after the position is free. `atom_type` must be a real atom type — `basic`/`none`
-  are rejected.
+  blueprint). `rotation=k` (default 0) and `atom_type=<type>` are `key=value` pairs; their order
+  after the position is free. `atom_type` must be a real atom type — `basic`/`none` are rejected —
+  and is **omittable only when every cell of the shape is typed**.
+- **Fixed vs unfixed**: `entrypoints_fixed 1` (default) requires the `<r> <s>` position on every
+  `entrance`/`exit` (the level places them). With `entrypoints_fixed 0` the position is omitted and
+  the solution must `place` each defined entrypoint shape exactly once (matching per shape name).
+- `atom_types <type> [type ...]` declares the level's used atom types (optional; empty =
+  unconstrained). When non-empty, every entrypoint type — fallback and typed cells — must be a
+  member.
 - `allow <name> [name ...]` lists the blueprints the solution may `place`; each name resolves
   against the level's local shapes plus the global default registry and must be `implemented`
   (`arm` and `arm_piston` are; `arm_double`/`arm_triple`/`arm_hex` are not). Entrypoint shapes
-  need not be listed.
+  need not be listed — in unfixed mode the level auto-adds them to the allow-list.
 
 ### Invariants
 
 - The spec must have at least one entrance and one exit; entrypoint cells (shape offsets +
-  rotation) must be in bounds and pairwise non-overlapping — the loader raises otherwise.
+  rotation) must be in bounds and pairwise non-overlapping (fixed mode) — the loader raises
+  otherwise. In unfixed mode every entrypoint must omit its position.
 - A level runs with its own env (fresh id allocator and result counter) and a cloned blueprint
-  registry. Entrypoints are placed first, so the solution's component ids start after them
-  (in `examples/place_delivery.oms` the arm is `# id 4`).
+  registry. In fixed mode entrypoints are placed first, so the solution's component ids start
+  after them (in `examples/place_delivery.oms` the arm is `# id 4`). In unfixed mode the solution
+  places the entrypoints itself, so their ids come from the solution's own `place` order.
+- The exit verifies the delivered molecule's **bond pattern exactly**: for every pair of covered
+  cells, a bond must exist iff the two exit components are directly linked (no missing, no extra
+  bonds). A molecule whose bonds mismatch the shape's `links` is rejected, not consumed.
 
 ### House style
 
-Follow `examples/place_delivery.oml`:
+Follow `examples/place_delivery.oml` (minimal copy: `templates/basic.oml`):
 
 1. **Context comment block first** — a dry comment stating the scenario, that this is the
    level, and pointing at its solution file.
@@ -314,6 +331,44 @@ exit exit_straight_2 3 2 rotation=2 atom_type=salt
 allow arm
 ```
 
+### Typed cells & solution-placed entrypoints
+
+Follow `examples/typed_delivery.oml` when a level uses typed cells or leaves entrypoint
+placement to the solution:
+
+1. Put `entrypoints_fixed 0` (and `atom_types ...` when declared) directly after `steps`,
+   before the `shape` definitions.
+2. Give every cell of a typed shape a `:type` suffix so no `atom_type` fallback is needed;
+   otherwise keep `atom_type=` on the entrypoint for the untyped cells.
+3. In unfixed mode, `entrance`/`exit` take no position; the solution `place`s them (the level
+   auto-adds entrypoint shapes to the allow-list).
+
+```text
+# Typed, solution-placed entrypoints: a water+salt molecule is delivered to a
+# typed exit that verifies the exact bond pattern.
+#
+# The level defines the typed shapes and leaves entrypoint placement to the
+# solution (`entrypoints_fixed 0`).
+# The solution lives in `examples/typed_delivery.oms`
+
+size 6 6
+steps 30
+entrypoints_fixed 0
+atom_types salt water
+
+# The arm's 4-step swing mirrors the molecule, so the entrance's origin cell is
+# water and its beam salt; the exit carries the opposite assignment.
+shape entrance_typed entrance cells=(0,0):water,(-1,1):salt links=0-1
+shape exit_typed exit cells=(0,0):salt,(-1,1):water links=0-1
+
+# Both cells are typed, so no `atom_type` fallback is needed.
+entrance entrance_typed
+exit exit_typed
+
+# Blueprints available to the solution (entrypoint shapes are added automatically).
+allow arm
+```
+
 ## Authoring & verification workflow
 
 ```bash
@@ -336,5 +391,8 @@ uv run opus-magnum run --level examples/my_level.oml examples/my_level.oms
   hand-written files as the source of truth for style and connections.
 - `connection` is the only link keyword; there is no `disconnect` alias (use `disconnection`).
 - `AtomType` now includes `basic`, `fire`, `water`, `earth`, `air`, `salt`, and `metal`.
-  Exits consume only atoms of their configured type; bond/type patterns beyond
-  "covers the exit group exactly" are not yet verified.
+  An exit consumes a molecule only when it covers the exit cluster exactly, each covered atom
+  matches its cell's type (per-cell typed type, else the entrypoint fallback), **and** the
+  molecule's bonds equal the exit shape's links exactly — a missing or extra bond is rejected.
+  Entrances likewise bond their spawned atoms only along direct links, so a branched entrance
+  shape spawns a molecule bonded exactly along its `links`.
