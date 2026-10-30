@@ -19,7 +19,7 @@ It is valid but never assembles the exit molecule, so `total_finished` stays 0.
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board import Hex
-from opus_magnum_sym.elements.components import ComponentType, ShapeCell, ShapeTemplate
+from opus_magnum_sym.elements.components import BPN, ComponentType, ShapeCell, ShapeTemplate
 from opus_magnum_sym.levels import Level, LevelSpec, mkentr, mkexit
 
 
@@ -106,12 +106,12 @@ def main():
         ),
         allowed_blueprints=frozenset(
             {
-                "arm",
-                "arm_piston",
-                "connector_straight_2",
-                "connector_tri",
-                "connector_tri_odd",
-                "salt_transmuter",
+                BPN.ARM,
+                BPN.ARM_PISTON,
+                BPN.CONNECTOR_STRAIGHT_2,
+                BPN.CONNECTOR_TRI,
+                BPN.CONNECTOR_TRI_ODD,
+                BPN.SALT_TRANSMUTER,
             }
         ),
         steps=60,
