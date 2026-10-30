@@ -3,6 +3,25 @@ from enum import IntEnum, auto
 
 
 class AtomType(IntEnum):
+    """
+    Kind of atom carried by the board or spawned by an entrance.
+
+    `NONE` and `BASIC` are non-game placeholders rejected by high-level placement
+    and level entrypoints;
+    solvable levels use real types:
+
+    - FIRE
+    - WATER
+    - EARTH
+    - AIR
+    - SALT
+    - METAL
+
+    ```python
+    AtomType.SALT
+    ```
+    """
+
     NONE = 0
     BASIC = auto()
     FIRE = auto()

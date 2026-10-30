@@ -25,7 +25,33 @@ class ComponentAssignmentError(Exception):
 
 
 class ComponentType(IntEnum):
-    """Full objects index, includes both base objects (manipulator bases, entrance) and dynamic parts as atoms"""
+    """
+    Full objects index: base objects (manipulator bases, entrypoints) and dynamic parts.
+
+    Covers entrypoints:
+    - ENTRANCE
+    - EXIT
+
+    Manipulators:
+
+    - ARM
+    - ARM_RETR
+
+    Glyphs:
+
+    - CONNECTOR
+    - DISCONNECTOR
+    - SALT_TRANSMUTER
+    - DUPLICATION_GLYPH
+
+    Unoccupied cell:
+
+    - EMPTY
+
+    ```python
+    ComponentType.ENTRANCE
+    ```
+    """
 
     EMPTY = -1
     ENTRANCE = 0

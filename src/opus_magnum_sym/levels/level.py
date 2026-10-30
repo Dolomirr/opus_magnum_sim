@@ -65,7 +65,7 @@ Entrypoints may be fixed (the level places them, above) or solution-placed
 
 from collections import Counter
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from opus_magnum_sym.elements.board import Hex
 from opus_magnum_sym.elements.components import ComponentType, default_registry
@@ -78,12 +78,23 @@ from opus_magnum_sym.simulation.errors import SimulationCollisionError, Simulati
 from opus_magnum_sym.simulation.placement import PlacementRecord
 from opus_magnum_sym.simulation.simulator import Simulator
 
+if TYPE_CHECKING:
+    from opus_magnum_sym.elements.actions.actions import StepActionType
+
 
 class Level:
     """
-    A level built from its `LevelSpec`, runnable independently of any other level.
+    Runnable level built from a `LevelSpec` or a `.oml` file.
 
-    Owns dedicated simulator so that ids, counters, and shape did not leak between them.
+    Owns a dedicated simulator and env, so component ids, result counters, and
+    registered blueprints never leak between levels. Place solution blueprints,
+    schedule step actions, then call `run()` for a `LevelResult`.
+
+    ```python
+    level = Level(spec)
+    (arm_id,) = level.place(component_name, Hex(...)).component_ids
+    result = level.run()
+    ```
     """
 
     def __init__(self, spec: LevelSpec) -> None:
@@ -123,11 +134,28 @@ class Level:
         return cls(LevelLoader().load_file(path))
 
     # solution building
+    def place(self, name: str, pos: Hex, rotation: int = 0, **overrides) -> PlacementRecord:
+        """
+        Solution-stage API.
 
-    def place(self, name, pos, rotation: int = 0, **overrides) -> PlacementRecord:
+        Place component blueprint by name on board.
+
+        ```python
+        level.place(blueprint name, Hex(...), rotation=0)
+        ```
+        """
         return self.sim.place(name, pos, rotation=rotation, **overrides)
 
-    def assign_step_action(self, comp_id: int, step: int, action) -> None:
+    def assign_step_action(self, comp_id: int, step: int, action: StepActionType) -> None:
+        """
+        Solution-stage API.
+
+        Assign action to a placed component at specific simulation step.
+
+        ```python
+        level.assign_step_action(comp_id, step, action)
+        ```
+        """
         self.sim.assign_step_action(comp_id, step, action)
 
     def remove_placement(self, record: PlacementRecord) -> None:

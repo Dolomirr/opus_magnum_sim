@@ -1,9 +1,4 @@
-from dataclasses import dataclass, field
 from enum import IntEnum, auto
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from opus_magnum_sym.elements.board import Hex
 
 
 class ActionType(IntEnum):
@@ -19,6 +14,18 @@ class ActionType(IntEnum):
 
 
 class StepActionType(IntEnum):
+    """
+    Action a component performs on one simulation step.
+
+    Actions are scheduled per component through `Level.assign_step_action` or
+    `Simulator.assign_step_action`; the component executes its action when the
+    simulation reaches that step. `EXTEND`/`RETRACT` apply only to piston arms.
+
+    ```python
+    level.assign_step_action(arm_id, 1, StepActionType.GRAB)
+    ```
+    """
+
     NONE = 0
     GRAB = auto()
     RELEASE = auto()

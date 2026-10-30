@@ -51,9 +51,15 @@ def entrance(shape: str, pos: Hex | None = None, rotation: int = 0) -> Entrypoin
     """
     Define an entrance entrypoint from a locally defined shape.
 
-    `pos` is `None` for solution-placed entrypoint (`entrypoints_fixed` false).
-    Atom types are carried by the shape's typed cells,
-    so no `atom_type` placeholder is required here.
+    A position makes the entrypoint fixed (`entrypoints_fixed=True`);
+    without one the solution must place the shape (`entrypoints_fixed=False`).
+
+    Atom types are defined by shape's typed cells, so no `atom_type` placeholder is needed.
+
+    ```python
+    entrance(shape_template_name)                        # solution-placed
+    entrance(shape_template_name, Hex(...), rotation=1)  # fixed
+    ```
     """
     return EntrypointSpec(kind=ComponentType.ENTRANCE, shape=shape, pos=pos, rotation=rotation)
 
@@ -62,9 +68,14 @@ def exit(shape: str, pos: Hex | None = None, rotation: int = 0) -> EntrypointSpe
     """
     Define an exit entrypoint from a locally defined shape.
 
-    `pos` is `None` for solution-placed entrypoint (`entrypoints_fixed` false).
-    Atom types are carried by the shape's typed cells,
-    so no `atom_type` placeholder is required here.
+    A position makes the entrypoint fixed (`entrypoints_fixed=True`);
+    without one the solution must place the shape (`entrypoints_fixed=False`).
+    Atom types are defined by the shape's typed cells, so no `atom_type` placeholder is needed.
+
+    ```python
+    exit("shape_template_name")                        # solution-placed
+    exit("shape_template_name", Hex(...), rotation=2)  # fixed
+    ```
     """
     return EntrypointSpec(kind=ComponentType.EXIT, shape=shape, pos=pos, rotation=rotation)
 
@@ -72,12 +83,37 @@ def exit(shape: str, pos: Hex | None = None, rotation: int = 0) -> EntrypointSpe
 @dataclass(frozen=True)
 class LevelSpec:
     """
+
+    ```python
+    LevelSpec(
+        size: tuple[int, int],
+        shapes: tuple[ShapeTemplate, ...],
+        entrypoints: tuple[EntrypointSpec, ...],
+        allowed_blueprints: frozenset[str],
+        steps: int,
+        entrypoints_fixed: bool = False,
+        atom_types: frozenset[AtomType] = ...,
+        target: int | None = None
+    ) -> None
+    ```
+
     Immutable, validated description of a level's starting conditions.
 
     `shapes` holds the shape templates that entrypoints resolve against;
-    `allowed_blueprints` defines solution placements
-    It can allow either local shape (entrypoints) or built-in from global default registry (components/glyphs).
-    `target` is the per-exit delivery requirement; `None` (or `0`) disables early termination.
+    `allowed_blueprints` defines solution placements and may name local shapes
+    or built-ins from the global default registry (components/glyphs). `target`
+    is the per-exit delivery requirement; `None` (or `0`) disables early termination.
+
+    ```python
+    spec = LevelSpec(
+        size=(6, 6),
+        shapes=(entrance_shape, exit_shape),
+        entrypoints=(entrance("entrance_straight_2"), exit("exit_straight_2")),
+        allowed_blueprints=frozenset({"arm"}),
+        steps=30,
+        entrypoints_fixed=False,
+    )
+    ```
     """
 
     size: tuple[int, int]

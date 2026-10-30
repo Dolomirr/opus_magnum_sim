@@ -27,7 +27,15 @@ _SHAPE_COMPONENT_TYPES = frozenset(
 @dataclass(frozen=True)
 class ShapeCell:
     """
-    Single-hex cell in a`ShapeTemplate`.
+    Single-hex cell of a `ShapeTemplate`.
+
+    `offset` is relative to the shape's origin `Hex(0, 0)`;
+    `kwargs` are passed to the placed primitive, e.g.:
+    `{"atom_type": AtomType.SALT}` marks a typed cell.
+
+    ```python
+    ShapeCell(offset=Hex(-1, 1), kwargs={"atom_type": AtomType.SALT}),
+    ```
     """
 
     offset: Hex
@@ -37,7 +45,35 @@ class ShapeCell:
 @dataclass(frozen=True)
 class ShapeTemplate:
     """
-    Multi-cell group of single-hex components with pre-wired links.
+
+    ```python
+    ShapeTemplate(
+        name: str,
+        comp_type: ComponentType,
+        cells: tuple[ShapeCell, ...],
+        links: tuple[tuple[int, int], ...],
+        implemented: bool = True,
+        allowed_rotations: frozenset[int] | None = None,
+    )
+    ```
+
+    Multi-cell blueprint: cells plus the links wired between them.
+
+    Used for entrypoint shapes and placeable linkable glyph groups. `links` holds
+    index pairs into `cells`, and linked cells must be adjacent on the hex grid.
+
+    ```python
+    straignt = ShapeTemplate(
+        name="entrance_straight_2",
+        comp_type=ComponentType.ENTRANCE,
+        cells=(
+            ShapeCell(offset=Hex(0, 0), kwargs={"atom_type": AtomType.SALT}),
+            ShapeCell(offset=Hex(-1, 1), kwargs={"atom_type": AtomType.SALT}),
+        ),
+        links=((0, 1),),
+    )
+    ```
+
     """
 
     name: str
