@@ -89,7 +89,7 @@ class LevelSpec:
         size: tuple[int, int],
         shapes: tuple[ShapeTemplate, ...],
         entrypoints: tuple[EntrypointSpec, ...],
-        allowed_blueprints: frozenset[str],
+        allowed_blueprints: frozenset[str] | set[str],
         steps: int,
         entrypoints_fixed: bool = False,
         atom_types: frozenset[AtomType] = ...,
@@ -101,8 +101,9 @@ class LevelSpec:
 
     `shapes` holds the shape templates that entrypoints resolve against;
     `allowed_blueprints` defines solution placements and may name local shapes
-    or built-ins from the global default registry (components/glyphs). `target`
-    is the per-exit delivery requirement; `None` (or `0`) disables early termination.
+        or built-ins from the global default registry (components/glyphs);
+        accepts `set` or `frozenset` but at runtime is normalized to frozenset.
+    `target` is the per-exit delivery requirement; `None` (or `0`) disables early termination.
 
     ```python
     spec = LevelSpec(
@@ -119,7 +120,7 @@ class LevelSpec:
     size: tuple[int, int]
     shapes: tuple[ShapeTemplate, ...]
     entrypoints: tuple[EntrypointSpec, ...]
-    allowed_blueprints: frozenset[str]
+    allowed_blueprints: frozenset[str] | set[str]
     steps: int
     entrypoints_fixed: bool = False
     atom_types: frozenset[AtomType] = frozenset()
@@ -131,6 +132,8 @@ class LevelSpec:
             raise ValueError(f"LevelSpec size must be positive, got {self.size!r}")
         if self.steps <= 0:
             raise ValueError(f"LevelSpec steps must be positive, got {self.steps}")
+        if not isinstance(self.allowed_blueprints, frozenset):
+            object.__setattr__(self, "allowed_blueprints", frozenset(self.allowed_blueprints))
         if self.target is not None:
             if not isinstance(self.target, int):
                 raise ValueError(f"LevelSpec target must be an int or None, got {self.target!r}")
