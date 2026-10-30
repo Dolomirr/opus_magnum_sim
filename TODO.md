@@ -31,13 +31,14 @@
 - [ ] Level completion logic
     - [x] Per-exit counters (each should be correct).
     - [x] Move things like `index_manager` and `result_counter` to Simulator or separate Level to isolate envs.
-    - [ ] Actual validation of level.
+    - [ ] (?) Actual validation of level.
     - [x] Entrances and exists verification, connected to [Composed multi hex components]
-    - [ ] Conditions to mark level as correct / finished.
-    - [ ] Eval Metrics (results counters).
-        - [ ] Steps.
-        - [ ] Const per-component.
-        - [ ] (?) Used space.
+    - [ ] (?) Conditions to mark level as correct / finished.
+        - Partially ready ig?
+    - [x] Eval Metrics (results counters).
+        - [x] Steps.
+        - [x] Const per-component.
+        - [x] (?) Used space.
 - [ ] (?) Add more planned components.
     - [ ] Multi-arm (snowflake) manipulators
     - [ ] Conveyor belt
@@ -53,7 +54,7 @@
     - [ ] Define resolution order
 - [ ] Program Flow.
     - [ ] Programs cycle (optional, or just the simplest, without epicycles)
-    - [ ] (?) Possibly only level-wise max steps limit [Level completion logic]
+    - [x] (?) Possibly only level-wise max steps limit [Level completion logic]
     - [ ] Indef step levels
     - [ ] Stale level detection (then no steps limit is given)
     - [ ] Ensure entranced does not bypass held in manipulators atoms
@@ -62,14 +63,14 @@
     - [x] Headless simulation.
         - [x] ~Parallel?~
         - [x] Keep-alive on python-object level daemon.
-    - [ ] (?) Numba (most probably) - Need to consider warm-ups and optimization control.
-    - [ ] (?) C+- - Ah shiiit here we go again...
-    - [ ] (?) Nim - Can be nice, but not transparent.
+    - [ ] (?) Consider bitmap collision overlap checking, instead of full sub-step pass.
     - [ ] Prepare for static structures.
         - [x] ~Atoms store as limited pre-allocated array (since board is not infinite) with ids.~
         - Classify what cannot be handled statically.
         - ...
-    - [ ] (?) Consider bitmap collision overlap checking, instead of full sub-step pass.
+    - (?) Numba (most probably) - Need to consider warm-ups and optimization control.
+    - (?) C+- - Ah shiiit here we go again...
+    - (?) Nim - Can be nice, but not transparent.
 - [x] Proper logging.
 - [ ] Cleanup.
     - [ ] (?) Block low-level API
