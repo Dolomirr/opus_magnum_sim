@@ -40,8 +40,8 @@ from opus_magnum_sym import (
 #   mkentr()/mkexit()        ->  entrypoint specs referencing a shape by name
 #   allowed_blueprints=...   ->  built-in blueprints the solution may place
 #   Level(spec)              ->  runnable level; unfixed mode places nothing yet
-#   level.place(...)         ->  instantiate a shape/blueprint on the board
-#   comp_id                  ->  id of a single-component placement (manipulator)
+#   level.place(...)         ->  place a shape/blueprint; returns PlacementRecord
+#   PlacementRecord.comp_id  ->  id of a single-component placement (manipulator)
 #   assign_step_action(...)  ->  per-step program for a component id
 
 def straight(name, kind):
@@ -109,6 +109,7 @@ from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board import Hex
 from opus_magnum_sym.elements.components import ComponentType, ShapeCell, ShapeTemplate
 from opus_magnum_sym.levels import Level, LevelSpec, mkentr, mkexit
+from opus_magnum_sym.simulation.placement import PlacementRecord
 
 __all__ = [
     "AtomType",
@@ -116,6 +117,7 @@ __all__ = [
     "Hex",
     "Level",
     "LevelSpec",
+    "PlacementRecord",
     "ShapeCell",
     "ShapeTemplate",
     "StepActionType",

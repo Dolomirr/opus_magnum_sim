@@ -6,18 +6,28 @@ from opus_magnum_sym.elements.board.hex import Hex
 @dataclass
 class PlacementRecord:
     """
-    Result of a single `Simulator.place` call.
 
-    `component_ids` are in template cell order (single element for variant blueprints).
-    `links` holds absolute component-id pairs of connected single-cell components;
-    empty for variant blueprints.
+    ```python
+    comp = PlacementRecord(
+        blueprint: str,
+        pos: Hex,
+        rotation: int,
+        component_ids: tuple[int, ...],
+        links: tuple[tuple[int, int], ...]
+    ) -> PlacementRecord
+    ```
 
-    Manipulators are single-component placements, and their `comp_id` is the id
-    `assign_step_action` expects.
+    Not ment to be instanced manually.
+    Result of a single `Level.place` / `Simulator.place` call.
+
+    Use `comp_id` to get placed Manupulator id in order to assign action.
+
+    Manipulators are single-component placements, `assign_step_action` expects.
     Multi-cell shapes (connectors, glyphs, entrypoint shapes) create one component
     per cell and have no assignable actions, so their ids are only needed
     to inspect internal state (cell positions, types, link graph);
     generally there is no need to read their ids after placement.
+
     """
 
     blueprint: str
