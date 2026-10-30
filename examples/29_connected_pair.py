@@ -48,6 +48,7 @@ def main():
         ),
         allowed_blueprints=frozenset({"arm"}),
         steps=30,
+        entrypoints_fixed=True,
     )
 
     level = Level(spec)
