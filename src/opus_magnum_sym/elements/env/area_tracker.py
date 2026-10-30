@@ -1,9 +1,8 @@
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
-from opus_magnum_sym.elements.board.hex import Hex
-
 if TYPE_CHECKING:
+    from opus_magnum_sym.elements.board.hex import Hex
     from opus_magnum_sym.simulation.movement import Movement
 
 
