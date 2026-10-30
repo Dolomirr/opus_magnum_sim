@@ -49,7 +49,7 @@ def main():
     )
 
     level = Level(spec)
-    (arm_id,) = level.place("arm", Hex(3, 3)).component_ids
+    arm_id = level.place("arm", Hex(3, 3)).comp_id
 
     # Swing onto the entrance, grab the atom, swing onto the exit, release.
     level.assign_step_action(arm_id, 1, StepActionType.ROTATE_CCLW)

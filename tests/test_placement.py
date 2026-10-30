@@ -198,6 +198,19 @@ def test_arm_placement_stores_spec():
     assert spec.name == "arm"
 
 
+def test_comp_id_returns_sole_id_for_single_component_placement():
+    sim = _make_sim()
+    record = sim.place("arm", Hex(3, 3))
+    assert record.comp_id == record.component_ids[0]
+
+
+def test_comp_id_rejects_multi_component_placement():
+    sim = _make_sim()
+    record = sim.place("connector_straight_2", Hex(3, 3), atom_type=AtomType.SALT)
+    with pytest.raises(ValueError, match="component_ids"):
+        _ = record.comp_id
+
+
 def test_gated_presets_raise():
     sim = _make_sim()
     for name in ("arm_double", "arm_triple", "arm_hex"):

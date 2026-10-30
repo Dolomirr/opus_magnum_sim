@@ -53,7 +53,7 @@ def main():
     # Solution places the entrypoint shapes (and the arm) itself.
     level.place("entrance_straight_2", Hex(2, 3), rotation=1)
     level.place("exit_straight_2", Hex(3, 2), rotation=2)
-    (arm_id,) = level.place("arm", Hex(3, 3)).component_ids
+    arm_id = level.place("arm", Hex(3, 3)).comp_id
 
     # Grab the molecule, swing it four steps onto the exit, then release.
     level.assign_step_action(arm_id, 1, StepActionType.GRAB)
