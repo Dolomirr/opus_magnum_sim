@@ -27,6 +27,14 @@ _SHAPE_COMPONENT_TYPES = frozenset(
 @dataclass(frozen=True)
 class ShapeCell:
     """
+
+    ```python
+    cell = ShapeCell(
+        offset: Hex
+        atom_type: AtomType | None
+    ),
+    ```
+
     Single-hex cell of a `ShapeTemplate`.
 
     `offset` is relative to the shape's origin `Hex(0, 0)`.
