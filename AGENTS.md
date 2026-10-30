@@ -311,6 +311,12 @@ For any new task, start with these:
 5. `src/opus_magnum_sym/interpreter/sim_interpreter.py` — DSL parsing.
 6. `src/opus_magnum_sym/elements/board/board.py` — board state representation.
 
-## 11. Skills
+## 11. Files to Ignore
+
+Unless explicitly requested do not touch or read these:
+
+1. `TODO.md` — user-only issues tracker.
+
+## 12. Skills
 
 - `.agents/skills/oms-authoring/SKILL.md` — how to author and style `.oms` solution/level scripts (DSL syntax, component IDs, arm hand positioning, house style). Load it before writing or editing a `.oms` file.
