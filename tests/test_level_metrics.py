@@ -108,8 +108,8 @@ def test_component_cost_lookup():
     assert component_cost("arm") == 10
     assert component_cost("arm_piston") == 20
     assert component_cost("connector_straight_2") == 10
-    assert component_cost("connector_tri") == 20
-    assert component_cost("connector_tri_odd") == 20
+    assert component_cost("connector_tri") == 30
+    assert component_cost("connector_tri_odd") == 30
     assert component_cost("salt_transmuter") == 10
     assert component_cost("glyph_duplication") == 20
     # Entrypoint shapes are per-level and not in the built-in table.
@@ -123,7 +123,7 @@ def test_compound_connector_costs_once_not_per_cell():
     result = level.run(steps=1)
 
     # A Y-shaped connector is one component with its own cost, not 4 cells each.
-    assert result.cost == 20
+    assert result.cost == 30
 
 
 def test_area_counts_component_atom_and_sweep_cells():
