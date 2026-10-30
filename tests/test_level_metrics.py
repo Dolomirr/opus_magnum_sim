@@ -6,6 +6,7 @@ from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import Atom, AtomType
 from opus_magnum_sym.elements.board import Hex
 from opus_magnum_sym.levels import Level, LevelStatus
+from opus_magnum_sym.levels.cost import component_cost
 
 DELIVERY_STEP = 6
 SECOND_DELIVERY_STEP = 15
@@ -99,8 +100,30 @@ def test_cost_sums_placed_components_and_ignores_entrypoints():
 
     result = level.run(steps=1)
 
-    # arm 10 + duplication glyph 20 + two connector cells 10 each; entrypoints are free.
-    assert result.cost == 50
+    # arm 10 + duplication glyph 20 + straight-2 connector 10; entrypoints are free.
+    assert result.cost == 40
+
+
+def test_component_cost_lookup():
+    assert component_cost("arm") == 10
+    assert component_cost("arm_piston") == 20
+    assert component_cost("connector_straight_2") == 10
+    assert component_cost("connector_tri") == 20
+    assert component_cost("connector_tri_odd") == 20
+    assert component_cost("salt_transmuter") == 10
+    assert component_cost("glyph_duplication") == 20
+    # Entrypoint shapes are per-level and not in the built-in table.
+    assert component_cost("entrance_straight_2") == 0
+
+
+def test_compound_connector_costs_once_not_per_cell():
+    level = Level(make_level_spec(allowed_blueprints=frozenset({"connector_tri"})))
+    level.place("connector_tri", Hex(4, 4), atom_type=AtomType.SALT)
+
+    result = level.run(steps=1)
+
+    # A Y-shaped connector is one component with its own cost, not 4 cells each.
+    assert result.cost == 20
 
 
 def test_area_counts_component_atom_and_sweep_cells():
