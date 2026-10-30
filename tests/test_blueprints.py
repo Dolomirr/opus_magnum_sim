@@ -2,6 +2,7 @@ import pytest  # noqa: INP001
 
 from opus_magnum_sym.elements.board import Direction, Hex
 from opus_magnum_sym.elements.components import (
+    BPN,
     ComponentType,
     ManipulatorSpec,
     ShapeCell,
@@ -14,6 +15,11 @@ from opus_magnum_sym.elements.components import (
 
 def _adj_offset(rotation: int) -> Hex:
     return Direction().from_rotation(rotation).apply(Hex(0, 0))
+
+
+def test_blueprint_name_matches_default_registry():
+    registered = {entry["name"] for entry in list_blueprints()}
+    assert {name.value for name in BPN} == registered
 
 
 class TestTemplateValidation:
