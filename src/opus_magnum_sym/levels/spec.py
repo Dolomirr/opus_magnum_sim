@@ -162,7 +162,7 @@ class LevelSpec:
 
     def _validate_shapes(self) -> None:
         """
-        Unique shape names and correct typed-cell kwargs.
+        Unique shape names and valid typed-cell atom types.
         """
         shape_names = [shape.name for shape in self.shapes]
         if len(set(shape_names)) != len(shape_names):
@@ -190,7 +190,7 @@ class LevelSpec:
                 raise ValueError(f"entrypoint {ep.shape!r} requires a position in fixed mode")
             if not self.entrypoints_fixed and ep.pos is not None:
                 raise ValueError(f"entrypoint {ep.shape!r} must not specify a position in unfixed mode")
-            if any("atom_type" not in cell.kwargs for cell in shape.cells) and ep.atom_type is None:
+            if any(cell.atom_type is None for cell in shape.cells) and ep.atom_type is None:
                 raise ValueError(f"entrypoint {ep.shape!r} requires atom_type because its shape has untyped cells")
             self._validate_declared_atom_types(ep, shape)
 
@@ -227,24 +227,14 @@ class LevelSpec:
 
     def _validate_typed_cells(self) -> None:
         """
-        Reject unknown typed-cell kwargs and non-`AtomType`/forbidden typed values.
-
-        `ShapeTemplate` does not validate `ShapeCell.kwargs`, so the level spec
-        is the layer that enforces typed-cell correctness.
+        Reject non-`AtomType` or forbidden `ShapeCell.atom_type` values.
         """
-        # ladders goes brrr
         for shape in self.shapes:
             for cell in shape.cells:
-                for key, value in cell.kwargs.items():
-                    if key == "atom_type":
-                        if not isinstance(value, AtomType) or value in _FORBIDDEN_ATOM_TYPES:
-                            raise ValueError(
-                                f"shape {shape.name!r} cell {cell.offset!r} has invalid atom_type {value!r}"
-                            )
-                    else:
-                        raise ValueError(
-                            f"shape {shape.name!r} cell {cell.offset!r} has unknown typed-cell parameter {key!r}"
-                        )
+                if cell.atom_type is None:
+                    continue
+                if not isinstance(cell.atom_type, AtomType) or cell.atom_type in _FORBIDDEN_ATOM_TYPES:
+                    raise ValueError(f"shape {shape.name!r} cell {cell.offset!r} has invalid atom_type {cell.atom_type!r}")
 
     def _validate_declared_atom_types(self, ep: EntrypointSpec, shape: ShapeTemplate) -> None:
         """
@@ -257,9 +247,8 @@ class LevelSpec:
         if ep.atom_type is not None:
             entrypoint_types.add(ep.atom_type)
         for cell in shape.cells:
-            atom_type = cell.kwargs.get("atom_type")
-            if isinstance(atom_type, AtomType):
-                entrypoint_types.add(atom_type)
+            if cell.atom_type is not None:
+                entrypoint_types.add(cell.atom_type)
         for atom_type in entrypoint_types:
             if atom_type not in self.atom_types:
                 raise ValueError(

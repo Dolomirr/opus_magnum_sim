@@ -342,9 +342,11 @@ class Simulator:
         placed_ids: list[int] = []
         try:
             for cell, template_cell in zip(cells, blueprint.cells, strict=True):
-                # Cell kwargs takes priority over placement overrides,
+                # Typed cell wins over placement overrides,
                 # so per-cell atom types are never overwritten by blanket placement `atom_type`.
-                kwargs = {**overrides, **template_cell.kwargs}
+                kwargs = dict(overrides)
+                if template_cell.atom_type is not None:
+                    kwargs["atom_type"] = template_cell.atom_type
                 before = set(self.components) | set(self.entrypoints)
                 self.add_component(cell, blueprint.comp_type, **kwargs)
                 (comp_id,) = (set(self.components) | set(self.entrypoints)) - before

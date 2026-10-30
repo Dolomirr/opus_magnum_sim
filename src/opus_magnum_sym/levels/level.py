@@ -24,8 +24,8 @@ entrance_shape = ShapeTemplate(
     name="entrance_straight_2",
     comp_type=ComponentType.ENTRANCE,
     cells=(
-        ShapeCell(offset=Hex(0, 0), kwargs={"atom_type": AtomType.SALT}),
-        ShapeCell(offset=Hex(-1, 1), kwargs={"atom_type": AtomType.SALT}),
+        ShapeCell(offset=Hex(0, 0), atom_type=AtomType.SALT),
+        ShapeCell(offset=Hex(-1, 1), atom_type=AtomType.SALT),
     ),
     links=((0, 1),),
 )
@@ -33,8 +33,8 @@ exit_shape = ShapeTemplate(
     name="exit_straight_2",
     comp_type=ComponentType.EXIT,
     cells=(
-        ShapeCell(offset=Hex(0, 0), kwargs={"atom_type": AtomType.SALT}),
-        ShapeCell(offset=Hex(-1, 1), kwargs={"atom_type": AtomType.SALT}),
+        ShapeCell(offset=Hex(0, 0), atom_type=AtomType.SALT),
+        ShapeCell(offset=Hex(-1, 1), atom_type=AtomType.SALT),
     ),
     links=((0, 1),),
 )

@@ -50,8 +50,8 @@ def straight(name, kind):
         name=name,
         comp_type=kind,
         cells=(
-            ShapeCell(offset=Hex(0, 0), kwargs={"atom_type": AtomType.SALT}),
-            ShapeCell(offset=Hex(-1, 1), kwargs={"atom_type": AtomType.SALT}),
+            ShapeCell(offset=Hex(0, 0), atom_type=AtomType.SALT),
+            ShapeCell(offset=Hex(-1, 1), atom_type=AtomType.SALT),
         ),
         links=((0, 1),),  # bond between cells 0 and 1
     )

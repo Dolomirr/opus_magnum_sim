@@ -69,14 +69,14 @@ def _parse_cells(value: str) -> tuple[ShapeCell, ...]:
         if value[cursor : match.start()].strip(", "):
             raise ValueError(f"malformed cells in {value!r}")
         cursor = match.end()
-        kwargs: dict[str, object] = {}
+        atom_type = None
         type_name = match.group(3)
         if type_name is not None:
             try:
-                kwargs["atom_type"] = getattr(AtomType, type_name.upper())
+                atom_type = getattr(AtomType, type_name.upper())
             except AttributeError:
                 raise ValueError(f"unknown atom_type {type_name!r}") from None
-        cells.append(ShapeCell(offset=Hex(int(match.group(1)), int(match.group(2))), kwargs=kwargs))
+        cells.append(ShapeCell(offset=Hex(int(match.group(1)), int(match.group(2))), atom_type=atom_type))
     if value[cursor:].strip(", "):
         raise ValueError(f"malformed cells in {value!r}")
     if not cells:
