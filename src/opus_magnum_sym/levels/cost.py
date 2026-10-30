@@ -1,26 +1,24 @@
 """
-Hardcoded component costs used by the level solution metric.
+Hardcoded costs for the built-in high-level components.
 
-Entrypoints and empty cells are do not have assigned cost.
+Costs are keyed by blueprint name.
+Per-level entrypoint shapes are not listed and therefore cost 0.
 """
 
-from opus_magnum_sym.elements.components import ComponentType
-
-# TODO: add componed connectors
 # TODO: tune these costs
-COMPONENT_COSTS: dict[ComponentType, int] = {
-    ComponentType.ARM: 10,
-    ComponentType.ARM_RETR: 20,
-    ComponentType.CONNECTOR: 10,
-    ComponentType.DISCONNECTOR: 10,
-    ComponentType.SALT_TRANSMUTER: 10,
-    ComponentType.DUPLICATION_GLYPH: 20,
-    ComponentType.TRANSPORTER: 10,
+COMPONENT_COSTS: dict[str, int] = {
+    "arm": 10,
+    "arm_piston": 20,
+    "connector_straight_2": 10,
+    "connector_tri": 30,
+    "connector_tri_odd": 30,
+    "salt_transmuter": 10,
+    "glyph_duplication": 20,
 }
 
 
-def component_cost(comp_type: ComponentType) -> int:
+def component_cost(name: str) -> int:
     """
-    Cost of a component type; unmapped types (entrances, exits, empty) cost 0.
+    Cost of a placed blueprint by name; unknown names (entrypoint shapes) cost 0.
     """
-    return COMPONENT_COSTS.get(comp_type, 0)
+    return COMPONENT_COSTS.get(name, 0)

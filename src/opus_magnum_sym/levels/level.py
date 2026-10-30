@@ -286,11 +286,9 @@ class Level:
 
     def _solution_cost(self) -> int:
         """
-        Summed cost of every placed non-entrypoint component.
+        Summed cost of every placed blueprint; entrypoint shapes cost 0.
         """
-        return sum(
-            component_cost(comp.type) for comp in (*self.sim.components.values(), *self.sim.entrypoints.values())
-        )
+        return sum(component_cost(record.blueprint) for record in self.sim.placements)
 
     def _solution_area(self) -> int:
         """
