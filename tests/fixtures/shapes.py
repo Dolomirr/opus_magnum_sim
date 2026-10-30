@@ -48,7 +48,7 @@ def typed_exit() -> ShapeTemplate:
     """
     Typed exit: salt center bonded to a water beam (rotation 1) and a fire beam (rotation 2).
 
-    Each cell carries its own `atom_type` in `kwargs`; the two beams are adjacent
+    Each cell carries its own `atom_type`; the two beams are adjacent
     to each other but only linked to the center.
     """
     origin = Hex(0, 0)
@@ -56,9 +56,9 @@ def typed_exit() -> ShapeTemplate:
         name="typed_exit",
         comp_type=ComponentType.EXIT,
         cells=(
-            ShapeCell(offset=origin, kwargs={"atom_type": AtomType.SALT}),
-            ShapeCell(offset=_beam(1).offset, kwargs={"atom_type": AtomType.WATER}),
-            ShapeCell(offset=_beam(2).offset, kwargs={"atom_type": AtomType.FIRE}),
+            ShapeCell(offset=origin, atom_type=AtomType.SALT),
+            ShapeCell(offset=_beam(1).offset, atom_type=AtomType.WATER),
+            ShapeCell(offset=_beam(2).offset, atom_type=AtomType.FIRE),
         ),
         links=((0, 1), (0, 2)),
     )

@@ -25,8 +25,8 @@ def straight_typed(name: str, comp_type: ComponentType, atom_type: AtomType) -> 
         name=name,
         comp_type=comp_type,
         cells=(
-            ShapeCell(offset=Hex(0, 0), kwargs={"atom_type": atom_type}),
-            ShapeCell(offset=Hex(-1, 1), kwargs={"atom_type": atom_type}),
+            ShapeCell(offset=Hex(0, 0), atom_type=atom_type),
+            ShapeCell(offset=Hex(-1, 1), atom_type=atom_type),
         ),
         links=((0, 1),),
     )

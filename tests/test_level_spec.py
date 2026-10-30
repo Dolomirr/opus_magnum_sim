@@ -243,25 +243,14 @@ def test_duplicate_entrypoints_same_shape_legal():
     assert [ep.shape for ep in spec.entrypoints].count("exit_straight_2") == 2
 
 
-# --- typed-cell kwargs validation ---
-
-
-def test_shape_rejects_unknown_typed_cell_key():
-    bad = ShapeTemplate(
-        name="bad_exit",
-        comp_type=ComponentType.EXIT,
-        cells=(ShapeCell(offset=Hex(0, 0), kwargs={"bogus": 1}),),
-        links=(),
-    )
-    with pytest.raises(ValueError, match="unknown typed-cell parameter"):
-        make_level_spec(shapes=(entrance_straight_2(), exit_straight_2(), bad))
+# --- typed-cell atom_type validation ---
 
 
 def test_shape_rejects_non_atom_type_typed_cell():
     bad = ShapeTemplate(
         name="bad_exit",
         comp_type=ComponentType.EXIT,
-        cells=(ShapeCell(offset=Hex(0, 0), kwargs={"atom_type": "salt"}),),
+        cells=(ShapeCell(offset=Hex(0, 0), atom_type="salt"),),
         links=(),
     )
     with pytest.raises(ValueError, match="invalid atom_type"):
@@ -272,7 +261,7 @@ def test_shape_rejects_forbidden_typed_cell():
     bad = ShapeTemplate(
         name="bad_exit",
         comp_type=ComponentType.EXIT,
-        cells=(ShapeCell(offset=Hex(0, 0), kwargs={"atom_type": AtomType.BASIC}),),
+        cells=(ShapeCell(offset=Hex(0, 0), atom_type=AtomType.BASIC),),
         links=(),
     )
     with pytest.raises(ValueError, match="invalid atom_type"):
