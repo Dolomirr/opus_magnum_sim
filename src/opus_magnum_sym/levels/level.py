@@ -46,8 +46,7 @@ spec = LevelSpec(
 )
 
 level = Level(spec)
-arm = level.place("arm", Hex(3, 3))
-(arm_id,) = arm.component_ids
+arm_id = level.place("arm", Hex(3, 3)).comp_id
 level.assign_step_action(arm_id, 1, StepActionType.GRAB)
 for step in (2, 3, 4, 5):
     level.assign_step_action(arm_id, step, StepActionType.ROTATE_CLW)
@@ -92,7 +91,7 @@ class Level:
 
     ```python
     level = Level(spec)
-    (arm_id,) = level.place(component_name, Hex(...)).component_ids
+    arm_id = level.place(component_name, Hex(...)).comp_id
     result = level.run()
     ```
     """
@@ -143,6 +142,12 @@ class Level:
         ```python
         level.place(blueprint name, Hex(...), rotation=0)
         ```
+
+        The returned `PlacementRecord` exposes `comp_id` for single-component
+        placements (manipulators), which is the id `assign_step_action` takes.
+
+        Multi-cell shapes (connectors, glyphs, entrypoint shapes) have no
+        assignable actions, so their `component_ids` are normally not needed.
         """
         return self.sim.place(name, pos, rotation=rotation, **overrides)
 
@@ -151,6 +156,9 @@ class Level:
         Solution-stage API.
 
         Assign action to a placed component at specific simulation step.
+
+        Only manipulators accept actions; connectors, glyphs, and entrypoints
+        have no assignable actions.
 
         ```python
         level.assign_step_action(comp_id, step, action)

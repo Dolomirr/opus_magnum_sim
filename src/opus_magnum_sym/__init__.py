@@ -41,7 +41,7 @@ from opus_magnum_sym import (
 #   allowed_blueprints=...   ->  built-in blueprints the solution may place
 #   Level(spec)              ->  runnable level; unfixed mode places nothing yet
 #   level.place(...)         ->  instantiate a shape/blueprint on the board
-#   component_ids            ->  ids of the components that placement created
+#   comp_id                  ->  id of a single-component placement (manipulator)
 #   assign_step_action(...)  ->  per-step program for a component id
 
 def straight(name, kind):
@@ -78,8 +78,9 @@ level.place("entrance_straight_2", Hex(2, 3), rotation=1)
 level.place("exit_straight_2", Hex(3, 2), rotation=2)
 level.place("connector_straight_2", Hex(1, 1), atom_type=AtomType.SALT)
 
-# component_ids lists the live components created by this placement.
-(arm_id,) = level.place("arm", Hex(3, 3)).component_ids
+# comp_id is the manipulator id used for assign_step_action; multi-cell shapes
+# (glyphs, connectors, entrypoints) have no actions and need no id here.
+arm_id = level.place("arm", Hex(3, 3)).comp_id
 
 # Program the arm: grab on step 1, swing four steps, release on step 6.
 level.assign_step_action(arm_id, 1, StepActionType.GRAB)
