@@ -85,7 +85,7 @@ class LevelSpec:
     entrypoints: tuple[EntrypointSpec, ...]
     allowed_blueprints: frozenset[str]
     steps: int
-    entrypoints_fixed: bool = True
+    entrypoints_fixed: bool = False
     atom_types: frozenset[AtomType] = frozenset()
     target: int | None = None
 
