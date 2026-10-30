@@ -39,6 +39,13 @@ class AreaTracker:
             self._cells.update(movement.swept_cells())
 
     @property
+    def cells(self) -> set[Hex]:
+        """
+        Snapshot of every covered cell.
+        """
+        return set(self._cells)
+
+    @property
     def count(self) -> int:
         """
         Number of distinct covered cells.
