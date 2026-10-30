@@ -47,7 +47,7 @@ class EntrypointSpec:
             raise ValueError(f"EntrypointSpec rotation must be within 0..5, got {self.rotation}")
 
 
-def entrance(shape: str, pos: Hex | None = None, rotation: int = 0) -> EntrypointSpec:
+def mkentr(shape: str, pos: Hex | None = None, rotation: int = 0) -> EntrypointSpec:
     """
     Define an entrance entrypoint from a locally defined shape.
 
@@ -57,14 +57,14 @@ def entrance(shape: str, pos: Hex | None = None, rotation: int = 0) -> Entrypoin
     Atom types are defined by shape's typed cells, so no `atom_type` placeholder is needed.
 
     ```python
-    entrance(shape_template_name)                        # solution-placed
-    entrance(shape_template_name, Hex(...), rotation=1)  # fixed
+    mkentr(shape_template_name)                        # solution-placed
+    mkentr(shape_template_name, Hex(...), rotation=1)  # fixed
     ```
     """
     return EntrypointSpec(kind=ComponentType.ENTRANCE, shape=shape, pos=pos, rotation=rotation)
 
 
-def exit(shape: str, pos: Hex | None = None, rotation: int = 0) -> EntrypointSpec:
+def mkexit(shape: str, pos: Hex | None = None, rotation: int = 0) -> EntrypointSpec:
     """
     Define an exit entrypoint from a locally defined shape.
 
@@ -73,8 +73,8 @@ def exit(shape: str, pos: Hex | None = None, rotation: int = 0) -> EntrypointSpe
     Atom types are defined by the shape's typed cells, so no `atom_type` placeholder is needed.
 
     ```python
-    exit("shape_template_name")                        # solution-placed
-    exit("shape_template_name", Hex(...), rotation=2)  # fixed
+    mkexit("shape_template_name")                        # solution-placed
+    mkexit("shape_template_name", Hex(...), rotation=2)  # fixed
     ```
     """
     return EntrypointSpec(kind=ComponentType.EXIT, shape=shape, pos=pos, rotation=rotation)
@@ -108,7 +108,7 @@ class LevelSpec:
     spec = LevelSpec(
         size=(6, 6),
         shapes=(entrance_shape, exit_shape),
-        entrypoints=(entrance("entrance_straight_2"), exit("exit_straight_2")),
+        entrypoints=(mkentr("entrance_straight_2"), mkexit("exit_straight_2")),
         allowed_blueprints=frozenset({"arm"}),
         steps=30,
         entrypoints_fixed=False,

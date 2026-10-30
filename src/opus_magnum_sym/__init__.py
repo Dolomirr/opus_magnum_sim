@@ -32,12 +32,12 @@ Minimal in-Python level (unfixed mode: solution places the entrypoints):
 from opus_magnum_sym import (
     AtomType, ComponentType, Hex, Level,
     LevelSpec, ShapeCell, ShapeTemplate,
-    StepActionType, entrance, exit,
+    StepActionType, mkentr, mkexit,
 )
 
 #   ShapeCell/ShapeTemplate  ->  reusable board pattern (geometry + typed cells)
 #   shapes=(...)             ->  local shape definitions, not placed yet
-#   entrance()/exit()        ->  entrypoint specs referencing a shape by name
+#   mkentr()/mkexit()        ->  entrypoint specs referencing a shape by name
 #   allowed_blueprints=...   ->  built-in blueprints the solution may place
 #   Level(spec)              ->  runnable level; unfixed mode places nothing yet
 #   level.place(...)         ->  instantiate a shape/blueprint on the board
@@ -63,8 +63,8 @@ spec = LevelSpec(
         straight("exit_straight_2", ComponentType.EXIT),
     ),
     entrypoints=(  # no position = the solution must place these shapes
-        entrance("entrance_straight_2"),
-        exit("exit_straight_2"),
+        mkentr("entrance_straight_2"),
+        mkexit("exit_straight_2"),
     ),
     allowed_blueprints=frozenset({"arm", "connector_straight_2"}),  # built-ins
     steps=30,
@@ -99,7 +99,7 @@ then call `level.place(...)` (and for exit likewise) before running.
 The run fails with `LevelStatus.FAILED` if any entrypoint shape is missing or duplicated.
 
 Provde `entrypoints_fixed=True` `LevelSpec` to position (with optoinal rotation)
-entrypoints in level definition: `entrance(..., Hex(...), rotation=1)` / `exit(..., Hex(...))`.
+entrypoints in level definition: `mkentr(..., Hex(...), rotation=1)` / `mkexit(..., Hex(...))`.
 In this casae the solution only places regular blueprints.
 """
 
@@ -107,7 +107,7 @@ from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board import Hex
 from opus_magnum_sym.elements.components import ComponentType, ShapeCell, ShapeTemplate
-from opus_magnum_sym.levels import Level, LevelSpec, entrance, exit
+from opus_magnum_sym.levels import Level, LevelSpec, mkentr, mkexit
 
 __all__ = [
     "AtomType",
@@ -118,6 +118,6 @@ __all__ = [
     "ShapeCell",
     "ShapeTemplate",
     "StepActionType",
-    "entrance",
-    "exit",
+    "mkentr",
+    "mkexit",
 ]

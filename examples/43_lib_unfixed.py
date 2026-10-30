@@ -4,7 +4,7 @@ Solution-placed-entrypoints delivery through the high-level `Level` API.
 Builds `LevelSpec` in python with `entrypoints_fixed=False` and typed shapes;
 the solution places the entrypoint shapes (and the arm) anywhere on the board.
 
-Atom types live on the shape's cells, so neither the `entrance`/`exit`
+Atom types live on the shape's cells, so neither the `mkentr`/`mkexit`
 definitions nor the `place` calls carry `atom_type` fallback.
 
 Library equivalent of `examples/41_unfixed_delivery.om[ls]`.
@@ -14,7 +14,7 @@ from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board import Hex
 from opus_magnum_sym.elements.components import ComponentType, ShapeCell, ShapeTemplate
-from opus_magnum_sym.levels import Level, LevelSpec, entrance, exit
+from opus_magnum_sym.levels import Level, LevelSpec, mkentr, mkexit
 
 
 def straight_typed(name: str, comp_type: ComponentType, atom_type: AtomType) -> ShapeTemplate:
@@ -40,8 +40,8 @@ def main():
             straight_typed("exit_straight_2", ComponentType.EXIT, AtomType.SALT),
         ),
         entrypoints=(
-            entrance("entrance_straight_2"),
-            exit("exit_straight_2"),
+            mkentr("entrance_straight_2"),
+            mkexit("exit_straight_2"),
         ),
         allowed_blueprints=frozenset({"arm"}),
         steps=30,

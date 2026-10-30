@@ -12,7 +12,7 @@ from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board import Hex
 from opus_magnum_sym.elements.components import ComponentType, ShapeCell, ShapeTemplate
-from opus_magnum_sym.levels import Level, LevelSpec, entrance, exit
+from opus_magnum_sym.levels import Level, LevelSpec, mkentr, mkexit
 
 # Local two-cell straight entrance and exit shapes; each cell carries its atom type.
 entrance_shape = ShapeTemplate(
@@ -38,8 +38,8 @@ spec = LevelSpec(
     size=(6, 6),
     shapes=(entrance_shape, exit_shape),
     entrypoints=(
-        entrance("entrance_straight_2", Hex(2, 3), rotation=1),
-        exit("exit_straight_2", Hex(3, 2), rotation=2),
+        mkentr("entrance_straight_2", Hex(2, 3), rotation=1),
+        mkexit("exit_straight_2", Hex(3, 2), rotation=2),
     ),
     allowed_blueprints=frozenset({"arm"}),
     steps=30,
