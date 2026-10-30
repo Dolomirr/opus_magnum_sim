@@ -89,5 +89,9 @@
 - ...
 - Component signature (`.holding` is defined only for arm etc.) (generics?)
 - REPL's `!save` seem to lose connections?
+- update `ShapeCell` kwargs
+- rename `entrance` and `exit`
+- (?) allow normal set in `LevelSpec` `allowed_blueprints`
+- revisit `Level.place` + doc `PlacementRecord`
 
 
