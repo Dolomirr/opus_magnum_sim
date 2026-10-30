@@ -16,7 +16,7 @@
         - [x] Allow placing them in both level spec and solution.
     - [x] Fixed shapes of components.
         - [x] Various shape connectors.
-        - [ ] Update unfixed entrypoints API, see `examples/41_unfixed_delivery.oml` with `salt` placeholder.
+        - [x] Update unfixed entrypoints API, see `examples/41_unfixed_delivery.oml` with `salt` placeholder.
 - [x] Atom connection.
     - [x] Generic multi hex components.
     - [x] Dynamic atoms IDs.
@@ -31,14 +31,14 @@
 - [ ] Level completion logic
     - [x] Per-exit counters (each should be correct).
     - [x] Move things like `index_manager` and `result_counter` to Simulator or separate Level to isolate envs.
-    - [ ] (?) Actual validation of level.
     - [x] Entrances and exists verification, connected to [Composed multi hex components]
-    - [ ] (?) Conditions to mark level as correct / finished.
-        - Partially ready ig?
     - [x] Eval Metrics (results counters).
         - [x] Steps.
         - [x] Const per-component.
         - [x] (?) Used space.
+    - [ ] (?) Actual validation of level.
+    - [ ] (?) Conditions to mark level as correct / finished.
+        - Partially ready ig?
 - [ ] (?) Add more planned components.
     - [ ] Multi-arm (snowflake) manipulators
     - [ ] Conveyor belt
@@ -59,6 +59,7 @@
     - [ ] Stale level detection (then no steps limit is given)
     - [ ] Ensure entranced does not bypass held in manipulators atoms
 - [ ] Exporting board state on steps via python structure (full serialization).
+    - [ ] Allow full from- and to- dict creation of `ShapeTemplate` (e.g. `ShapeCell`)
 - [ ] Optimization.
     - [x] Headless simulation.
         - [x] ~Parallel?~
@@ -77,10 +78,10 @@
     - [ ] Remove global state level (switch REPL to instanced)
     - [x] Organize `examples/`
 - [ ] ~(?) Interactive simulation control via keyboard (is it really needed?).~
-  - [ ] (?) Keyboard control.
-  - [ ] (?) Interactive adding.
-  - [x] Ctrl+C handling
-- [ ] ! Library usage [Level completion logic]
+    - [ ] ~(?) Keyboard control.~
+    - [ ] (?) Interactive adding.
+    - [x] Ctrl+C handling
+- [x] ! Library usage [Level completion logic]
 - [ ] In-between step visualization (optional ig).
     - Ghost-particles, after [Collision].
 
@@ -89,9 +90,6 @@
 - ...
 - Component signature (`.holding` is defined only for arm etc.) (generics?)
 - REPL's `!save` seem to lose connections?
-- update `ShapeCell` kwargs
-- rename `entrance` and `exit`
-- (?) allow normal set in `LevelSpec` `allowed_blueprints`
-- revisit `Level.place` + doc `PlacementRecord`
+
 
 
