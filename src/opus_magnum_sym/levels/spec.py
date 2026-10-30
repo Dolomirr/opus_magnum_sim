@@ -103,6 +103,8 @@ class LevelSpec:
     `allowed_blueprints` defines solution placements and may name local shapes
         or built-ins from the global default registry (components/glyphs);
         accepts `set` or `frozenset` but at runtime is normalized to frozenset.
+        Built-in names are available as `BPN` (`StrEnum`), as well as directly:
+        `frozenset({BPN.ARM})`, plain `"arm"` strings are equivalent.
     `entrypoints_fixed` defaults to `False`, the main path: the solution places
         entrypoint shapes. With `True` spec sets their `pos` and level places them.
     `target` is the per-exit delivery requirement; `None` (or `0`) disables early termination.
@@ -234,7 +236,9 @@ class LevelSpec:
                 if cell.atom_type is None:
                     continue
                 if not isinstance(cell.atom_type, AtomType) or cell.atom_type in _FORBIDDEN_ATOM_TYPES:
-                    raise ValueError(f"shape {shape.name!r} cell {cell.offset!r} has invalid atom_type {cell.atom_type!r}")
+                    raise ValueError(
+                        f"shape {shape.name!r} cell {cell.offset!r} has invalid atom_type {cell.atom_type!r}"
+                    )
 
     def _validate_declared_atom_types(self, ep: EntrypointSpec, shape: ShapeTemplate) -> None:
         """

@@ -7,6 +7,7 @@ connected through `ConnectionGraph`.
 """
 
 from dataclasses import dataclass
+from enum import StrEnum
 
 from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board.directions import Direction
@@ -154,6 +155,41 @@ class ManipulatorSpec:
 
 Blueprint = ShapeTemplate | ManipulatorSpec | ComponentSpec
 BlueprintListing = list[dict]
+
+
+class BPN(StrEnum):
+    """
+    `BPN` - names of the built-in blueprints registered in `default_registry`.
+
+    `LevelSpec.allowed_blueprints accepts these instead of raw strings,
+    so allow-list autocompletes and typos fail at the reference site:
+
+    ```python
+    allowed_blueprints=frozenset(
+        {
+            BPN.ARM,
+            BPN.CONNECTOR_TRI,
+        }
+    )
+    ```
+
+    Values are plain strings, so same indentifierd are
+    interchangeable in registry lookups, placements and `.oml` files:
+    `BPN.ARM` <-> `"arm"`
+
+    Local entrypoint shapes have no enum members; they stay per-level strings.
+    """
+
+    ARM = "arm"
+    ARM_PISTON = "arm_piston"
+    ARM_DOUBLE = "arm_double"
+    ARM_TRIPLE = "arm_triple"
+    ARM_HEX = "arm_hex"
+    CONNECTOR_STRAIGHT_2 = "connector_straight_2"
+    CONNECTOR_TRI = "connector_tri"
+    CONNECTOR_TRI_ODD = "connector_tri_odd"
+    SALT_TRANSMUTER = "salt_transmuter"
+    GLYPH_DUPLICATION = "glyph_duplication"
 
 
 class BlueprintRegistry:
