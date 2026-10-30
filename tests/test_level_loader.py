@@ -83,6 +83,21 @@ def test_demo_pair_end_to_end():
     assert result.finished_by_exit == {0: 1}
 
 
+def test_target_directive_parsed():
+    spec = LevelLoader().load("target 2\n" + LEVEL_TEXT)
+    assert spec.target == 2
+
+
+def test_target_zero_disables_threshold():
+    spec = LevelLoader().load("target 0\n" + LEVEL_TEXT)
+    assert spec.target is None
+
+
+def test_target_malformed_rejected():
+    with pytest.raises(LevelLoadError, match="line 1"):
+        LevelLoader().load("target many\n" + LEVEL_TEXT)
+
+
 # --- new Stage 2 directives ---
 
 

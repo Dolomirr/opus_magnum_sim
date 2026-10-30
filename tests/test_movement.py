@@ -60,3 +60,35 @@ def test_molecule_pivot_kind_uses_hand_pivot():
     pivot_swing = _arc_movement(kind=MovementKind.MOLECULE_PIVOT)
     # Kind only selects the pivot; interpolation math is identical.
     assert arm_swing.atom_xy(Hex(1, 5), 0.5) == pytest.approx(pivot_swing.atom_xy(Hex(1, 5), 0.5))
+
+
+def test_swept_cells_include_start_and_landing():
+    assert _arc_movement().swept_cells() == {Hex(1, 5), Hex(3, 5)}
+
+
+def test_swept_cells_counterclockwise_steps():
+    start = Hex(3, 5)
+    movement = Movement(
+        owner_id=0,
+        kind=MovementKind.ARM_SWING,
+        pivot=Hex(3, 3),
+        rotation_steps=-2,
+        atoms=[(start, Atom(AtomType.BASIC))],
+    )
+    expected = {start.rotate_around(Hex(3, 3), -step) for step in (0, 1, 2)}
+
+    assert movement.swept_cells() == expected
+
+
+def test_swept_cells_hand_slide():
+    start = Hex(2, 2)
+    movement = Movement(
+        owner_id=0,
+        kind=MovementKind.HAND_SLIDE,
+        pivot=Hex(3, 3),
+        rotation_steps=1,
+        atoms=[(start, Atom(AtomType.BASIC))],
+        slide_delta=Hex(0, 1),
+    )
+
+    assert movement.swept_cells() == {start, Hex(2, 3)}
