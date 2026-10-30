@@ -1,0 +1,18 @@
+# Reference: target-threshold delivery solution.
+#
+# Identical to `40_fixed_delivery.oms`; the level's `target 1` is what makes
+# the run stop right after the delivery instead of at the 30-step limit.
+#
+# This is solution.
+# The level is defined in `examples/44_target_delivery.oml`.
+
+# Arm at (3,3); rotation 0 -> hand at (2,4).
+place arm 3 3                       # id 4
+
+# Grab the molecule, swing it four steps onto the exit, then release.
+action 4 1 grab
+action 4 2 rotate_clw
+action 4 3 rotate_clw
+action 4 4 rotate_clw
+action 4 5 rotate_clw
+action 4 6 release

@@ -156,6 +156,8 @@ def test_linked_exit_entrypoints_reported_in_finished_by_exit(tmp_path):
     union = frozenset(exit_ids)
     assert result.finished == {union: 1}
     assert result.finished_by_exit == {0: 1, 1: 1}
+    # linked exits share cluster, so they report same completion step
+    assert result.finished_steps_by_exit == {0: 0, 1: 0}
 
 
 def test_two_levels_stay_independent():

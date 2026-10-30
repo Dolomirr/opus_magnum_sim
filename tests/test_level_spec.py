@@ -89,6 +89,20 @@ def test_steps_must_be_positive(steps):
         make_level_spec(steps=steps)
 
 
+def test_target_rejects_negative():
+    with pytest.raises(ValueError, match="negative"):
+        make_level_spec(target=-1)
+
+
+def test_target_zero_normalized_to_none():
+    assert make_level_spec(target=0).target is None
+
+
+def test_target_rejects_non_int():
+    with pytest.raises(ValueError, match="int"):
+        make_level_spec(target="1")
+
+
 def test_shape_names_must_be_unique():
     with pytest.raises(ValueError, match="unique"):
         make_level_spec(shapes=(entrance_straight_2(), entrance_straight_2()))

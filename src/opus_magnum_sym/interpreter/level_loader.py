@@ -9,6 +9,7 @@ Grammar (comments start with `#`; `shape` definitions must precede the `entrance
 ```text
 size <rows> <cols>
 steps <n>
+target <n>
 allow <name> [name ...]
 atom_types <type> [type ...]
 entrypoints_fixed 0|1
@@ -27,6 +28,8 @@ exit <shape> [<r> <s>] [rotation=k] [atom_type=<type>]
   the solution must `place` each defined entrypoint shape exactly once (matching per shape name).
 - `atom_types` declares the level's used atom types (optional; empty = unconstrained); when
   non-empty, every entrypoint type (fallback and typed cells) must be a member.
+- `target` sets the per-exit delivery requirement (optional; `0` or omitted disables
+  early termination).
 
 The strict loader aborts on the first invalid line; `LevelSpec` performs further validation.
 """
@@ -106,6 +109,7 @@ class LevelLoader:
     def __init__(self) -> None:
         self._size: tuple[int, int] | None = None
         self._steps: int | None = None
+        self._target: int | None = None
         self._allowed: list[str] = []
         self._shapes: dict[str, ShapeTemplate] = {}
         self._entrypoints: list[EntrypointSpec] = []
@@ -114,6 +118,7 @@ class LevelLoader:
         self._dispatch = {
             "size": self._handle_size,
             "steps": self._handle_steps,
+            "target": self._handle_target,
             "allow": self._handle_allow,
             "shape": self._handle_shape,
             "entrance": self._handle_entrance,
@@ -158,6 +163,11 @@ class LevelLoader:
         if len(args) != 1:
             raise ValueError("steps expects <n>")
         self._steps = int(args[0])
+
+    def _handle_target(self, args: list[str]) -> None:
+        if len(args) != 1:
+            raise ValueError("target expects <n>")
+        self._target = int(args[0])
 
     def _handle_allow(self, args: list[str]) -> None:
         if not args:
@@ -279,6 +289,7 @@ class LevelLoader:
                 steps=self._steps,
                 entrypoints_fixed=self._entrypoints_fixed,
                 atom_types=self._atom_types,
+                target=self._target,
             )
         except ValueError as exc:
             raise LevelLoadError(str(exc)) from exc

@@ -19,19 +19,30 @@ class ResultCounter:
 
     def __init__(self) -> None:
         self._finished: dict[frozenset[int], int] = {}
+        self._finished_steps: dict[frozenset[int], list[int]] = {}
 
-    def record_finished(self, exit_ids: Iterable[int]) -> None:
+    def record_finished(self, exit_ids: Iterable[int], step: int | None = None) -> None:
         """
         Increment counter of the cluster identified by `exit_ids`.
+
+        When `step` is given, also record the delivery step for that cluster.
         """
         key = cluster_key(exit_ids)
         self._finished[key] = self._finished.get(key, 0) + 1
+        if step is not None:
+            self._finished_steps.setdefault(key, []).append(step)
 
     def finished(self, exit_ids: Iterable[int]) -> int:
         """
         Finished count for the cluster identified by `exit_ids`.
         """
         return self._finished.get(cluster_key(exit_ids), 0)
+
+    def finished_steps(self, exit_ids: Iterable[int]) -> list[int]:
+        """
+        Delivery steps for the cluster identified by `exit_ids`, in delivery order.
+        """
+        return list(self._finished_steps.get(cluster_key(exit_ids), []))
 
     def clusters(self) -> dict[frozenset[int], int]:
         """
@@ -50,6 +61,7 @@ class ResultCounter:
         Clear every cluster counter.
         """
         self._finished.clear()
+        self._finished_steps.clear()
 
 
 # Module-level default instance.
@@ -57,8 +69,8 @@ class ResultCounter:
 default_result_counter = ResultCounter()
 
 
-def record_finished(exit_ids: Iterable[int]) -> None:
-    default_result_counter.record_finished(exit_ids)
+def record_finished(exit_ids: Iterable[int], step: int | None = None) -> None:
+    default_result_counter.record_finished(exit_ids, step=step)
 
 
 def finished(exit_ids: Iterable[int]) -> int:

@@ -71,6 +71,7 @@ from opus_magnum_sym.elements.board import Hex
 from opus_magnum_sym.elements.components import ComponentType, default_registry
 from opus_magnum_sym.elements.env.level_env import LevelEnv
 from opus_magnum_sym.interpreter.sim_interpreter import SimInterpreter
+from opus_magnum_sym.levels.cost import component_cost
 from opus_magnum_sym.levels.result import LevelError, LevelResult, LevelStatus
 from opus_magnum_sym.levels.spec import LevelSpec
 from opus_magnum_sym.simulation.errors import SimulationCollisionError, SimulationRuntimeError
@@ -143,6 +144,7 @@ class Level:
 
         Returns `LevelResult`; never raises runtime failures to caller.
         Reaching the limit without an error is `COMPLETED` regardless of delivered counts.
+        With `target` set, simulatin stops as soon as every exit cluster reaches it.
 
         Unfixed entrypoints are re-checked every call:
         missing or duplicate required entrypoint yields `FAILED` without stepping.
@@ -161,12 +163,18 @@ class Level:
                 )
 
         limit = self.spec.steps if steps is None else steps
+        target = self.spec.target
+        exit_keys = {self._exit_cluster_key(record) for record in self._exit_records_for_snapshot()}
 
         status = LevelStatus.COMPLETED
         error: LevelError | None = None
         try:
             for _ in range(limit):
                 self.sim.next_step()
+                if target is not None:
+                    counts = [self.sim.env.results.finished(key) for key in exit_keys]
+                    if all(count >= target for count in counts):
+                        break
         except SimulationCollisionError as err:
             status = LevelStatus.ERROR
             error = LevelError(
@@ -251,10 +259,17 @@ class Level:
 
     def _snapshot(self, status: LevelStatus, error: LevelError | None) -> LevelResult:
         finished = self.sim.env.results.clusters()
-        finished_by_exit = {
-            index: finished.get(self._exit_cluster_key(record), 0)
-            for index, record in enumerate(self._exit_records_for_snapshot())
-        }
+        exit_records = self._exit_records_for_snapshot()
+        target = self.spec.target
+        required = target if target is not None else 1
+        finished_by_exit: dict[int, int] = {}
+        finished_steps_by_exit: dict[int, int | None] = {}
+        for index, record in enumerate(exit_records):
+            key = self._exit_cluster_key(record)
+            finished_by_exit[index] = finished.get(key, 0)
+            delivered_steps = self.sim.env.results.finished_steps(key)
+            finished_steps_by_exit[index] = delivered_steps[required - 1] if len(delivered_steps) >= required else None
+        solved = target is None or all(count >= target for count in finished_by_exit.values())
         return LevelResult(
             status=status,
             error=error,
@@ -262,4 +277,24 @@ class Level:
             finished=finished,
             finished_by_exit=finished_by_exit,
             total_finished=self.sim.env.results.total_finished(),
+            target=target,
+            finished_steps_by_exit=finished_steps_by_exit,
+            cost=self._solution_cost(),
+            area=self._solution_area(),
+            solved=solved,
         )
+
+    def _solution_cost(self) -> int:
+        """
+        Summed cost of every placed blueprint; entrypoint shapes cost 0.
+        """
+        return sum(component_cost(record.blueprint) for record in self.sim.placements)
+
+    def _solution_area(self) -> int:
+        """
+        Distinct cells covered by component footprints plus the env area tracker.
+        """
+        cells = self.sim.env.area.cells
+        for comp in (*self.sim.components.values(), *self.sim.entrypoints.values()):
+            cells.update(comp.footprint())
+        return len(cells)
