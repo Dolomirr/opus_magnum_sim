@@ -5,7 +5,12 @@ Level bundles puzzle's starting conditions with its own runtime state,
 so levels run independently of one another.
 
 The high-level entry point is `Level.from_file` and `load_solution` + `run`;
-the spec can also be constructed in Python:
+the spec can also be constructed in Python.
+
+The main path is *unfixed* entrypoints (`entrypoints_fixed=False`, the default):
+the spec defines entrypoint shapes without positions and the solution places
+them through `level.place(...)`, like any other allowed blueprint. Fixed
+entrypoints (positions given in the spec) are supported too, see below.
 
 ```python
 from opus_magnum_sym.elements.actions.actions import StepActionType
@@ -38,14 +43,18 @@ spec = LevelSpec(
     size=(6, 6),
     shapes=(entrance_shape, exit_shape),
     entrypoints=(
-        mkentr("entrance_straight_2", Hex(2, 3), rotation=1),
-        mkexit("exit_straight_2", Hex(3, 2), rotation=2),
+        mkentr("entrance_straight_2"),
+        mkexit("exit_straight_2"),
     ),
     allowed_blueprints=frozenset({"arm"}),
     steps=30,
 )
 
 level = Level(spec)
+
+# The solution places the entrypoint shapes first, then the arm.
+level.place("entrance_straight_2", Hex(2, 3), rotation=1)
+level.place("exit_straight_2", Hex(3, 2), rotation=2)
 arm_id = level.place("arm", Hex(3, 3)).comp_id
 level.assign_step_action(arm_id, 1, StepActionType.GRAB)
 for step in (2, 3, 4, 5):
@@ -58,8 +67,10 @@ print(result.total_finished)    # 1
 print(result.finished_by_exit)  # {0: 1}
 ```
 
-Entrypoints may be fixed (the level places them, above) or solution-placed
-(`entrypoints_fixed 0`); see `levels/spec.py` and `interpreter/level_loader.py`.
+Fixed entrypoints move those placements into the spec: pass positions to
+`mkentr`/`mkexit` and set `entrypoints_fixed=True`; the solution then places
+only regular blueprints. Both modes are validated identically by `LevelSpec`
+and `Level.run` (see `levels/spec.py` and `interpreter/level_loader.py`).
 """
 
 from collections import Counter
