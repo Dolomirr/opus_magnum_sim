@@ -59,6 +59,7 @@ def _collision_spec() -> LevelSpec:
         ),
         allowed_blueprints=frozenset({"arm"}),
         steps=10,
+        entrypoints_fixed=True,
     )
 
 
@@ -138,6 +139,7 @@ def test_linked_exit_entrypoints_reported_in_finished_by_exit(tmp_path):
         ),
         allowed_blueprints=frozenset(),
         steps=1,
+        entrypoints_fixed=True,
     )
     level = Level(spec)
     exit_ids = [record.component_ids[0] for record in level._exit_records]

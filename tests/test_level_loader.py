@@ -141,9 +141,9 @@ def test_typed_cell_parsing():
     )
     spec = LevelLoader().load(text)
     typed = next(shape for shape in spec.shapes if shape.name == "typed_exit")
-    assert typed.cells[0].kwargs["atom_type"] is AtomType.SALT
-    assert typed.cells[1].kwargs["atom_type"] is AtomType.WATER
-    assert typed.cells[2].kwargs["atom_type"] is AtomType.FIRE
+    assert typed.cells[0].atom_type is AtomType.SALT
+    assert typed.cells[1].atom_type is AtomType.WATER
+    assert typed.cells[2].atom_type is AtomType.FIRE
 
 
 def test_typed_cell_unknown_type_rejected():

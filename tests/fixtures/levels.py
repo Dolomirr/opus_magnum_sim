@@ -36,6 +36,7 @@ def make_level_spec(**overrides) -> LevelSpec:
         ),
         "allowed_blueprints": frozenset({"arm"}),
         "steps": 30,
+        "entrypoints_fixed": True,
     }
     kwargs.update(overrides)
     return LevelSpec(**kwargs)

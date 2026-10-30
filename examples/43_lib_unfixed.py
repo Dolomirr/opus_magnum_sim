@@ -4,7 +4,7 @@ Solution-placed-entrypoints delivery through the high-level `Level` API.
 Builds `LevelSpec` in python with `entrypoints_fixed=False` and typed shapes;
 the solution places the entrypoint shapes (and the arm) anywhere on the board.
 
-Atom types live on the shape's cells, so neither the `entrance`/`exit`
+Atom types live on the shape's cells, so neither the `mkentr`/`mkexit`
 definitions nor the `place` calls carry `atom_type` fallback.
 
 Library equivalent of `examples/41_unfixed_delivery.om[ls]`.
@@ -14,7 +14,7 @@ from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board import Hex
 from opus_magnum_sym.elements.components import ComponentType, ShapeCell, ShapeTemplate
-from opus_magnum_sym.levels import Level, LevelSpec, entrance, exit
+from opus_magnum_sym.levels import Level, LevelSpec, mkentr, mkexit
 
 
 def straight_typed(name: str, comp_type: ComponentType, atom_type: AtomType) -> ShapeTemplate:
@@ -25,8 +25,8 @@ def straight_typed(name: str, comp_type: ComponentType, atom_type: AtomType) -> 
         name=name,
         comp_type=comp_type,
         cells=(
-            ShapeCell(offset=Hex(0, 0), kwargs={"atom_type": atom_type}),
-            ShapeCell(offset=Hex(-1, 1), kwargs={"atom_type": atom_type}),
+            ShapeCell(offset=Hex(0, 0), atom_type=atom_type),
+            ShapeCell(offset=Hex(-1, 1), atom_type=atom_type),
         ),
         links=((0, 1),),
     )
@@ -40,8 +40,8 @@ def main():
             straight_typed("exit_straight_2", ComponentType.EXIT, AtomType.SALT),
         ),
         entrypoints=(
-            entrance("entrance_straight_2"),
-            exit("exit_straight_2"),
+            mkentr("entrance_straight_2"),
+            mkexit("exit_straight_2"),
         ),
         allowed_blueprints=frozenset({"arm"}),
         steps=30,
@@ -53,7 +53,7 @@ def main():
     # Solution places the entrypoint shapes (and the arm) itself.
     level.place("entrance_straight_2", Hex(2, 3), rotation=1)
     level.place("exit_straight_2", Hex(3, 2), rotation=2)
-    (arm_id,) = level.place("arm", Hex(3, 3)).component_ids
+    arm_id = level.place("arm", Hex(3, 3)).comp_id
 
     # Grab the molecule, swing it four steps onto the exit, then release.
     level.assign_step_action(arm_id, 1, StepActionType.GRAB)

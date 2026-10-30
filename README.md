@@ -23,8 +23,8 @@ uv run opus-magnum run --level examples/26_level_fixed.oml examples/26_level_fix
 
 Two plain-text DSLs, both with `#` comments:
 
-- `.oml` - level: board size, step limit, entrypoint shapes and placements,
-  and allow-list of place-able blueprints.
+- `.oml` - level: board size, step limit, entrypoint shapes (optionally with
+  placements for fixed mode), and allow-list of place-able blueprints.
 - `.oms` - solution: component/blueprint placements and per-step arm actions.
 
 Runnable example pairs are under `examples/`.

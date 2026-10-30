@@ -41,6 +41,7 @@ exclude = [
     "build",
     "dist",
     "site-packages",
+    "examples",
 ]
 extend-include = ["*.ipynb"]
 line-length = 120

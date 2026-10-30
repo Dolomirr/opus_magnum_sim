@@ -69,16 +69,14 @@ def _parse_cells(value: str) -> tuple[ShapeCell, ...]:
         if value[cursor : match.start()].strip(", "):
             raise ValueError(f"malformed cells in {value!r}")
         cursor = match.end()
-        kwargs: dict[str, object] = {}
+        atom_type = None
         type_name = match.group(3)
         if type_name is not None:
             try:
-                kwargs["atom_type"] = getattr(AtomType, type_name.upper())
+                atom_type = getattr(AtomType, type_name.upper())
             except AttributeError:
                 raise ValueError(f"unknown atom_type {type_name!r}") from None
-        cells.append(
-            ShapeCell(offset=Hex(int(match.group(1)), int(match.group(2))), kwargs=kwargs)
-        )
+        cells.append(ShapeCell(offset=Hex(int(match.group(1)), int(match.group(2))), atom_type=atom_type))
     if value[cursor:].strip(", "):
         raise ValueError(f"malformed cells in {value!r}")
     if not cells:
@@ -234,9 +232,7 @@ class LevelLoader:
 
     def _add_entrypoint(self, kind: ComponentType, args: list[str]) -> None:
         if not args:
-            raise ValueError(
-                f"{kind.name.lower()} expects <shape> [<r> <s>] [rotation=k] [atom_type=<type>]"
-            )
+            raise ValueError(f"{kind.name.lower()} expects <shape> [<r> <s>] [rotation=k] [atom_type=<type>]")
         shape = args[0]
         remaining = args[1:]
 
@@ -244,11 +240,7 @@ class LevelLoader:
         rotation = 0
         atom_type: AtomType | None = None
         # Positioned form: the two tokens after <shape> are integers r, s.
-        if (
-            len(remaining) >= 2
-            and remaining[0].lstrip("-").isdigit()
-            and remaining[1].lstrip("-").isdigit()
-        ):
+        if len(remaining) >= 2 and remaining[0].lstrip("-").isdigit() and remaining[1].lstrip("-").isdigit():
             pos = Hex(int(remaining[0]), int(remaining[1]))
             options = remaining[2:]
         else:

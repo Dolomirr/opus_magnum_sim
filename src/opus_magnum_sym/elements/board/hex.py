@@ -2,6 +2,14 @@ from typing import NamedTuple
 
 
 class Hex(NamedTuple):
+    """
+    Board coordinate: row `r` and column `s` on the pointy-top odd-r hex grid.
+
+    ```python
+    Hex(1, 3)
+    ```
+    """
+
     r: int
     s: int
 

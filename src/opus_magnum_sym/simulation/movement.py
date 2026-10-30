@@ -78,4 +78,3 @@ class Movement:
         for step in range(1, abs(self.rotation_steps) + 1):
             cells.update(cell.rotate_around(self.pivot, sign * step) for cell, _atom in self.atoms)
         return cells
-

@@ -1,8 +1,6 @@
 from itertools import combinations
 from typing import TYPE_CHECKING
 
-from icecream import ic
-
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import Atom, AtomType
 from opus_magnum_sym.elements.board.directions import Direction

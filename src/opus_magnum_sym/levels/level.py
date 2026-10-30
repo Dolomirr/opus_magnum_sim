@@ -5,22 +5,27 @@ Level bundles puzzle's starting conditions with its own runtime state,
 so levels run independently of one another.
 
 The high-level entry point is `Level.from_file` and `load_solution` + `run`;
-the spec can also be constructed in Python:
+the spec can also be constructed in Python.
+
+The main path is *unfixed* entrypoints (`entrypoints_fixed=False`, the default):
+the spec defines entrypoint shapes without positions and the solution places
+them through `level.place(...)`, like any other allowed blueprint. Fixed
+entrypoints (positions given in the spec) are supported too, see below.
 
 ```python
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board import Hex
 from opus_magnum_sym.elements.components import ComponentType, ShapeCell, ShapeTemplate
-from opus_magnum_sym.levels import Level, LevelSpec, entrance, exit
+from opus_magnum_sym.levels import Level, LevelSpec, mkentr, mkexit
 
 # Local two-cell straight entrance and exit shapes; each cell carries its atom type.
 entrance_shape = ShapeTemplate(
     name="entrance_straight_2",
     comp_type=ComponentType.ENTRANCE,
     cells=(
-        ShapeCell(offset=Hex(0, 0), kwargs={"atom_type": AtomType.SALT}),
-        ShapeCell(offset=Hex(-1, 1), kwargs={"atom_type": AtomType.SALT}),
+        ShapeCell(offset=Hex(0, 0), atom_type=AtomType.SALT),
+        ShapeCell(offset=Hex(-1, 1), atom_type=AtomType.SALT),
     ),
     links=((0, 1),),
 )
@@ -28,8 +33,8 @@ exit_shape = ShapeTemplate(
     name="exit_straight_2",
     comp_type=ComponentType.EXIT,
     cells=(
-        ShapeCell(offset=Hex(0, 0), kwargs={"atom_type": AtomType.SALT}),
-        ShapeCell(offset=Hex(-1, 1), kwargs={"atom_type": AtomType.SALT}),
+        ShapeCell(offset=Hex(0, 0), atom_type=AtomType.SALT),
+        ShapeCell(offset=Hex(-1, 1), atom_type=AtomType.SALT),
     ),
     links=((0, 1),),
 )
@@ -38,16 +43,19 @@ spec = LevelSpec(
     size=(6, 6),
     shapes=(entrance_shape, exit_shape),
     entrypoints=(
-        entrance("entrance_straight_2", Hex(2, 3), rotation=1),
-        exit("exit_straight_2", Hex(3, 2), rotation=2),
+        mkentr("entrance_straight_2"),
+        mkexit("exit_straight_2"),
     ),
     allowed_blueprints=frozenset({"arm"}),
     steps=30,
 )
 
 level = Level(spec)
-arm = level.place("arm", Hex(3, 3))
-(arm_id,) = arm.component_ids
+
+# The solution places the entrypoint shapes first, then the arm.
+level.place("entrance_straight_2", Hex(2, 3), rotation=1)
+level.place("exit_straight_2", Hex(3, 2), rotation=2)
+arm_id = level.place("arm", Hex(3, 3)).comp_id
 level.assign_step_action(arm_id, 1, StepActionType.GRAB)
 for step in (2, 3, 4, 5):
     level.assign_step_action(arm_id, step, StepActionType.ROTATE_CLW)
@@ -59,13 +67,15 @@ print(result.total_finished)    # 1
 print(result.finished_by_exit)  # {0: 1}
 ```
 
-Entrypoints may be fixed (the level places them, above) or solution-placed
-(`entrypoints_fixed 0`); see `levels/spec.py` and `interpreter/level_loader.py`.
+Fixed entrypoints move those placements into the spec: pass positions to
+`mkentr`/`mkexit` and set `entrypoints_fixed=True`; the solution then places
+only regular blueprints. Both modes are validated identically by `LevelSpec`
+and `Level.run` (see `levels/spec.py` and `interpreter/level_loader.py`).
 """
 
 from collections import Counter
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from opus_magnum_sym.elements.board import Hex
 from opus_magnum_sym.elements.components import ComponentType, default_registry
@@ -78,12 +88,23 @@ from opus_magnum_sym.simulation.errors import SimulationCollisionError, Simulati
 from opus_magnum_sym.simulation.placement import PlacementRecord
 from opus_magnum_sym.simulation.simulator import Simulator
 
+if TYPE_CHECKING:
+    from opus_magnum_sym.elements.actions.actions import StepActionType
+
 
 class Level:
     """
-    A level built from its `LevelSpec`, runnable independently of any other level.
+    Runnable level built from a `LevelSpec` or a `.oml` file.
 
-    Owns dedicated simulator so that ids, counters, and shape did not leak between them.
+    Owns a dedicated simulator and env, so component ids, result counters, and
+    registered blueprints never leak between levels. Place solution blueprints,
+    schedule step actions, then call `run()` for a `LevelResult`.
+
+    ```python
+    level = Level(spec)
+    arm_id = level.place(component_name, Hex(...)).comp_id
+    result = level.run()
+    ```
     """
 
     def __init__(self, spec: LevelSpec) -> None:
@@ -123,11 +144,37 @@ class Level:
         return cls(LevelLoader().load_file(path))
 
     # solution building
+    def place(self, name: str, pos: Hex, rotation: int = 0, **overrides) -> PlacementRecord:
+        """
+        Solution-stage API.
 
-    def place(self, name, pos, rotation: int = 0, **overrides) -> PlacementRecord:
+        Place component blueprint by name on board.
+
+        ```python
+        level.place(blueprint name, Hex(...), rotation=0)
+        ```
+
+        The returned `PlacementRecord` exposes `comp_id` for single-component
+        placements (manipulators), which is the id `assign_step_action` takes.
+
+        Multi-cell shapes (connectors, glyphs, entrypoint shapes) have no
+        assignable actions, so their `component_ids` are normally not needed.
+        """
         return self.sim.place(name, pos, rotation=rotation, **overrides)
 
-    def assign_step_action(self, comp_id: int, step: int, action) -> None:
+    def assign_step_action(self, comp_id: int, step: int, action: StepActionType) -> None:
+        """
+        Solution-stage API.
+
+        Assign action to a placed component at specific simulation step.
+
+        Only manipulators accept actions; connectors, glyphs, and entrypoints
+        have no assignable actions.
+
+        ```python
+        level.assign_step_action(comp_id, step, action)
+        ```
+        """
         self.sim.assign_step_action(comp_id, step, action)
 
     def remove_placement(self, record: PlacementRecord) -> None:

@@ -1,7 +1,5 @@
 from typing import TYPE_CHECKING
 
-from icecream import ic
-
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board import Board, Direction, Hex
@@ -160,7 +158,7 @@ class Simulator:
             group = [self._lookup(i) for i in self.connections.group_of(comp.idx)]
             comp.group = [c for c in group if c is not None and c.idx != comp.idx]  # ty: ignore
             links = [self._lookup(i) for i in self.connections.links_of(comp.idx)]
-            comp.links = [c for c in links if c is not None] # ty: ignore
+            comp.links = [c for c in links if c is not None]  # ty: ignore
 
     def connect_components(self, id_a: int, id_b: int) -> bool:
         comp_a = self._lookup(id_a)
@@ -344,9 +342,11 @@ class Simulator:
         placed_ids: list[int] = []
         try:
             for cell, template_cell in zip(cells, blueprint.cells, strict=True):
-                # Cell kwargs takes priority over placement overrides,
+                # Typed cell wins over placement overrides,
                 # so per-cell atom types are never overwritten by blanket placement `atom_type`.
-                kwargs = {**overrides, **template_cell.kwargs}
+                kwargs = dict(overrides)
+                if template_cell.atom_type is not None:
+                    kwargs["atom_type"] = template_cell.atom_type
                 before = set(self.components) | set(self.entrypoints)
                 self.add_component(cell, blueprint.comp_type, **kwargs)
                 (comp_id,) = (set(self.components) | set(self.entrypoints)) - before

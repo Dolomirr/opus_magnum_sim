@@ -1,7 +1,5 @@
 from typing import TYPE_CHECKING
 
-from icecream import ic
-
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.actions.base_action import ActionAssignmentError
 from opus_magnum_sym.elements.atoms.atom import Atom

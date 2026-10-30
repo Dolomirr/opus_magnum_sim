@@ -47,24 +47,35 @@ class EntrypointSpec:
             raise ValueError(f"EntrypointSpec rotation must be within 0..5, got {self.rotation}")
 
 
-def entrance(shape: str, pos: Hex | None = None, rotation: int = 0) -> EntrypointSpec:
+def mkentr(shape: str, pos: Hex | None = None, rotation: int = 0) -> EntrypointSpec:
     """
     Define an entrance entrypoint from a locally defined shape.
 
-    `pos` is `None` for solution-placed entrypoint (`entrypoints_fixed` false).
-    Atom types are carried by the shape's typed cells,
-    so no `atom_type` placeholder is required here.
+    A position makes the entrypoint fixed (`entrypoints_fixed=True`);
+    without one the solution must place the shape (`entrypoints_fixed=False`).
+
+    Atom types are defined by shape's typed cells, so no `atom_type` placeholder is needed.
+
+    ```python
+    mkentr(shape_template_name)                        # solution-placed
+    mkentr(shape_template_name, Hex(...), rotation=1)  # fixed
+    ```
     """
     return EntrypointSpec(kind=ComponentType.ENTRANCE, shape=shape, pos=pos, rotation=rotation)
 
 
-def exit(shape: str, pos: Hex | None = None, rotation: int = 0) -> EntrypointSpec:
+def mkexit(shape: str, pos: Hex | None = None, rotation: int = 0) -> EntrypointSpec:
     """
     Define an exit entrypoint from a locally defined shape.
 
-    `pos` is `None` for solution-placed entrypoint (`entrypoints_fixed` false).
-    Atom types are carried by the shape's typed cells,
-    so no `atom_type` placeholder is required here.
+    A position makes the entrypoint fixed (`entrypoints_fixed=True`);
+    without one the solution must place the shape (`entrypoints_fixed=False`).
+    Atom types are defined by the shape's typed cells, so no `atom_type` placeholder is needed.
+
+    ```python
+    mkexit("shape_template_name")                        # solution-placed
+    mkexit("shape_template_name", Hex(...), rotation=2)  # fixed
+    ```
     """
     return EntrypointSpec(kind=ComponentType.EXIT, shape=shape, pos=pos, rotation=rotation)
 
@@ -72,24 +83,68 @@ def exit(shape: str, pos: Hex | None = None, rotation: int = 0) -> EntrypointSpe
 @dataclass(frozen=True)
 class LevelSpec:
     """
+
+    ```python
+    LevelSpec(
+        size: tuple[int, int],
+        shapes: tuple[ShapeTemplate, ...],
+        entrypoints: tuple[EntrypointSpec, ...],
+        allowed_blueprints: frozenset[str] | set[str],
+        steps: int,
+        entrypoints_fixed: bool = False,
+        atom_types: frozenset[AtomType] = ...,
+        target: int | None = None
+    ) -> None
+    ```
+
     Immutable, validated description of a level's starting conditions.
 
     `shapes` holds the shape templates that entrypoints resolve against;
-    `allowed_blueprints` defines solution placements
-    It can allow either local shape (entrypoints) or built-in from global default registry (components/glyphs).
+    `allowed_blueprints` defines solution placements and may name local shapes
+        or built-ins from the global default registry (components/glyphs);
+        accepts `set` or `frozenset` but at runtime is normalized to frozenset.
+    `entrypoints_fixed` defaults to `False`, the main path: the solution places
+        entrypoint shapes. With `True` spec sets their `pos` and level places them.
     `target` is the per-exit delivery requirement; `None` (or `0`) disables early termination.
+
+    ```python
+    spec = LevelSpec(
+        size=(6, 6),
+        shapes=(entrance_shape, exit_shape),
+        entrypoints=(mkentr("entrance_straight_2"), mkexit("exit_straight_2")),
+        allowed_blueprints=frozenset({"arm"}),
+        steps=30,
+        entrypoints_fixed=False,
+    )
+    ```
     """
 
     size: tuple[int, int]
     shapes: tuple[ShapeTemplate, ...]
     entrypoints: tuple[EntrypointSpec, ...]
-    allowed_blueprints: frozenset[str]
+    allowed_blueprints: frozenset[str] | set[str]
     steps: int
-    entrypoints_fixed: bool = True
+    entrypoints_fixed: bool = False
     atom_types: frozenset[AtomType] = frozenset()
     target: int | None = None
 
     def __post_init__(self) -> None:
+        # normalize accepted input forms to the canonical immutable form
+        if not isinstance(self.allowed_blueprints, frozenset):
+            object.__setattr__(self, "allowed_blueprints", frozenset(self.allowed_blueprints))
+
+        self._validate_core()
+        self._validate_shapes()
+
+        shapes_by_name = {shape.name: shape for shape in self.shapes}
+        self._validate_entrypoints(shapes_by_name)
+        self._validate_allowed_blueprints(shapes_by_name)
+        self._validate_entrypoint_cells(shapes_by_name)
+
+    def _validate_core(self) -> None:
+        """
+        Board size, step limit, target and declared atom types.
+        """
         rows, cols = self.size
         if rows <= 0 or cols <= 0:
             raise ValueError(f"LevelSpec size must be positive, got {self.size!r}")
@@ -102,21 +157,26 @@ class LevelSpec:
                 raise ValueError(f"LevelSpec target must not be negative, got {self.target}")
             if self.target == 0:
                 object.__setattr__(self, "target", None)
+        if any(atom_type in _FORBIDDEN_ATOM_TYPES for atom_type in self.atom_types):
+            raise ValueError("LevelSpec atom_types must not include none or basic")
 
+    def _validate_shapes(self) -> None:
+        """
+        Unique shape names and valid typed-cell atom types.
+        """
         shape_names = [shape.name for shape in self.shapes]
         if len(set(shape_names)) != len(shape_names):
             raise ValueError("LevelSpec shape names must be unique")
-        shapes_by_name = {shape.name: shape for shape in self.shapes}
+        self._validate_typed_cells()
 
+    def _validate_entrypoints(self, shapes_by_name: dict[str, ShapeTemplate]) -> None:
+        """
+        Require one entrance and one exit; check every entrypoint against its local shape.
+        """
         if not any(ep.kind == ComponentType.ENTRANCE for ep in self.entrypoints):
             raise ValueError("LevelSpec requires at least one entrance")
         if not any(ep.kind == ComponentType.EXIT for ep in self.entrypoints):
             raise ValueError("LevelSpec requires at least one exit")
-
-        if any(atom_type in _FORBIDDEN_ATOM_TYPES for atom_type in self.atom_types):
-            raise ValueError("LevelSpec atom_types must not include none or basic")
-
-        self._validate_typed_cells()
 
         for ep in self.entrypoints:
             shape = shapes_by_name.get(ep.shape)
@@ -130,10 +190,15 @@ class LevelSpec:
                 raise ValueError(f"entrypoint {ep.shape!r} requires a position in fixed mode")
             if not self.entrypoints_fixed and ep.pos is not None:
                 raise ValueError(f"entrypoint {ep.shape!r} must not specify a position in unfixed mode")
-            if any("atom_type" not in cell.kwargs for cell in shape.cells) and ep.atom_type is None:
+            if any(cell.atom_type is None for cell in shape.cells) and ep.atom_type is None:
                 raise ValueError(f"entrypoint {ep.shape!r} requires atom_type because its shape has untyped cells")
             self._validate_declared_atom_types(ep, shape)
 
+    def _validate_allowed_blueprints(self, shapes_by_name: dict[str, ShapeTemplate]) -> None:
+        """
+        Reject allow-list names that resolve to neither local shape nor
+        registered blueprint, or if that name an unimplemented blueprint.
+        """
         for name in self.allowed_blueprints:
             blueprint = shapes_by_name.get(name)
             if blueprint is None:
@@ -144,38 +209,32 @@ class LevelSpec:
             if not blueprint.implemented:
                 raise ValueError(f"allowed blueprint {name!r} is not implemented")
 
-        if self.entrypoints_fixed:
-            occupied: set[Hex] = set()
-            for ep in self.entrypoints:
-                for cell in _entrypoint_cells(ep, shapes_by_name[ep.shape]):
-                    if not (0 <= cell.r < rows and 0 <= cell.s < cols):
-                        raise ValueError(f"entrypoint {ep.shape!r} cell ({cell.r}, {cell.s}) is out of bounds")
-                    if cell in occupied:
-                        raise ValueError(
-                            f"entrypoint {ep.shape!r} cell ({cell.r}, {cell.s}) overlaps another entrypoint"
-                        )
-                    occupied.add(cell)
+    def _validate_entrypoint_cells(self, shapes_by_name: dict[str, ShapeTemplate]) -> None:
+        """
+        In fixed mode, entrypoint cells must be in bounds and pairwise disjoint.
+        """
+        if not self.entrypoints_fixed:
+            return
+        rows, cols = self.size
+        occupied: set[Hex] = set()
+        for ep in self.entrypoints:
+            for cell in _entrypoint_cells(ep, shapes_by_name[ep.shape]):
+                if not (0 <= cell.r < rows and 0 <= cell.s < cols):
+                    raise ValueError(f"entrypoint {ep.shape!r} cell ({cell.r}, {cell.s}) is out of bounds")
+                if cell in occupied:
+                    raise ValueError(f"entrypoint {ep.shape!r} cell ({cell.r}, {cell.s}) overlaps another entrypoint")
+                occupied.add(cell)
 
     def _validate_typed_cells(self) -> None:
         """
-        Reject unknown typed-cell kwargs and non-`AtomType`/forbidden typed values.
-
-        `ShapeTemplate` does not validate `ShapeCell.kwargs`, so the level spec
-        is the layer that enforces typed-cell correctness.
+        Reject non-`AtomType` or forbidden `ShapeCell.atom_type` values.
         """
-        # ladders goes brrr
         for shape in self.shapes:
             for cell in shape.cells:
-                for key, value in cell.kwargs.items():
-                    if key == "atom_type":
-                        if not isinstance(value, AtomType) or value in _FORBIDDEN_ATOM_TYPES:
-                            raise ValueError(
-                                f"shape {shape.name!r} cell {cell.offset!r} has invalid atom_type {value!r}"
-                            )
-                    else:
-                        raise ValueError(
-                            f"shape {shape.name!r} cell {cell.offset!r} has unknown typed-cell parameter {key!r}"
-                        )
+                if cell.atom_type is None:
+                    continue
+                if not isinstance(cell.atom_type, AtomType) or cell.atom_type in _FORBIDDEN_ATOM_TYPES:
+                    raise ValueError(f"shape {shape.name!r} cell {cell.offset!r} has invalid atom_type {cell.atom_type!r}")
 
     def _validate_declared_atom_types(self, ep: EntrypointSpec, shape: ShapeTemplate) -> None:
         """
@@ -188,9 +247,8 @@ class LevelSpec:
         if ep.atom_type is not None:
             entrypoint_types.add(ep.atom_type)
         for cell in shape.cells:
-            atom_type = cell.kwargs.get("atom_type")
-            if isinstance(atom_type, AtomType):
-                entrypoint_types.add(atom_type)
+            if cell.atom_type is not None:
+                entrypoint_types.add(cell.atom_type)
         for atom_type in entrypoint_types:
             if atom_type not in self.atom_types:
                 raise ValueError(

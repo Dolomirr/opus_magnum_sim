@@ -1,5 +1,3 @@
-from icecream import ic
-
 from opus_magnum_sym.elements.board.hex import Hex
 
 

@@ -6,9 +6,9 @@ Placed `ShapeTemplate` exists at runtime as N primitive components
 connected through `ConnectionGraph`.
 """
 
-from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
+from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board.directions import Direction
 from opus_magnum_sym.elements.board.hex import Hex
 from opus_magnum_sym.elements.components.base_component import ComponentType
@@ -27,17 +27,61 @@ _SHAPE_COMPONENT_TYPES = frozenset(
 @dataclass(frozen=True)
 class ShapeCell:
     """
-    Single-hex cell in a`ShapeTemplate`.
+
+    ```python
+    cell = ShapeCell(
+        offset: Hex
+        atom_type: AtomType | None
+    ),
+    ```
+
+    Single-hex cell of a `ShapeTemplate`.
+
+    `offset` is relative to the shape's origin `Hex(0, 0)`.
+    `atom_type` marks a typed cell; untyped cells leave it `None`
+    and fall back to the entrypoint's `atom_type` at placement.
+
+    ```python
+    ShapeCell(offset=Hex(-1, 1), atom_type=AtomType.SALT),
+    ```
     """
 
     offset: Hex
-    kwargs: Mapping[str, object] = field(default_factory=dict)
+    atom_type: AtomType | None = None
 
 
 @dataclass(frozen=True)
 class ShapeTemplate:
     """
-    Multi-cell group of single-hex components with pre-wired links.
+
+    ```python
+    ShapeTemplate(
+        name: str,
+        comp_type: ComponentType,
+        cells: tuple[ShapeCell, ...],
+        links: tuple[tuple[int, int], ...],
+        implemented: bool = True,
+        allowed_rotations: frozenset[int] | None = None,
+    )
+    ```
+
+    Multi-cell blueprint: cells plus the links wired between them.
+
+    Used for entrypoint shapes and placeable linkable glyph groups. `links` holds
+    index pairs into `cells`, and linked cells must be adjacent on the hex grid.
+
+    ```python
+    straignt = ShapeTemplate(
+        name="entrance_straight_2",
+        comp_type=ComponentType.ENTRANCE,
+        cells=(
+            ShapeCell(offset=Hex(0, 0), atom_type=AtomType.SALT),
+            ShapeCell(offset=Hex(-1, 1), atom_type=AtomType.SALT),
+        ),
+        links=((0, 1),),
+    )
+    ```
+
     """
 
     name: str
@@ -172,8 +216,8 @@ def list_blueprints() -> list[dict]:
     return default_registry.list()
 
 
-def _beam(rotation: int, **kwargs) -> ShapeCell:
-    return ShapeCell(offset=Direction().from_rotation(rotation).apply(Hex(0, 0)), kwargs=kwargs)
+def _beam(rotation: int) -> ShapeCell:
+    return ShapeCell(offset=Direction().from_rotation(rotation).apply(Hex(0, 0)))
 
 
 def _y_template(

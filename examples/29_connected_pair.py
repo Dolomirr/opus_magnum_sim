@@ -48,10 +48,11 @@ def main():
         ),
         allowed_blueprints=frozenset({"arm"}),
         steps=30,
+        entrypoints_fixed=True,
     )
 
     level = Level(spec)
-    (arm_id,) = level.place("arm", Hex(3, 3)).component_ids
+    arm_id = level.place("arm", Hex(3, 3)).comp_id
 
     # Grab bonded pair, swing it four steps onto the exit, release.
     level.assign_step_action(arm_id, 1, StepActionType.GRAB)
