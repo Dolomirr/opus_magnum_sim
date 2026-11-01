@@ -98,6 +98,17 @@ def test_target_malformed_rejected():
         LevelLoader().load("target many\n" + LEVEL_TEXT)
 
 
+def test_cycling_directive_round_trip():
+    assert LevelLoader().load(LEVEL_TEXT).cycling is False
+    assert LevelLoader().load("cycling 1\n" + LEVEL_TEXT).cycling is True
+    assert LevelLoader().load("cycling 0\n" + LEVEL_TEXT).cycling is False
+
+
+def test_cycling_directive_rejects_bad_value():
+    with pytest.raises(LevelLoadError, match="cycling"):
+        LevelLoader().load("cycling 2\n" + LEVEL_TEXT)
+
+
 # --- new Stage 2 directives ---
 
 

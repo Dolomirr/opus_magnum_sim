@@ -110,6 +110,7 @@ class Level:
     def __init__(self, spec: LevelSpec) -> None:
         self.spec = spec
         self.sim = Simulator(spec.size, env=LevelEnv(), blueprints=default_registry.clone())
+        self.sim.cycling = spec.cycling
 
         for shape in spec.shapes:
             self.sim.blueprints.register(shape)

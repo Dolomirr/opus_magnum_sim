@@ -1,3 +1,4 @@
+from bisect import insort
 from typing import TYPE_CHECKING
 
 from opus_magnum_sym.elements.actions.actions import StepActionType
@@ -37,11 +38,18 @@ class Simulator:
         self.blueprints = blueprints if blueprints is not None else default_registry.clone()
         self.components: dict[int, Component] = {}
         self.entrypoints: dict[int, Component] = {}
+        # Execution order: component ids sorted by board position.
+        # Manipulators first, then entrypoints/glyphs,
+        # so the same board state steps identically,
+        # regardless of order in which components were added.
+        self._component_order: list[int] = []
+        self._entrypoint_order: list[int] = []
         self.connections = ConnectionGraph()
         self.step = 0
         self.collision: CollisionEvent | None = None
         self.placements: list[PlacementRecord] = []
         self.allowed_blueprints: set[str] | None = None
+        self.cycling = False
 
     def _verify_init_state(self):
         # TODO: create more granular verification if needed
@@ -69,10 +77,13 @@ class Simulator:
     def next_step(self):
         if self.step == 0:
             self._verify_init_state()
+        if self.cycling:
+            self._refresh_cycle_period()
 
         movements: list[Movement] = []
         try:
-            for comp in self.components.values():
+            for comp_id in self._component_order:
+                comp = self.components[comp_id]
                 # Mechanical collision: arm cannot move cells held by another arm.
                 # Recomputing per component means later arms see where
                 # earlier arms moved this step.
@@ -93,7 +104,10 @@ class Simulator:
         # (past event.progress/event.cell) instead of freezing mid-sweep.
         event = detect_collision(
             self.board,
-            [*self.components.values(), *self.entrypoints.values()],
+            [
+                *[self.components[i] for i in self._component_order],
+                *[self.entrypoints[i] for i in self._entrypoint_order],
+            ],
             movements,
             self.step,
         )
@@ -102,7 +116,8 @@ class Simulator:
             raise SimulationCollisionError(event)
 
         held_cells = self.held_cells()
-        for comp in self.entrypoints.values():
+        for comp_id in self._entrypoint_order:
+            comp = self.entrypoints[comp_id]
             if comp.type == ComponentType.ENTRANCE and comp.pos in held_cells:
                 continue
             comp.execute_step(self.board, self.step)
@@ -111,6 +126,32 @@ class Simulator:
 
         self.env.area.record_sweep(movements)
         self.env.area.record_atom_stops(self.board.atoms, held_cells)
+
+    def _refresh_cycle_period(self) -> None:
+        """
+        Recompute the shared loop period:
+        the longest program span (including gaps) across all components.
+        """
+        period = 1
+        for comp in self.components.values():
+            bounds = comp.cycle_bounds()
+            if bounds is not None:
+                period = max(period, bounds[1] - bounds[0] + 1)
+        for comp in self.components.values():
+            comp.cycling = self.cycling
+            comp.cycle_period = period
+
+    def _insert_ordered(
+        self,
+        order: list[int],
+        store: dict[int, Component],
+        comp: Component,
+    ) -> None:
+        """
+        Insert `comp.idx` into `order`,
+        keeping ids sorted by board position.
+        """
+        insort(order, comp.idx, key=lambda i: store[i].pos)
 
     def add_component(
         self,
@@ -126,6 +167,7 @@ class Simulator:
             raise SimulationRuntimeError(msg, step=self.step)
 
         comp.env = self.env
+        comp.cycling = self.cycling
 
         if comp_type in {
             ComponentType.ENTRANCE,
@@ -136,8 +178,10 @@ class Simulator:
             ComponentType.DUPLICATION_GLYPH,
         }:
             self.entrypoints[new_id] = comp
+            self._insert_ordered(self._entrypoint_order, self.entrypoints, comp)
         else:
             self.components[new_id] = comp
+            self._insert_ordered(self._component_order, self.components, comp)
 
         logger.info(
             "placed %s @ (%d, %d)",
@@ -197,10 +241,15 @@ class Simulator:
         self.components[comp_id].assign_step_action(step=step, action=action)
 
     def remove_component(self, comp_id: int) -> None:
-        comp = self.components.pop(comp_id, None) or self.entrypoints.pop(comp_id, None)
-        if comp is None:
-            msg = f"Component with id {comp_id} does not exist."
-            raise SimulationRuntimeError(msg, step=self.step)
+        comp = self.components.pop(comp_id, None)
+        if comp is not None:
+            self._component_order.remove(comp_id)
+        else:
+            comp = self.entrypoints.pop(comp_id, None)
+            if comp is None:
+                msg = f"Component with id {comp_id} does not exist."
+                raise SimulationRuntimeError(msg, step=self.step)
+            self._entrypoint_order.remove(comp_id)
         self.board.remove_component_cells(comp.footprint())
         self.connections.remove_component(comp_id)
         self.im.free(comp_id)
@@ -385,6 +434,8 @@ class Simulator:
         self.board.clear()
         self.components.clear()
         self.entrypoints.clear()
+        self._component_order.clear()
+        self._entrypoint_order.clear()
         self.connections = ConnectionGraph()
         self.step = 0
         self.collision = None

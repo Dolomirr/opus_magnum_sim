@@ -25,13 +25,14 @@ the pair runs, but it uses untyped `atom_type=basic` fallback.
 
 `27_level_typed.*` is the same delivery built with typed cells.
 
-## Current (40-45)
+## Current (40-46)
 
 Level + solution pairs:
 
 - `40_fixed_delivery.om[ls]`    - fixed entrypoints.
 - `41_unfixed_delivery.om[ls]`  - solution-placed entrypoints.
 - `44_target_delivery.om[ls]`   - `target` threshold and early termination.
+- `46_cycling.om[ls]`           - `cycling 1` program looping (arm delivers repeatedly).
 
 Python (`Level` API):
 
