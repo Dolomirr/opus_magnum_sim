@@ -1,0 +1,23 @@
+# Cycling demo solution: an arm that delivers repeatedly.
+#
+# With cycling enabled (see `examples/46_cycling.oml`) the 10-step program
+# loops: grab, swing four steps onto the exit, release, swing four steps
+# back to the entrance, and repeat.
+#
+# This is solution.
+# The level is defined in `examples/46_cycling.oml`.
+
+# Arm at (3,3); rotation 0 -> hand at (2,4), over the spawned molecule.
+place arm 3 3                       # id 4
+
+# One delivery loop.
+action 4 1 grab
+action 4 2 rotate_clw
+action 4 3 rotate_clw
+action 4 4 rotate_clw
+action 4 5 rotate_clw
+action 4 6 release
+action 4 7 rotate_cclw
+action 4 8 rotate_cclw
+action 4 9 rotate_cclw
+action 4 10 rotate_cclw

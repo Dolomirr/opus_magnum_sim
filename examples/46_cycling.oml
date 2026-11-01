@@ -1,0 +1,28 @@
+# Cycling demo: a program that loops instead of ending.
+#
+# `cycling 1` enables program looping: the shared period is the longest
+# program span across all components, and each component repeats its own
+# program from its first action step.
+#
+# The arm's 10-step program (grab -> swing to exit -> release -> swing back)
+# repeats forever, delivering one molecule per loop.
+#
+# This is level.
+# The solution is defined in `examples/46_cycling.oms`.
+
+size 6 6
+steps 32
+cycling 1
+
+# Entrypoint shapes are defined locally; each cell carries its atom type.
+shape entrance_straight_2 entrance cells=(0,0):salt,(-1,1):salt links=0-1
+shape exit_straight_2 exit cells=(0,0):salt,(-1,1):salt links=0-1
+
+# Entrance pair spawns a bonded 2-atom molecule.
+entrance entrance_straight_2 2 3 rotation=1
+
+# Exit pair consumes the molecule only if it covers both cells exactly.
+exit exit_straight_2 3 2 rotation=2
+
+# Blueprints available to the solution.
+allow arm
