@@ -35,8 +35,6 @@ class Enter(Component):
             board.place_atom(self.pos, Atom(self.atom_type))
             self.log_action("spawned", self.atom_type.name.lower(), self.pos)
 
-        # TODO: [@collision] currently if cell up-to-pair is occupied by foreign molecule silently fails.
-
         # Bond this entrance's atom to its directly-linked entrance partners only,
         # so branched shape bonds along its links instead of the whole group.
         # Execute sequentially, so the last spawner in a group completes every bond;
