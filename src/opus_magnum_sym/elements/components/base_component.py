@@ -67,6 +67,66 @@ class ComponentType(IntEnum):
 
 @dataclass
 class Component(ABC):
+    """
+    Base of every board component: arms, entrypoints, and glyphs.
+
+    Each component owns a sparse program - `step -> StepActionType` mapping
+    in `_programm` - assigned through `assign_step_action`.
+    `get_step_action` returns action scheduled for given step,
+    or `StepActionType.NONE` when none is.
+
+    Program cycling
+    ---------------
+    When `cycling` is enabled (per level via `LevelSpec.cycling`),
+    program loops instead of ending after its last action.
+    The loop is shared across all components and built in three steps:
+
+    1. The simulator computes one period for the whole level:
+        the longest program *span* (including gaps between actions).
+    2. Every program is extended to that length, padded with `NONE` as "tape filler".
+    3. Each component repeats its own program every `cycle_period` steps,
+       starting from its first action step; steps before it stay `NONE`.
+
+    A program's length counts the gap between its first and last action:
+
+    ```
+    [ * _ * ]   -> length 3
+    [ * * * ]   -> length 3
+    [ * _ _ * ] -> length 4
+    ```
+
+    For example seven components with the following programs assinged befere first step
+    (`*` = action, `_` = no action):
+
+    ```
+    C1 [ * * * * * ]
+    C2 [ * _ _ _ * ]
+    C3 [ * * ]
+    C4 [ _ * * ]
+    C5 [ _ _ * * * ]
+    C6 [ _ * * * * * ]
+    C7 [ _ _ _ _ _ _ * ]
+    ```
+
+    The longest span is 5 (C1, C2, C6), so the period is 5.
+    C1-C5 are padded to length 5;
+    C6 and C7 skip their leading empty steps before looping.
+    Full trace, with `|` marking one tape cycle:
+
+    ```
+    C1 [ |* * * * *|* * * * *|* * * * *|* * ]
+    C2 [ |* _ _ _ *|* _ _ _ *|* _ _ _ *|* _ ]
+    C3 [ |* * _ _ _|* * _ _ _|* * _ _ _|* * ]
+    C4 [ |_ * * _ _|_ * * _ _|_ * * _ _|_ * ]
+    C5 [ |_ _ * * *|_ _ * * *|_ _ * * *|_ _ ]
+    C6 [ |_ * * * * *|* * * * *|* * * * *|* ]
+    C7 [ |_ _ _ _ _ _ *|_ _ _ _ *|_ _ _ _ * ]
+    ```
+
+    Only components with assignable actions (arms) carry programs;
+    entrypoints and glyphs have empty programs and therefore never loop.
+    """
+
     idx: int
     pos: Hex
     type: ComponentType = ComponentType.EMPTY
