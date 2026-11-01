@@ -36,9 +36,8 @@
         - [x] Steps.
         - [x] Const per-component.
         - [x] (?) Used space.
-    - [ ] (?) Actual validation of level.
-    - [ ] (?) Conditions to mark level as correct / finished.
-        - Partially ready ig?
+    - [x] ~(?) Actual validation of level.~
+    - [x] Conditions to mark level as correct / finished.
 - [ ] (?) Add more planned components.
     - [ ] Multi-arm (snowflake) manipulators
     - [ ] Conveyor belt
@@ -52,15 +51,16 @@
 - [ ] Ensure determinism.
     - Currently two hard-coded phases + dict iteration cause simultaneous actions to race
     - [ ] Define resolution order
-- [ ] Program Flow.
-    - [ ] Programs cycle (optional, or just the simplest, without epicycles)
+- [x] Program Flow.
+    - [x] Programs cycle (optional, or just the simplest, without epicycles)
     - [x] (?) Possibly only level-wise max steps limit [Level completion logic]
-    - [ ] Indef step levels
-    - [ ] Stale level detection (then no steps limit is given)
-    - [ ] Ensure entranced does not bypass held in manipulators atoms
+    - [x] ~Ensure entranced does not bypass held in manipulators atoms~
+    - [x] ~Stale level detection (then no steps limit is given)~
+    - [ ] (?) Indef step levels
 - [ ] Exporting board state on steps via python structure (full serialization).
     - [ ] Allow full from- and to- dict creation of `ShapeTemplate` (e.g. `ShapeCell`)
 - [ ] Optimization.
+    - [ ] Decrease python-level raises and catches amount.
     - [x] Headless simulation.
         - [x] ~Parallel?~
         - [x] Keep-alive on python-object level daemon.
@@ -74,12 +74,13 @@
     - (?) Nim - Can be nice, but not transparent.
 - [x] Proper logging.
 - [ ] Cleanup.
-    - [ ] (?) Block low-level API
-    - [ ] Remove global state level (switch REPL to instanced)
     - [x] Organize `examples/`
-- [ ] ~(?) Interactive simulation control via keyboard (is it really needed?).~
-    - [ ] ~(?) Keyboard control.~
-    - [ ] (?) Interactive adding.
+    - [x] ~(?) Block low-level API~
+    - [x] ~Remove global state level (switch REPL to instanced)~
+    - ...
+- [x] ~(?) Interactive simulation control via keyboard (is it really needed?).~
+    - [x] ~(?) Keyboard control.~
+    - [x] (?) Interactive adding.
     - [x] Ctrl+C handling
 - [x] ! Library usage [Level completion logic]
 - [ ] In-between step visualization (optional ig).
