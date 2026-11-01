@@ -49,6 +49,7 @@ class Simulator:
         self.collision: CollisionEvent | None = None
         self.placements: list[PlacementRecord] = []
         self.allowed_blueprints: set[str] | None = None
+        self.cycling = False
 
     def _verify_init_state(self):
         # TODO: create more granular verification if needed
@@ -76,6 +77,8 @@ class Simulator:
     def next_step(self):
         if self.step == 0:
             self._verify_init_state()
+        if self.cycling:
+            self._refresh_cycle_period()
 
         movements: list[Movement] = []
         try:
@@ -124,6 +127,20 @@ class Simulator:
         self.env.area.record_sweep(movements)
         self.env.area.record_atom_stops(self.board.atoms, held_cells)
 
+    def _refresh_cycle_period(self) -> None:
+        """
+        Recompute the shared loop period:
+        the longest program span (including gaps) across all components.
+        """
+        period = 1
+        for comp in self.components.values():
+            bounds = comp.cycle_bounds()
+            if bounds is not None:
+                period = max(period, bounds[1] - bounds[0] + 1)
+        for comp in self.components.values():
+            comp.cycling = self.cycling
+            comp.cycle_period = period
+
     def _insert_ordered(
         self,
         order: list[int],
@@ -150,6 +167,7 @@ class Simulator:
             raise SimulationRuntimeError(msg, step=self.step)
 
         comp.env = self.env
+        comp.cycling = self.cycling
 
         if comp_type in {
             ComponentType.ENTRANCE,

@@ -108,6 +108,8 @@ class LevelSpec:
     `entrypoints_fixed` defaults to `False`, the main path: the solution places
         entrypoint shapes. With `True` spec sets their `pos` and level places them.
     `target` is the per-exit delivery requirement; `None` (or `0`) disables early termination.
+    `cycling` enables program looping (default `False`):
+        every component repeats its program, with shared period being the longest program span.
 
     ```python
     spec = LevelSpec(
@@ -129,6 +131,7 @@ class LevelSpec:
     entrypoints_fixed: bool = False
     atom_types: frozenset[AtomType] = frozenset()
     target: int | None = None
+    cycling: bool = False
 
     def __post_init__(self) -> None:
         # normalize accepted input forms to the canonical immutable form

@@ -72,13 +72,18 @@ class Component(ABC):
     type: ComponentType = ComponentType.EMPTY
     rotation: int = 0
     env: LevelEnv = field(default=default_env)
+    cycling: bool = field(default=False, init=False, repr=False, compare=False)
+    """Program cycling, enabled per level"""
+    cycle_period: int = field(default=1, init=False, repr=False, compare=False)
+    """Shared cycling loop period computed across all components by simulator before each step."""
     _programm: defaultdict[int, StepActionType] = field(
         default_factory=lambda: defaultdict(lambda: StepActionType.NONE),
     )
-    # Cells held by other arms during step; for mechanical collision checks.
     _blocked_cells: set[Hex] = field(default_factory=set, init=False, repr=False, compare=False)
-    # Rotations recorded this step, for the post-action slide collision pass.
+    """Cells held by other arms during step; for mechanical collision checks."""
+
     _movement_recorder: list[Movement] | None = field(default=None, init=False, repr=False, compare=False)
+    """Rotations recorded this step, for the post-action slide collision pass."""
     _step: int = field(default=0, init=False, repr=False, compare=False)
 
     def assign_step_action(self, step: int, action: StepActionType):
@@ -108,12 +113,29 @@ class Component(ABC):
         """Assigned step actions (step -> action), excluding empty slots."""
         return {step: action for step, action in self._programm.items() if action != StepActionType.NONE}
 
+    def cycle_bounds(self) -> tuple[int, int] | None:
+        """
+        (first, last) assigned action step, or `None` when the program is empty.
+        """
+        if not self._programm:
+            return None
+        return min(self._programm), max(self._programm)
+
     def get_step_action(self, step) -> StepActionType:
         """
         Provides action assigned to given step.
-        If none is assigned returns `StepActionType.NONE`
+        If none is assigned returns `StepActionType.NONE`.
+
+        With cycling enabled the program repeats every `cycle_period` steps,
+        starting from its first action step; steps before it stay `NONE`.
         """
-        return self._programm.get(step, StepActionType.NONE)
+        if not self.cycling:
+            return self._programm.get(step, StepActionType.NONE)
+        bounds = self.cycle_bounds()
+        if bounds is None or step < bounds[0]:
+            return StepActionType.NONE
+        first = bounds[0]
+        return self._programm.get(first + (step - first) % self.cycle_period, StepActionType.NONE)
 
     @abstractmethod
     def _execute(self, board: Board, action_type: StepActionType) -> None: ...
