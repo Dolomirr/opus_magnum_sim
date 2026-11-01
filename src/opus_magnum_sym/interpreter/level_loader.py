@@ -13,6 +13,7 @@ target <n>
 allow <name> [name ...]
 atom_types <type> [type ...]
 entrypoints_fixed 0|1
+cycling 0|1
 shape <name> <kind> cells=(r,s)[:type],(r,s)[:type],... links=i-j[,i-j...] [rotations=0,1,...]
 entrance <shape> [<r> <s>] [rotation=k] [atom_type=<type>]
 exit <shape> [<r> <s>] [rotation=k] [atom_type=<type>]
@@ -30,6 +31,9 @@ exit <shape> [<r> <s>] [rotation=k] [atom_type=<type>]
   non-empty, every entrypoint type (fallback and typed cells) must be a member.
 - `target` sets the per-exit delivery requirement (optional; `0` or omitted disables
   early termination).
+- `cycling 1` makes every component's program loop: the shared period is the longest
+  program span (including gaps), and each component repeats
+  its own program from its first action step.
 
 The strict loader aborts on the first invalid line; `LevelSpec` performs further validation.
 """
@@ -113,6 +117,7 @@ class LevelLoader:
         self._entrypoints: list[EntrypointSpec] = []
         self._entrypoints_fixed = True
         self._atom_types: frozenset[AtomType] = frozenset()
+        self._cycling = False
         self._dispatch = {
             "size": self._handle_size,
             "steps": self._handle_steps,
@@ -123,6 +128,7 @@ class LevelLoader:
             "exit": self._handle_exit,
             "atom_types": self._handle_atom_types,
             "entrypoints_fixed": self._handle_entrypoints_fixed,
+            "cycling": self._handle_cycling,
         }
 
     def load_file(self, path: str | Path) -> LevelSpec:
@@ -187,6 +193,11 @@ class LevelLoader:
         if len(args) != 1 or args[0] not in ("0", "1"):
             raise ValueError("entrypoints_fixed expects 0 or 1")
         self._entrypoints_fixed = args[0] == "1"
+
+    def _handle_cycling(self, args: list[str]) -> None:
+        if len(args) != 1 or args[0] not in ("0", "1"):
+            raise ValueError("cycling expects 0 or 1")
+        self._cycling = args[0] == "1"
 
     def _handle_shape(self, args: list[str]) -> None:
         if len(args) < 4:
@@ -282,6 +293,7 @@ class LevelLoader:
                 entrypoints_fixed=self._entrypoints_fixed,
                 atom_types=self._atom_types,
                 target=self._target,
+                cycling=self._cycling,
             )
         except ValueError as exc:
             raise LevelLoadError(str(exc)) from exc
