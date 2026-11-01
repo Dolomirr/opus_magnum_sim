@@ -572,6 +572,43 @@ def test_two_arms_cannot_move_into_same_cell():
     assert sim.step == 2
 
 
+def test_arm_race_resolved_by_position_not_placement_order():
+    # Two arms race for (2,3). Execution order is board-position based, so the
+    # lower-position arm must win regardless of which arm was placed first.
+    def winner(add_low_first: bool) -> Hex:
+        sim = Simulator((6, 6))
+        sim.add_component(Hex(0, 0), ComponentType.ENTRANCE, atom_type=AtomType.BASIC)
+        sim.add_component(Hex(5, 5), ComponentType.EXIT, atom_type=AtomType.BASIC)
+        low = (Hex(2, 2), 0)  # hand -> (1,3), rotates CLW into (2,3)
+        high = (Hex(2, 4), 3)  # hand -> (3,3), rotates CLW into (2,3)
+        if add_low_first:
+            sim.add_component(low[0], ComponentType.ARM, rotation=low[1])
+            sim.add_component(high[0], ComponentType.ARM, rotation=high[1])
+        else:
+            sim.add_component(high[0], ComponentType.ARM, rotation=high[1])
+            sim.add_component(low[0], ComponentType.ARM, rotation=low[1])
+
+        low_id = next(i for i, c in sim.components.items() if c.pos == low[0])
+        high_id = next(i for i, c in sim.components.items() if c.pos == high[0])
+
+        sim.board.place_atom(Hex(1, 3), Atom(AtomType.BASIC))
+        sim.board.place_atom(Hex(3, 3), Atom(AtomType.BASIC))
+        sim.assign_step_action(low_id, 1, StepActionType.GRAB)
+        sim.assign_step_action(high_id, 1, StepActionType.GRAB)
+        sim.assign_step_action(low_id, 2, StepActionType.ROTATE_CLW)
+        sim.assign_step_action(high_id, 2, StepActionType.ROTATE_CLW)
+
+        sim.next_step()  # step 0: spawn
+        sim.next_step()  # step 1: grab
+        with pytest.raises(SimulationCollisionError):
+            sim.next_step()  # step 2: race for (2,3)
+
+        return Hex(2, 2) if sim.components[low_id].rotation == 1 else Hex(2, 4)
+
+    assert winner(True) == Hex(2, 2)
+    assert winner(False) == Hex(2, 2)
+
+
 def _sweep_sim():
     """Entrance (0,0), exit (5,5), arm A (id 2) at (3,3) length 2 rotation 0 (hand -> (1,5))."""
     sim = Simulator((7, 7))
