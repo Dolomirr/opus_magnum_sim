@@ -3,9 +3,9 @@ Structured results of running a level.
 """
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import Enum, auto
 
-from opus_magnum_sym.simulation.collision import CollisionEvent
+from opus_magnum_sym.simulation.collision import CollisionCategory, CollisionEvent
 
 
 class LevelStatus(Enum):
@@ -14,12 +14,40 @@ class LevelStatus(Enum):
     FAILED = "failed"
 
 
+class FailureReason(Enum):
+    """
+    Why run ended without solving the level.
+
+    Covers hard failures: collisions, entrypoint mismatches, runtime faults
+    and soft failure: reaching the step limit without meeting `target`.
+    """
+
+    COLLISION_SWEEP_ATOM = auto()
+    COLLISION_SWEEP_ARM_BASE = auto()
+    COLLISION_SWEEP_MOVING = auto()
+    COLLISION_ENDPOINT_OVERLAP = auto()
+    ENTRYPOINT_MISSING = auto()
+    ENTRYPOINT_DUPLICATE = auto()
+    SIMULATION_ERROR = auto()
+    UNEXPECTED_ERROR = auto()
+    TIMEOUT = auto()
+
+
+COLLISION_REASON: dict[CollisionCategory, FailureReason] = {
+    CollisionCategory.SWEEP_ATOM: FailureReason.COLLISION_SWEEP_ATOM,
+    CollisionCategory.SWEEP_ARM_BASE: FailureReason.COLLISION_SWEEP_ARM_BASE,
+    CollisionCategory.SWEEP_MOVING: FailureReason.COLLISION_SWEEP_MOVING,
+    CollisionCategory.ENDPOINT_OVERLAP: FailureReason.COLLISION_ENDPOINT_OVERLAP,
+}
+
+
 @dataclass
 class LevelError:
     """
     Description of exception that ended run early.
 
     `exception` is the exception class name
+    `reason` classifies the failure for programmatic handling
     `step` the step at which it fired (or `None` when unknown)
     `collision` is the collision event, if any
     """
@@ -27,6 +55,7 @@ class LevelError:
     exception: str
     message: str
     step: int | None
+    reason: FailureReason
     collision: CollisionEvent | None = None
 
 
@@ -57,6 +86,33 @@ class LevelResult:
     cost: int = 0
     area: int = 0
     solved: bool = True
+
+    @property
+    def reason(self) -> FailureReason | None:
+        """
+        Classified failure reason, or `None` when the run solved the level.
+
+        A run that exhausted its step limit without meeting `target` reports
+        `FailureReason.TIMEOUT` even though its `status` stays `COMPLETED`.
+        """
+        if self.error is not None:
+            return self.error.reason
+        if not self.solved:
+            return FailureReason.TIMEOUT
+        return None
+
+    @property
+    def failed_step(self) -> int | None:
+        """
+        Step at which the run failed, or `None` when it solved the level.
+
+        For a timeout this is the final executed step (the step limit).
+        """
+        if self.error is not None:
+            return self.error.step
+        if not self.solved:
+            return self.steps
+        return None
 
     @property
     def metrics(self) -> dict[str, int | None]:

@@ -82,7 +82,7 @@ from opus_magnum_sym.elements.components import ComponentType, default_registry
 from opus_magnum_sym.elements.env.level_env import LevelEnv
 from opus_magnum_sym.interpreter.sim_interpreter import SimInterpreter
 from opus_magnum_sym.levels.cost import component_cost
-from opus_magnum_sym.levels.result import LevelError, LevelResult, LevelStatus
+from opus_magnum_sym.levels.result import COLLISION_REASON, FailureReason, LevelError, LevelResult, LevelStatus
 from opus_magnum_sym.levels.spec import LevelSpec
 from opus_magnum_sym.simulation.errors import SimulationCollisionError, SimulationRuntimeError
 from opus_magnum_sym.simulation.placement import PlacementRecord
@@ -229,6 +229,7 @@ class Level:
                 exception=type(err).__name__,
                 message=str(err),
                 step=err.step,
+                reason=COLLISION_REASON[err.event.category],
                 collision=err.event,
             )
         except SimulationRuntimeError as err:
@@ -237,6 +238,7 @@ class Level:
                 exception=type(err).__name__,
                 message=str(err),
                 step=err.step,
+                reason=FailureReason.SIMULATION_ERROR,
             )
         except Exception as err:
             status = LevelStatus.ERROR
@@ -244,6 +246,7 @@ class Level:
                 exception=type(err).__name__,
                 message=str(err),
                 step=self.sim.step,
+                reason=FailureReason.UNEXPECTED_ERROR,
             )
 
         return self._snapshot(status, error)
@@ -258,10 +261,12 @@ class Level:
         for shape, expected in spec_counts.items():
             actual = placed_counts[shape]
             if actual != expected:
+                reason = FailureReason.ENTRYPOINT_DUPLICATE if actual > expected else FailureReason.ENTRYPOINT_MISSING
                 return LevelError(
                     exception="EntrypointPlacementError",
                     message=f"entrypoint shape {shape!r}: expected {expected} placement(s), found {actual}",
                     step=0,
+                    reason=reason,
                 )
         return None
 
