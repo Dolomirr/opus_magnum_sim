@@ -107,11 +107,12 @@ In this casae the solution only places regular blueprints.
 from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board import Hex
-from opus_magnum_sym.elements.components import ComponentType, ShapeCell, ShapeTemplate
+from opus_magnum_sym.elements.components import BPN, ComponentType, ShapeCell, ShapeTemplate
 from opus_magnum_sym.levels import Level, LevelSpec, mkentr, mkexit
 from opus_magnum_sym.simulation.placement import PlacementRecord
 
 __all__ = [
+    "BPN",
     "AtomType",
     "ComponentType",
     "Hex",

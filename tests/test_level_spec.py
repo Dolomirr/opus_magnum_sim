@@ -8,7 +8,7 @@ from fixtures.shapes import entrance_straight_2, exit_straight_2, straight_shape
 
 from opus_magnum_sym.elements.atoms.atom import AtomType
 from opus_magnum_sym.elements.board import Hex
-from opus_magnum_sym.elements.components import ComponentType, ShapeCell, ShapeTemplate
+from opus_magnum_sym.elements.components import BPN, ComponentType, ShapeCell, ShapeTemplate
 from opus_magnum_sym.levels import EntrypointSpec
 
 
@@ -145,6 +145,12 @@ def test_allow_list_resolves_local_shape():
         allowed_blueprints=frozenset({"local_connector", "arm"}),
     )
     assert "local_connector" in spec.allowed_blueprints
+
+
+def test_allow_list_accepts_blueprint_name_enum():
+    spec = make_level_spec(allowed_blueprints={BPN.ARM})
+    assert "arm" in spec.allowed_blueprints
+    assert BPN.ARM in spec.allowed_blueprints
 
 
 def test_entrypoint_cell_out_of_bounds():
