@@ -263,19 +263,17 @@ class Simulator:
         **overrides,
     ) -> PlacementRecord:
         if isinstance(name, ShapeTemplate):
-            try:
-                self.blueprints.register(name)
-            except ValueError as exc:
+            if name.name in self.blueprints:
                 msg = f"Blueprint {name.name!r} is already registered."
-                raise SimulationRuntimeError(msg, step=self.step) from exc
+                raise SimulationRuntimeError(msg, step=self.step)
+            self.blueprints.register(name)
             blueprint = name
             name = name.name
         else:
-            try:
-                blueprint = self.blueprints.get(name)
-            except KeyError as exc:
+            if name not in self.blueprints:
                 msg = f"Unknown blueprint {name!r}."
-                raise SimulationRuntimeError(msg, step=self.step) from exc
+                raise SimulationRuntimeError(msg, step=self.step)
+            blueprint = self.blueprints.get(name)
         if not blueprint.implemented:
             msg = f"Blueprint {name!r} is not implemented and cannot be placed."
             raise SimulationRuntimeError(msg, step=self.step)
@@ -376,6 +374,24 @@ class Simulator:
             msg = f"Blueprint {name!r} does not allow rotation {rotation}."
             raise SimulationRuntimeError(msg, step=self.step)
 
+        # Shape cells become single-cell components:
+        # entrypoints/connectors take `atom_type`, salt transmuter does not.
+        # Validate overrides up beforehead so the placement loop cannot fail part-way,
+        # without `try ... except` overhead.
+        accepts_atom_type = blueprint.comp_type is not ComponentType.SALT_TRANSMUTER
+        allowed_overrides = {"atom_type"} if accepts_atom_type else set()
+        invalid = set(overrides) - allowed_overrides
+        if invalid:
+            msg = f"Blueprint {name!r} does not accept overrides: {sorted(invalid)}."
+            raise SimulationRuntimeError(msg, step=self.step)
+        if (
+            accepts_atom_type
+            and any(cell.atom_type is None for cell in blueprint.cells)
+            and "atom_type" not in overrides
+        ):
+            msg = f"Blueprint {name!r} has untyped cells and requires atom_type fallback."
+            raise SimulationRuntimeError(msg, step=self.step)
+
         cells = [
             Hex(
                 pos.r + cell.offset.rotate_around(Hex(0, 0), rotation).r,
@@ -389,21 +405,16 @@ class Simulator:
                 raise SimulationRuntimeError(msg, step=self.step)
 
         placed_ids: list[int] = []
-        try:
-            for cell, template_cell in zip(cells, blueprint.cells, strict=True):
-                # Typed cell wins over placement overrides,
-                # so per-cell atom types are never overwritten by blanket placement `atom_type`.
-                kwargs = dict(overrides)
-                if template_cell.atom_type is not None:
-                    kwargs["atom_type"] = template_cell.atom_type
-                before = set(self.components) | set(self.entrypoints)
-                self.add_component(cell, blueprint.comp_type, **kwargs)
-                (comp_id,) = (set(self.components) | set(self.entrypoints)) - before
-                placed_ids.append(comp_id)
-        except Exception:
-            for comp_id in reversed(placed_ids):
-                self.remove_component(comp_id)
-            raise
+        for cell, template_cell in zip(cells, blueprint.cells, strict=True):
+            # Typed cell takes proirity over placement overrides,
+            # so per-cell atom types are never overwritten by blanket placement `atom_type`.
+            kwargs = dict(overrides)
+            if template_cell.atom_type is not None:
+                kwargs["atom_type"] = template_cell.atom_type
+            before = set(self.components) | set(self.entrypoints)
+            self.add_component(cell, blueprint.comp_type, **kwargs)
+            (comp_id,) = (set(self.components) | set(self.entrypoints)) - before
+            placed_ids.append(comp_id)
 
         links: list[tuple[int, int]] = []
         for a, b in blueprint.links:
