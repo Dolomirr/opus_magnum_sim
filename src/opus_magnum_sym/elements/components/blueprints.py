@@ -220,6 +220,12 @@ class BlueprintRegistry:
         except KeyError as exc:
             raise KeyError(f"unknown blueprint: {name!r}") from exc
 
+    def __contains__(self, name: str) -> bool:
+        """
+        `name in registry` membership test, so callers can check before `get`.
+        """
+        return name in self._blueprints
+
     def list(self) -> BlueprintListing:
         """
         Return one entry per registered blueprint: name and implemented flag.

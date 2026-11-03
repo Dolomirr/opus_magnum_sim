@@ -10,7 +10,7 @@ from opus_magnum_sym.elements.actions.actions import StepActionType
 from opus_magnum_sym.elements.atoms.atom import Atom, AtomType
 from opus_magnum_sym.elements.board import Direction, Hex
 from opus_magnum_sym.elements.components import ComponentType, ShapeCell, ShapeTemplate, get_blueprint
-from opus_magnum_sym.levels import EntrypointSpec, Level, LevelSpec, LevelStatus
+from opus_magnum_sym.levels import EntrypointSpec, FailureReason, Level, LevelSpec, LevelStatus
 from opus_magnum_sym.simulation.collision import CollisionCategory
 from opus_magnum_sym.simulation.errors import SimulationRuntimeError
 
@@ -118,6 +118,8 @@ def test_collision_yields_error_with_metadata():
     assert event.category is CollisionCategory.SWEEP_ATOM
     assert event.cell == Hex(2, 5)
     assert event.owner_ids == (arm_id,)
+    assert result.reason is FailureReason.COLLISION_SWEEP_ATOM
+    assert result.failed_step == 2
     # No steps are incremented past the failing step.
     assert result.steps == 2
 
@@ -249,6 +251,8 @@ def test_unfixed_missing_exit_fails(tmp_path):
     assert result.error is not None
     assert result.error.step == 0
     assert result.steps == 0
+    assert result.reason is FailureReason.ENTRYPOINT_MISSING
+    assert result.failed_step == 0
     # The simulator is untouched: no step advanced, nothing consumed.
     assert level.sim.step == 0
     assert level.sim.env.results.total_finished() == 0
@@ -268,6 +272,7 @@ def test_unfixed_duplicate_exit_fails(tmp_path):
 
     assert result.status is LevelStatus.FAILED
     assert result.steps == 0
+    assert result.reason is FailureReason.ENTRYPOINT_DUPLICATE
     assert level.sim.step == 0
 
 
@@ -319,3 +324,75 @@ def test_typed_exit_demo_end_to_end():
     assert result.error is None
     assert result.total_finished == 1
     assert result.finished_by_exit == {0: 1}
+
+
+# --- failure reason metadata ---
+
+
+def test_timeout_reason_when_target_unmet():
+    level = Level(make_level_spec(target=2))
+    # No arm is scheduled, so nothing is delivered before the step limit.
+    result = level.run()
+
+    assert result.status is LevelStatus.COMPLETED
+    assert result.error is None
+    assert result.solved is False
+    assert result.reason is FailureReason.TIMEOUT
+    assert result.failed_step == 30
+
+
+# --- place_entrypoint ---
+
+
+def test_place_entrypoint_by_index():
+    level = Level(_unfixed_straight_spec())
+    assert level.entrypoint_count == 2
+
+    entrance = level.place_entrypoint(0, Hex(2, 3), rotation=1)
+    exit_record = level.place_entrypoint(1, Hex(3, 2), rotation=2)
+
+    assert entrance.blueprint == "entrance_straight_2"
+    assert exit_record.blueprint == "exit_straight_2"
+    # Multi-cell shapes expose every component id on the record.
+    assert len(entrance.component_ids) == 2
+    assert len(exit_record.component_ids) == 2
+
+    result = level.run()
+    assert result.status is LevelStatus.COMPLETED  # entrypoints placed, nothing delivered
+    assert result.total_finished == 0
+
+
+def test_place_entrypoint_rejects_out_of_range_index():
+    level = Level(_unfixed_straight_spec())
+
+    with pytest.raises(IndexError, match="out of range"):
+        level.place_entrypoint(2, Hex(2, 3))
+
+
+def test_place_entrypoint_rejects_fixed_mode():
+    level = Level(make_level_spec())
+
+    with pytest.raises(SimulationRuntimeError, match="unfixed"):
+        level.place_entrypoint(0, Hex(2, 3))
+
+
+# --- reset ---
+
+
+def test_reset_restores_fresh_state():
+    level = Level(make_level_spec())
+    _schedule_delivery(level)
+    assert level.run().total_finished == 1
+
+    level.reset()
+
+    # Run state cleared, fixed entrypoints re-placed, no solution components.
+    assert level.sim.step == 0
+    assert level.sim.env.results.total_finished() == 0
+    assert len(level.sim.components) == 0
+    assert len(level.sim.entrypoints) == 4  # entrance pair + exit pair
+    assert len(level.sim.placements) == 2  # only the two fixed entrypoint records
+
+    # A fresh solution can be scheduled and run on the same instance.
+    _schedule_delivery(level)
+    assert level.run().total_finished == 1

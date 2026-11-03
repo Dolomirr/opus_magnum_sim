@@ -82,7 +82,7 @@ from opus_magnum_sym.elements.components import ComponentType, default_registry
 from opus_magnum_sym.elements.env.level_env import LevelEnv
 from opus_magnum_sym.interpreter.sim_interpreter import SimInterpreter
 from opus_magnum_sym.levels.cost import component_cost
-from opus_magnum_sym.levels.result import LevelError, LevelResult, LevelStatus
+from opus_magnum_sym.levels.result import COLLISION_REASON, FailureReason, LevelError, LevelResult, LevelStatus
 from opus_magnum_sym.levels.spec import LevelSpec
 from opus_magnum_sym.simulation.errors import SimulationCollisionError, SimulationRuntimeError
 from opus_magnum_sym.simulation.placement import PlacementRecord
@@ -118,21 +118,29 @@ class Level:
         self._entrypoint_records: list[PlacementRecord] = []
         self._exit_records: list[PlacementRecord] = []
 
-        if spec.entrypoints_fixed:
-            for ep in spec.entrypoints:
+        self._init_entrypoints()
+
+    def _init_entrypoints(self) -> None:
+        """
+        Set the solution allow-list and (fixed mode) place the entrypoints.
+
+        Shared by `__init__` and `reset` so both produce identical post-construction state.
+        In fixed mode entrypoint shapes must be placed *before* `allowed_blueprints` is set,
+        because they are not part of the solution allow-list.
+        """
+        if self.spec.entrypoints_fixed:
+            self.sim.allowed_blueprints = None
+            for ep in self.spec.entrypoints:
                 record = self.sim.place(ep.shape, cast(Hex, ep.pos), rotation=ep.rotation, atom_type=ep.atom_type)
                 self._entrypoint_records.append(record)
                 if ep.kind is ComponentType.EXIT:
                     self._exit_records.append(record)
-
-            # Check solution placements only after entrypoints are on the board;
-            # entrypoint shapes are *not* part of the allow-list.
-            self.sim.allowed_blueprints = set(spec.allowed_blueprints)
+            self.sim.allowed_blueprints = set(self.spec.allowed_blueprints)
         else:
             # Entrypoints are solution-placed:
             # make their shapes placeable alongside regular allow-list.
-            entrypoint_shapes = {ep.shape for ep in spec.entrypoints}
-            self.sim.allowed_blueprints = set(spec.allowed_blueprints) | entrypoint_shapes
+            entrypoint_shapes = {ep.shape for ep in self.spec.entrypoints}
+            self.sim.allowed_blueprints = set(self.spec.allowed_blueprints) | entrypoint_shapes
 
     # AAA.
     @classmethod
@@ -163,6 +171,47 @@ class Level:
         """
         return self.sim.place(name, pos, rotation=rotation, **overrides)
 
+    @property
+    def entrypoint_count(self) -> int:
+        """
+        Number of spec entrypoints, for indexing `place_entrypoint`.
+        """
+        return len(self.spec.entrypoints)
+
+    def place_entrypoint(self, entrypoint_index: int, pos: Hex, rotation: int | None = None) -> PlacementRecord:
+        """
+        Solution-stage API for unfixed entrypoints.
+
+        Place the entrypoint defined at `entrypoint_index` at `pos`.
+        Shape, atom-type fallback and default rotation come from the
+        spec; `rotation` overrides the spec's when given.
+
+        ```python
+        entrance_id = level.place_entrypoint(entrypoint_index, Hex(...), rotation=...)
+        ```
+
+        Returns the `PlacementRecord`: `record.component_ids` holds every
+        component id the entrypoint shape created, and single-cell entrypoints
+        also expose `record.comp_id`.
+
+        Only valid in unfixed mode; fixed entrypoints are placed at build time
+        and cannot be re-placed through the solution API.
+        """
+        if self.spec.entrypoints_fixed:
+            raise SimulationRuntimeError(
+                "entrypoints are fixed and already placed; place_entrypoint is for unfixed levels",
+                step=self.sim.step,
+            )
+        if not 0 <= entrypoint_index < len(self.spec.entrypoints):
+            raise IndexError(
+                f"entrypoint_index {entrypoint_index} out of range for {len(self.spec.entrypoints)} entrypoints"
+            )
+        ep = self.spec.entrypoints[entrypoint_index]
+        if rotation is None:
+            rotation = ep.rotation
+        overrides = {"atom_type": ep.atom_type} if ep.atom_type is not None else {}
+        return self.sim.place(ep.shape, pos, rotation=rotation, **overrides)
+
     def assign_step_action(self, comp_id: int, step: int, action: StepActionType) -> None:
         """
         Solution-stage API.
@@ -185,6 +234,20 @@ class Level:
         SimInterpreter(self.sim).load_file(path)
 
     # running
+
+    def reset(self) -> None:
+        """
+        Return the level to its freshly-constructed state.
+
+        Clears the board, solution placements, scheduled actions, links, step
+        counter, and result/area trackers (fresh ids included), then re-places
+        fixed entrypoints. Equivalent to building a new `Level(self.spec)`, so a
+        single instance can be reused across solutions or RL episodes.
+        """
+        self.sim.reset()
+        self._entrypoint_records = []
+        self._exit_records = []
+        self._init_entrypoints()
 
     def run(self, steps: int | None = None) -> LevelResult:
         """
@@ -229,6 +292,7 @@ class Level:
                 exception=type(err).__name__,
                 message=str(err),
                 step=err.step,
+                reason=COLLISION_REASON[err.event.category],
                 collision=err.event,
             )
         except SimulationRuntimeError as err:
@@ -237,6 +301,7 @@ class Level:
                 exception=type(err).__name__,
                 message=str(err),
                 step=err.step,
+                reason=FailureReason.SIMULATION_ERROR,
             )
         except Exception as err:
             status = LevelStatus.ERROR
@@ -244,6 +309,7 @@ class Level:
                 exception=type(err).__name__,
                 message=str(err),
                 step=self.sim.step,
+                reason=FailureReason.UNEXPECTED_ERROR,
             )
 
         return self._snapshot(status, error)
@@ -258,10 +324,12 @@ class Level:
         for shape, expected in spec_counts.items():
             actual = placed_counts[shape]
             if actual != expected:
+                reason = FailureReason.ENTRYPOINT_DUPLICATE if actual > expected else FailureReason.ENTRYPOINT_MISSING
                 return LevelError(
                     exception="EntrypointPlacementError",
                     message=f"entrypoint shape {shape!r}: expected {expected} placement(s), found {actual}",
                     step=0,
+                    reason=reason,
                 )
         return None
 
