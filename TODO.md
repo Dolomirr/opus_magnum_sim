@@ -38,6 +38,9 @@
         - [x] (?) Used space.
     - [x] ~(?) Actual validation of level.~
     - [x] Conditions to mark level as correct / finished.
+    - [ ] (!) Add ability to check with solution from `.oml` and visualize generated solution.
+        - [ ] Check how does solution beeing generated in case of fixed/unfixed placement.
+        - [ ] Check if `validate` actually checks `.oms` against `.oml` correctly.
 - [ ] (?) Add more planned components.
     - [ ] Multi-arm (snowflake) manipulators
     - [ ] Conveyor belt
