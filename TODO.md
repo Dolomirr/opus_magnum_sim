@@ -71,6 +71,8 @@
     - [ ] Prepare for static structures.
         - [x] ~Atoms store as limited pre-allocated array (since board is not infinite) with ids.~
         - Classify what cannot be handled statically.
+        - [ ] Lower dynamic allocations.
+        - [ ] Parallelization should be per-level (single level is forcefully sequential)
         - ...
     - (?) Numba (most probably) - Need to consider warm-ups and optimization control.
     - (?) C+- - Ah shiiit here we go again...
