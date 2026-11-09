@@ -3,7 +3,8 @@ from typing import NamedTuple
 
 class Hex(NamedTuple):
     """
-    Board coordinate: row `r` and column `s` on the pointy-top odd-r hex grid.
+    Board coordinate: row `r` and column `s` in axial coordinates
+    (pointy-top, rectangular storage, uniform parity-free neighbor offsets).
 
     ```python
     Hex(1, 3)
