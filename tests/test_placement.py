@@ -251,6 +251,47 @@ def test_length_override_bounds():
     assert sim.components[cid].hand_length == 3
 
 
+@pytest.mark.parametrize("length", range(2, 7))
+def test_fixed_length_arm_defaults_to_spec_length(length):
+    sim = _make_sim()
+    record = sim.place(f"arm_l{length}", Hex(3, 3))
+    (cid,) = record.component_ids
+    comp = sim.components[cid]
+    assert comp.hand_length == length
+    assert comp.get_hand_pos == Direction().from_rotation(0).apply(Hex(3, 3), length)
+
+
+def test_arm_l3_defaults_to_ring_3():
+    sim = _make_sim()
+    record = sim.place("arm_l3", Hex(4, 4), rotation=2)
+    (cid,) = record.component_ids
+    comp = sim.components[cid]
+    assert comp.hand_length == 3
+    assert comp.get_hand_pos == Direction.H5.apply(Hex(4, 4), 3)
+
+
+@pytest.mark.parametrize("length", range(2, 7))
+def test_fixed_length_arm_accepts_only_exact_length(length):
+    sim = _make_sim()
+    with pytest.raises(SimulationRuntimeError, match="length"):
+        sim.place(f"arm_l{length}", Hex(3, 3), length=length - 1)
+    with pytest.raises(SimulationRuntimeError, match="length"):
+        sim.place(f"arm_l{length}", Hex(3, 3), length=length + 1)
+    record = sim.place(f"arm_l{length}", Hex(3, 3), length=length)
+    (cid,) = record.component_ids
+    assert sim.components[cid].hand_length == length
+
+
+def test_default_length_unchanged_for_one_based_arms():
+    sim = _make_sim()
+    arm = sim.place("arm", Hex(3, 3))
+    piston = sim.place("arm_piston", Hex(5, 5))
+    (arm_id,) = arm.component_ids
+    (piston_id,) = piston.component_ids
+    assert sim.components[arm_id].hand_length == 1
+    assert sim.components[piston_id].hand_length == 1
+
+
 def test_spec_field_override_rejected():
     sim = _make_sim()
     with pytest.raises(SimulationRuntimeError, match="arm_count"):

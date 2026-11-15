@@ -80,7 +80,7 @@ examples/               # Numbered .oms/.oml examples + high-level lib-use demos
 
 ## 4. Coordinate System
 
-The board is a **pointy-top hex grid** using an **"odd-r" horizontal layout** with axial offset coordinates `(r, s)`.
+The board is a **pointy-top hex grid** using **axial coordinates** `(r, s)` stored in a rectangular array. It renders as a rhombus (each row shifted half a cell right of the previous) — **not** an odd-r offset layout; neighbor offsets are uniform and parity-free.
 
 - `r` = row, `s` = column.
 - Adjacent directions are encoded in `elements/board/directions.py` as `Direction.H1`, `H3`, `H5`, `H7`, `H9`, `H11`.

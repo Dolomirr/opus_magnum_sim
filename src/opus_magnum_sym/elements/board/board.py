@@ -16,7 +16,9 @@ if TYPE_CHECKING:
 # TODO switch to either bool return or error raising
 class Board:
     r"""
-    Board is poity-top hexagonal plane ("odd-r" horizontal layout) with axial offset coordinates (r, s).
+    Board is pointy-top hexagonal plane with axial coordinates (r, s) stored in a rectangular grid.
+    It renders as a rhombus (each row shifted half a cell right of the previous), not the brick
+    pattern of an odd-r offset layout - neighbor offsets are uniform and parity-free.
 
        row(r)
     col(s)─┼─►    0       1      2

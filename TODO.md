@@ -38,6 +38,9 @@
         - [x] (?) Used space.
     - [x] ~(?) Actual validation of level.~
     - [x] Conditions to mark level as correct / finished.
+    - [ ] (!) Add ability to check with solution from `.oml` and visualize generated solution.
+        - [ ] Check how does solution beeing generated in case of fixed/unfixed placement.
+        - [ ] Check if `validate` actually checks `.oms` against `.oml` correctly.
 - [ ] (?) Add more planned components.
     - [ ] Multi-arm (snowflake) manipulators
     - [ ] Conveyor belt
@@ -68,6 +71,8 @@
     - [ ] Prepare for static structures.
         - [x] ~Atoms store as limited pre-allocated array (since board is not infinite) with ids.~
         - Classify what cannot be handled statically.
+        - [ ] Lower dynamic allocations.
+        - [ ] Parallelization should be per-level (single level is forcefully sequential)
         - ...
     - (?) Numba (most probably) - Need to consider warm-ups and optimization control.
     - (?) C+- - Ah shiiit here we go again...
