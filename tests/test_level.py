@@ -239,6 +239,48 @@ def test_unfixed_happy_path(tmp_path):
     assert result.finished_by_exit == {0: 1}
 
 
+def test_unfixed_arm_l2_delivery(tmp_path):
+    """A DSL `place arm_l2` line runs without a length override: the part carries the length."""
+    spec = LevelSpec(
+        size=(6, 6),
+        shapes=(
+            _single_cell_shape("entrance_1", ComponentType.ENTRANCE),
+            _single_cell_shape("exit_1", ComponentType.EXIT),
+        ),
+        entrypoints=(
+            EntrypointSpec(kind=ComponentType.ENTRANCE, shape="entrance_1", atom_type=AtomType.SALT),
+            EntrypointSpec(kind=ComponentType.EXIT, shape="exit_1", atom_type=AtomType.SALT),
+        ),
+        allowed_blueprints=frozenset({"arm_l2"}),
+        steps=10,
+        entrypoints_fixed=False,
+    )
+    level = Level(spec)
+    # Ring-2 hand starts on the entrance (1,5); four swings land it on the exit (3,1).
+    solution = tmp_path / "arm_l2.oms"
+    solution.write_text(
+        "place entrance_1 1 5 atom_type=salt\n"
+        "place exit_1 3 1 atom_type=salt\n"
+        "place arm_l2 3 3\n"
+        "action 2 1 grab\n"
+        "action 2 2 rotate_clw\n"
+        "action 2 3 rotate_clw\n"
+        "action 2 4 rotate_clw\n"
+        "action 2 5 rotate_clw\n"
+        "action 2 6 release\n"
+    )
+    level.load_solution(solution)
+
+    assert level.sim.components[2].hand_length == 2
+
+    result = level.run()
+
+    assert result.status is LevelStatus.COMPLETED
+    assert result.error is None
+    assert result.total_finished == 1
+    assert result.finished_by_exit == {0: 1}
+
+
 def test_unfixed_missing_exit_fails(tmp_path):
     level = Level(_unfixed_straight_spec())
     solution = tmp_path / "missing_exit.oms"
