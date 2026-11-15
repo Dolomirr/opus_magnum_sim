@@ -313,7 +313,9 @@ class Simulator:
                 msg = f"{key!r} is defined by blueprint {name!r} and cannot be overridden at placement."
                 raise SimulationRuntimeError(msg, step=self.step)
 
-        length = overrides.get("length", 1)
+        # Default to the part's own length so fixed-length specs
+        # place correctly without override.
+        length = overrides.setdefault("length", blueprint.min_length)
         if not blueprint.min_length <= length <= blueprint.max_length:
             msg = (
                 f"length {length} out of bounds for blueprint {name!r}: "

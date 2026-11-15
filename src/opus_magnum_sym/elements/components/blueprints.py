@@ -185,6 +185,11 @@ class BPN(StrEnum):
     ARM_DOUBLE = "arm_double"
     ARM_TRIPLE = "arm_triple"
     ARM_HEX = "arm_hex"
+    ARM_L2 = "arm_l2"
+    ARM_L3 = "arm_l3"
+    ARM_L4 = "arm_l4"
+    ARM_L5 = "arm_l5"
+    ARM_L6 = "arm_l6"
     CONNECTOR_STRAIGHT_2 = "connector_straight_2"
     CONNECTOR_TRI = "connector_tri"
     CONNECTOR_TRI_ODD = "connector_tri_odd"
@@ -323,5 +328,11 @@ for _spec in (
     ManipulatorSpec("arm_double", 2, False, 1, 6, implemented=False),
     ManipulatorSpec("arm_triple", 3, False, 1, 6, implemented=False),
     ManipulatorSpec("arm_hex", 6, False, 1, 6, implemented=False),
+    # Fixed-length parts: the length is the blueprint, not a placement override.
+    ManipulatorSpec("arm_l2", 1, False, 2, 2, implemented=True),
+    ManipulatorSpec("arm_l3", 1, False, 3, 3, implemented=True),
+    ManipulatorSpec("arm_l4", 1, False, 4, 4, implemented=True),
+    ManipulatorSpec("arm_l5", 1, False, 5, 5, implemented=True),
+    ManipulatorSpec("arm_l6", 1, False, 6, 6, implemented=True),
 ):
     register_blueprint(_spec)
