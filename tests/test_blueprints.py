@@ -115,6 +115,15 @@ class TestBuiltins:
         assert (spec.min_length, spec.max_length) == (1, 3)
         assert spec.implemented is True
 
+    @pytest.mark.parametrize("length", range(2, 7))
+    def test_fixed_length_arms(self, length):
+        spec = get_blueprint(f"arm_l{length}")
+        assert isinstance(spec, ManipulatorSpec)
+        assert spec.arm_count == 1
+        assert spec.extendable is False
+        assert (spec.min_length, spec.max_length) == (length, length)
+        assert spec.implemented is True
+
     def test_all_builtins_listed(self):
         names = {entry["name"] for entry in list_blueprints()}
         expected = {
@@ -126,6 +135,11 @@ class TestBuiltins:
             "arm_double",
             "arm_triple",
             "arm_hex",
+            "arm_l2",
+            "arm_l3",
+            "arm_l4",
+            "arm_l5",
+            "arm_l6",
         }
         assert expected <= names
 
